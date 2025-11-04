@@ -1,7 +1,7 @@
 <?php
 
 
-namespace WonderGame\EsUtility\Task;
+namespace BasicHub\EsCore\Task;
 
 use EasySwoole\Task\AbstractInterface\TaskInterface;
 

@@ -1,12 +1,12 @@
 <?php
 
-namespace WonderGame\EsUtility\Consumer;
+namespace BasicHub\EsCore\Consumer;
 
 use EasySwoole\Component\Process\AbstractProcess;
 use EasySwoole\EasySwoole\Trigger;
 use EasySwoole\Redis\Redis;
 use EasySwoole\RedisPool\RedisPool;
-use WonderGame\EsUtility\EventMainServerCreate;
+use BasicHub\EsCore\EventMainServerCreate;
 
 /**
  * @extends AbstractProcess;

@@ -1,6 +1,6 @@
 <?php
 
-namespace WonderGame\EsUtility\Notify\Feishu\Message;
+namespace BasicHub\EsCore\Notify\Feishu\Message;
 
 class Text extends Base
 {

@@ -1,7 +1,7 @@
 <?php
 
 
-namespace WonderGame\EsUtility\Common\Languages;
+namespace BasicHub\EsCore\Common\Languages;
 
 use EasySwoole\I18N\AbstractDictionary;
 

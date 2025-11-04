@@ -2,7 +2,7 @@
 
 namespace Tests\Common\Tree;
 
-use WonderGame\EsUtility\Common\Classes\Tree;
+use BasicHub\EsCore\Common\Classes\Tree;
 
 /**
  * php easyswoole phpunit tests/Common/Tree/GetHomePage.php

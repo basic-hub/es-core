@@ -1,6 +1,6 @@
 <?php
 
-namespace WonderGame\EsUtility\Common\CloudLib\Storage;
+namespace BasicHub\EsCore\Common\CloudLib\Storage;
 
 interface StorageInterface
 {

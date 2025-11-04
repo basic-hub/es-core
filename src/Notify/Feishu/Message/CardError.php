@@ -1,11 +1,11 @@
 <?php
 
-namespace WonderGame\EsUtility\Notify\Feishu\Message;
+namespace BasicHub\EsCore\Notify\Feishu\Message;
 
 /**
  * Class CardError
  * @document https://open.feishu.cn/cardkit/editor?cardId=AAqHDSfEv3SKm&cardLocale=zh_cn
- * @package WonderGame\EsUtility\Notify\Feishu\Message
+ * @package BasicHub\EsCore\Notify\Feishu\Message
  */
 class CardError extends Base
 {

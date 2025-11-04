@@ -1,6 +1,6 @@
 <?php
 
-namespace WonderGame\EsUtility\Common\CloudLib\Dns;
+namespace BasicHub\EsCore\Common\CloudLib\Dns;
 
 /**
  * @document https://help.aliyun.com/zh/dns/api-alidns-2015-01-09-adddomainrecord?spm=a2c4g.11186623.0.0.46d771f2uzjqYA

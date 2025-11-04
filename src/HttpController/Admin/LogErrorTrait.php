@@ -1,6 +1,6 @@
 <?php
 
-namespace WonderGame\EsUtility\HttpController\Admin;
+namespace BasicHub\EsCore\HttpController\Admin;
 
 trait LogErrorTrait
 {

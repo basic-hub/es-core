@@ -1,6 +1,6 @@
 <?php
 
-namespace WonderGame\EsUtility\HttpTracker;
+namespace BasicHub\EsCore\HttpTracker;
 
 use EasySwoole\Component\Di;
 use EasySwoole\Http\Message\Status;

@@ -1,10 +1,10 @@
 <?php
 
-namespace WonderGame\EsUtility\Model\Admin;
+namespace BasicHub\EsCore\Model\Admin;
 
 
 use EasySwoole\ORM\AbstractModel;
-use WonderGame\EsUtility\Model\BaseModelTrait;
+use BasicHub\EsCore\Model\BaseModelTrait;
 
 trait GameModelTrait
 {

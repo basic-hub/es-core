@@ -1,6 +1,6 @@
 <?php
 
-namespace WonderGame\EsUtility\Common\CloudLib\Dns;
+namespace BasicHub\EsCore\Common\CloudLib\Dns;
 
 interface DnsInterface
 {

@@ -1,6 +1,6 @@
 <?php
 
-namespace WonderGame\EsUtility\Common\CloudLib\Cdn;
+namespace BasicHub\EsCore\Common\CloudLib\Cdn;
 
 use AlibabaCloud\SDK\Cdn\V20180510\Cdn;
 use AlibabaCloud\SDK\Cdn\V20180510\Models\PushObjectCacheRequest;

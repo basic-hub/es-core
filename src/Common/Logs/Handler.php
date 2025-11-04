@@ -1,6 +1,6 @@
 <?php
 
-namespace WonderGame\EsUtility\Common\Logs;
+namespace BasicHub\EsCore\Common\Logs;
 
 use EasySwoole\Log\LoggerInterface;
 

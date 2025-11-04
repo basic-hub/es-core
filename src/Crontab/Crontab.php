@@ -1,7 +1,7 @@
 <?php
 
 
-namespace WonderGame\EsUtility\Crontab;
+namespace BasicHub\EsCore\Crontab;
 
 use Cron\CronExpression;
 use EasySwoole\Component\AtomicManager;
@@ -10,9 +10,9 @@ use EasySwoole\EasySwoole\Task\TaskManager;
 use EasySwoole\EasySwoole\Trigger;
 use EasySwoole\Task\AbstractInterface\TaskInterface;
 use EasySwoole\Utility\File;
-use WonderGame\EsUtility\Crontab\Driver\Interfaces;
-use WonderGame\EsUtility\Crontab\Driver\Mysql;
-use WonderGame\EsUtility\Task\Crontab as CrontabTemplate;
+use BasicHub\EsCore\Crontab\Driver\Interfaces;
+use BasicHub\EsCore\Crontab\Driver\Mysql;
+use BasicHub\EsCore\Task\Crontab as CrontabTemplate;
 
 class Crontab extends AbstractCronTask
 {

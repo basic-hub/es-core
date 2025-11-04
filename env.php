@@ -10,7 +10,7 @@ return [
         // 记录日志的级别
         'level' => \EasySwoole\Log\LoggerInterface::LOG_LEVEL_DEBUG,
         // 自定义日志处理器
-        'handler' => new \WonderGame\EsUtility\Common\Logs\Handler(),
+        'handler' => new \BasicHub\EsCore\Common\Logs\Handler(),
         'logConsole' => ! is_env('produce'),
         'displayConsole' => true,
         'ignoreCategory' => [],

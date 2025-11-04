@@ -1,9 +1,9 @@
 <?php
 
-namespace WonderGame\EsUtility\Crontab\Driver;
+namespace BasicHub\EsCore\Crontab\Driver;
 
 use EasySwoole\Mysqli\QueryBuilder;
-use WonderGame\EsUtility\Common\Classes\Mysqli;
+use BasicHub\EsCore\Common\Classes\Mysqli;
 
 /**
  * 依赖配置

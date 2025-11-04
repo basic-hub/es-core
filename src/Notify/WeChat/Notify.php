@@ -1,12 +1,12 @@
 <?php
 
-namespace WonderGame\EsUtility\Notify\WeChat;
+namespace BasicHub\EsCore\Notify\WeChat;
 
 use EasySwoole\WeChat\Factory;
 use EasySwoole\WeChat\OfficialAccount\Application as OfficialAccount;
-use WonderGame\EsUtility\Notify\Interfaces\ConfigInterface;
-use WonderGame\EsUtility\Notify\Interfaces\MessageInterface;
-use WonderGame\EsUtility\Notify\Interfaces\NotifyInterface;
+use BasicHub\EsCore\Notify\Interfaces\ConfigInterface;
+use BasicHub\EsCore\Notify\Interfaces\MessageInterface;
+use BasicHub\EsCore\Notify\Interfaces\NotifyInterface;
 
 class Notify implements NotifyInterface
 {

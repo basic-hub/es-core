@@ -1,8 +1,8 @@
 <?php
 
-namespace WonderGame\EsUtility\Common\Exception;
+namespace BasicHub\EsCore\Common\Exception;
 
-use WonderGame\EsUtility\Common\Http\Code;
+use BasicHub\EsCore\Common\Http\Code;
 
 /**
  * 同步失败异常

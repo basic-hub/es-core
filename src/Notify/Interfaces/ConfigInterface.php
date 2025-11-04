@@ -1,6 +1,6 @@
 <?php
 
-namespace WonderGame\EsUtility\Notify\Interfaces;
+namespace BasicHub\EsCore\Notify\Interfaces;
 
 interface ConfigInterface
 {

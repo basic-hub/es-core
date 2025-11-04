@@ -1,6 +1,6 @@
 <?php
 
-namespace WonderGame\EsUtility\Common\CloudLib\Cdn;
+namespace BasicHub\EsCore\Common\CloudLib\Cdn;
 
 use EasySwoole\Spl\SplBean;
 

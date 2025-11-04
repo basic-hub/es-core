@@ -1,6 +1,6 @@
 <?php
 
-namespace WonderGame\EsUtility\Common\CloudLib\Email;
+namespace BasicHub\EsCore\Common\CloudLib\Email;
 
 use EasySwoole\Spl\SplBean;
 

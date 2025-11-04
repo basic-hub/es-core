@@ -1,9 +1,9 @@
 <?php
 
-namespace WonderGame\EsUtility\Notify\DingTalk\Message;
+namespace BasicHub\EsCore\Notify\DingTalk\Message;
 
 use EasySwoole\Spl\SplBean;
-use WonderGame\EsUtility\Notify\Interfaces\MessageInterface;
+use BasicHub\EsCore\Notify\Interfaces\MessageInterface;
 
 abstract class Base extends SplBean implements MessageInterface
 {

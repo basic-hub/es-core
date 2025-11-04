@@ -1,6 +1,6 @@
 <?php
 
-namespace WonderGame\EsUtility\Common\OrmCache;
+namespace BasicHub\EsCore\Common\OrmCache;
 
 trait Events
 {

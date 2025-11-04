@@ -1,10 +1,10 @@
 <?php
 
-namespace WonderGame\EsUtility\Notify\Feishu\Message;
+namespace BasicHub\EsCore\Notify\Feishu\Message;
 
 use EasySwoole\HttpClient\HttpClient;
 use EasySwoole\Spl\SplBean;
-use WonderGame\EsUtility\Notify\Interfaces\MessageInterface;
+use BasicHub\EsCore\Notify\Interfaces\MessageInterface;
 
 abstract class Base extends SplBean implements MessageInterface
 {

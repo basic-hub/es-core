@@ -1,11 +1,11 @@
 <?php
 
-namespace WonderGame\EsUtility\Notify\DingTalk;
+namespace BasicHub\EsCore\Notify\DingTalk;
 
 use EasySwoole\HttpClient\HttpClient;
-use WonderGame\EsUtility\Notify\Interfaces\ConfigInterface;
-use WonderGame\EsUtility\Notify\Interfaces\MessageInterface;
-use WonderGame\EsUtility\Notify\Interfaces\NotifyInterface;
+use BasicHub\EsCore\Notify\Interfaces\ConfigInterface;
+use BasicHub\EsCore\Notify\Interfaces\MessageInterface;
+use BasicHub\EsCore\Notify\Interfaces\NotifyInterface;
 
 class Notify implements NotifyInterface
 {

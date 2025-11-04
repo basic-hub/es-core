@@ -1,10 +1,10 @@
 <?php
 
-namespace WonderGame\EsUtility\Common\Logs;
+namespace BasicHub\EsCore\Common\Logs;
 
 use EasySwoole\Spl\SplBean;
 use Swoole\Coroutine;
-use WonderGame\EsUtility\Common\Classes\DateUtils;
+use BasicHub\EsCore\Common\Classes\DateUtils;
 
 class Item extends SplBean
 {

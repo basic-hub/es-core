@@ -8,7 +8,7 @@
  * 已弃用！！在后面的版本中可能会移除此类，请使用新版 TablePart 类  -- 20251022 Joyboo
  */
 
-namespace WonderGame\EsUtility\Common\Classes;
+namespace BasicHub\EsCore\Common\Classes;
 
 use EasySwoole\Mysqli\QueryBuilder;
 use EasySwoole\Spl\SplBean;

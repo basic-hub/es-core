@@ -1,6 +1,6 @@
 <?php
 
-namespace WonderGame\EsUtility\Common\Http;
+namespace BasicHub\EsCore\Common\Http;
 
 use EasySwoole\Http\Message\Status;
 
