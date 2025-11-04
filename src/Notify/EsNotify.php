@@ -1,11 +1,11 @@
 <?php
 
-namespace WonderGame\EsUtility\Notify;
+namespace BasicHub\EsCore\Notify;
 
 use EasySwoole\Component\Singleton;
-use WonderGame\EsUtility\Notify\Interfaces\ConfigInterface;
-use WonderGame\EsUtility\Notify\Interfaces\MessageInterface;
-use WonderGame\EsUtility\Notify\Interfaces\NotifyInterface;
+use BasicHub\EsCore\Notify\Interfaces\ConfigInterface;
+use BasicHub\EsCore\Notify\Interfaces\MessageInterface;
+use BasicHub\EsCore\Notify\Interfaces\NotifyInterface;
 
 class EsNotify
 {
@@ -21,7 +21,7 @@ class EsNotify
     public function register(ConfigInterface $Config, string $type, string $name = 'default')
     {
         if (isset($this->container[$type][$name])) {
-            throw new \Exception("EsUtility name already exists: $type.$name");
+            throw new \Exception("EsCore name already exists: $type.$name");
         }
 
         $this->container[$type][$name] = $Config->getNotifyClass();

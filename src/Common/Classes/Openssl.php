@@ -1,6 +1,6 @@
 <?php
 
-namespace WonderGame\EsUtility\Common\Classes;
+namespace BasicHub\EsCore\Common\Classes;
 
 /**
  * 可动态实例化RSA加密类

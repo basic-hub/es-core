@@ -1,6 +1,6 @@
 <?php
 
-namespace WonderGame\EsUtility\Consumer;
+namespace BasicHub\EsCore\Consumer;
 
 use EasySwoole\ORM\AbstractModel;
 use EasySwoole\Redis\Redis;

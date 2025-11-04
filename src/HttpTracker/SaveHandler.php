@@ -1,6 +1,6 @@
 <?php
 
-namespace WonderGame\EsUtility\HttpTracker;
+namespace BasicHub\EsCore\HttpTracker;
 
 use EasySwoole\Redis\Redis;
 use EasySwoole\RedisPool\RedisPool;

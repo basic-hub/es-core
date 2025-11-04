@@ -3,7 +3,7 @@
 namespace Tests\Common;
 
 use PHPUnit\Framework\TestCase;
-use WonderGame\EsUtility\Notify\EsNotify;
+use BasicHub\EsCore\Notify\EsNotify;
 
 class TablePart extends TestCase
 {
@@ -30,7 +30,7 @@ class TablePart extends TestCase
     protected function getClass()
     {
         // 测试用，实际可不传config
-        return new \WonderGame\EsUtility\Common\Classes\TablePart([
+        return new \BasicHub\EsCore\Common\Classes\TablePart([
             'mysqlPool' => '',
             'mysqlConfig' => $this->mysqlConfig
         ]);
@@ -45,7 +45,7 @@ class TablePart extends TestCase
     public function testCheckPartFeishu()
     {
         config('ES_NOTIFY.driver', 'feishu');
-        $Feishu = new \WonderGame\EsUtility\Notify\Feishu\Config($this->feishuWebhook);
+        $Feishu = new \BasicHub\EsCore\Notify\Feishu\Config($this->feishuWebhook);
         // 注册一个机器人
         EsNotify::getInstance()->register($Feishu, 'feishu');
 
@@ -64,7 +64,7 @@ class TablePart extends TestCase
     public function testCheckPartDingtalk()
     {
         config('ES_NOTIFY.driver', 'dingtalk');
-        $DingTalk = new \WonderGame\EsUtility\Notify\DingTalk\Config($this->dingtalkWebhook);
+        $DingTalk = new \BasicHub\EsCore\Notify\DingTalk\Config($this->dingtalkWebhook);
         // 注册一个机器人
         EsNotify::getInstance()->register($DingTalk, 'dingtalk');
 

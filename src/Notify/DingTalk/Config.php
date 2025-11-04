@@ -1,9 +1,9 @@
 <?php
 
-namespace WonderGame\EsUtility\Notify\DingTalk;
+namespace BasicHub\EsCore\Notify\DingTalk;
 
-use WonderGame\EsUtility\Notify\Interfaces\ConfigInterface;
-use WonderGame\EsUtility\Notify\Interfaces\NotifyInterface;
+use BasicHub\EsCore\Notify\Interfaces\ConfigInterface;
+use BasicHub\EsCore\Notify\Interfaces\NotifyInterface;
 use EasySwoole\Spl\SplBean;
 
 class Config extends SplBean implements ConfigInterface

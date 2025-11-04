@@ -1,11 +1,11 @@
 <?php
 
-namespace WonderGame\EsUtility\HttpController\Admin;
+namespace BasicHub\EsCore\HttpController\Admin;
 
 use EasySwoole\Mysqli\QueryBuilder;
-use WonderGame\EsUtility\Common\Classes\Mysqli;
-use WonderGame\EsUtility\Common\Exception\HttpParamException;
-use WonderGame\EsUtility\Common\Http\Code;
+use BasicHub\EsCore\Common\Classes\Mysqli;
+use BasicHub\EsCore\Common\Exception\HttpParamException;
+use BasicHub\EsCore\Common\Http\Code;
 
 /**
  * @property \App\Model\Log\HttpTracker $Model

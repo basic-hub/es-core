@@ -1,6 +1,6 @@
 <?php
 
-namespace WonderGame\EsUtility\Common\CloudLib\Captcha;
+namespace BasicHub\EsCore\Common\CloudLib\Captcha;
 
 use AlibabaCloud\SDK\Captcha\V20230305\Captcha;
 use AlibabaCloud\SDK\Captcha\V20230305\Models\VerifyIntelligentCaptchaRequest;

@@ -1,13 +1,13 @@
 <?php
 
-namespace WonderGame\EsUtility\Task;
+namespace BasicHub\EsCore\Task;
 
 use EasySwoole\Task\AbstractInterface\TaskInterface;
 use EasySwoole\Utility\File;
-use WonderGame\EsUtility\Common\Classes\DateUtils;
-use WonderGame\EsUtility\Notify\DingTalk\Message\Markdown;
-use WonderGame\EsUtility\Notify\EsNotify;
-use WonderGame\EsUtility\Notify\Feishu\Message\CardError;
+use BasicHub\EsCore\Common\Classes\DateUtils;
+use BasicHub\EsCore\Notify\DingTalk\Message\Markdown;
+use BasicHub\EsCore\Notify\EsNotify;
+use BasicHub\EsCore\Notify\Feishu\Message\CardError;
 
 /**
  * 程序异常

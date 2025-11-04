@@ -1,6 +1,6 @@
 <?php
 
-namespace WonderGame\EsUtility\Notify\DingTalk\Message;
+namespace BasicHub\EsCore\Notify\DingTalk\Message;
 
 class FeedCard extends Base
 {

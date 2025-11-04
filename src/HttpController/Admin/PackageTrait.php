@@ -1,8 +1,8 @@
 <?php
 
-namespace WonderGame\EsUtility\HttpController\Admin;
+namespace BasicHub\EsCore\HttpController\Admin;
 
-use WonderGame\EsUtility\Common\Exception\HttpParamException;
+use BasicHub\EsCore\Common\Exception\HttpParamException;
 
 /**
  * @property \App\Model\Admin\Package $Model

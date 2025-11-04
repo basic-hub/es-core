@@ -1,9 +1,9 @@
 <?php
 
-namespace WonderGame\EsUtility\Notify\Feishu;
+namespace BasicHub\EsCore\Notify\Feishu;
 
-use WonderGame\EsUtility\Notify\Interfaces\ConfigInterface;
-use WonderGame\EsUtility\Notify\Interfaces\NotifyInterface;
+use BasicHub\EsCore\Notify\Interfaces\ConfigInterface;
+use BasicHub\EsCore\Notify\Interfaces\NotifyInterface;
 use EasySwoole\Spl\SplBean;
 
 class Config extends SplBean implements ConfigInterface

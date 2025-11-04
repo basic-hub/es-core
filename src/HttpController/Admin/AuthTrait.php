@@ -1,6 +1,6 @@
 <?php
 
-namespace WonderGame\EsUtility\HttpController\Admin;
+namespace BasicHub\EsCore\HttpController\Admin;
 
 use App\HttpController\Base;
 use EasySwoole\Component\Timer;
@@ -10,13 +10,13 @@ use EasySwoole\ORM\AbstractModel;
 use EasySwoole\Policy\Policy;
 use EasySwoole\Policy\PolicyNode;
 use EasySwoole\Utility\MimeType;
-use WonderGame\EsUtility\Common\Classes\CtxRequest;
-use WonderGame\EsUtility\Common\Classes\DateUtils;
-use WonderGame\EsUtility\Common\Classes\Mysqli;
-use WonderGame\EsUtility\Common\Classes\XlsWriter;
-use WonderGame\EsUtility\Common\Exception\HttpParamException;
-use WonderGame\EsUtility\Common\Http\Code;
-use WonderGame\EsUtility\Common\Languages\Dictionary;
+use BasicHub\EsCore\Common\Classes\CtxRequest;
+use BasicHub\EsCore\Common\Classes\DateUtils;
+use BasicHub\EsCore\Common\Classes\Mysqli;
+use BasicHub\EsCore\Common\Classes\XlsWriter;
+use BasicHub\EsCore\Common\Exception\HttpParamException;
+use BasicHub\EsCore\Common\Http\Code;
+use BasicHub\EsCore\Common\Languages\Dictionary;
 
 /**
  * @extends Base

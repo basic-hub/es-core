@@ -1,12 +1,12 @@
 <?php
 
-namespace WonderGame\EsUtility\Common\Classes;
+namespace BasicHub\EsCore\Common\Classes;
 
 use EasySwoole\Mysqli\QueryBuilder;
 use EasySwoole\Spl\SplBean;
-use WonderGame\EsUtility\Notify\DingTalk\Message\Markdown;
-use WonderGame\EsUtility\Notify\EsNotify;
-use WonderGame\EsUtility\Notify\Feishu\Message\TablePartWarn;
+use BasicHub\EsCore\Notify\DingTalk\Message\Markdown;
+use BasicHub\EsCore\Notify\EsNotify;
+use BasicHub\EsCore\Notify\Feishu\Message\TablePartWarn;
 
 /**
  * MySQL表分区类

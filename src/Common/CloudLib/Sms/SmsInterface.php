@@ -1,6 +1,6 @@
 <?php
 
-namespace WonderGame\EsUtility\Common\CloudLib\Sms;
+namespace BasicHub\EsCore\Common\CloudLib\Sms;
 
 /**
  * 发送短信

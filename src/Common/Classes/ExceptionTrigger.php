@@ -1,7 +1,7 @@
 <?php
 
 
-namespace WonderGame\EsUtility\Common\Classes;
+namespace BasicHub\EsCore\Common\Classes;
 
 use EasySwoole\Trigger\Location;
 use EasySwoole\Trigger\TriggerInterface;
@@ -49,7 +49,7 @@ class ExceptionTrigger implements TriggerInterface
         $eMsg['trigger'] = $trigger;
         if (\Swoole\Coroutine::getCid() >= 0) {
             $task = \EasySwoole\EasySwoole\Task\TaskManager::getInstance();
-            $task->async(new \WonderGame\EsUtility\Task\Error($eMsg));
+            $task->async(new \BasicHub\EsCore\Task\Error($eMsg));
         }
     }
 }

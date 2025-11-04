@@ -1,9 +1,9 @@
 <?php
 
-namespace WonderGame\EsUtility\Crontab\Driver;
+namespace BasicHub\EsCore\Crontab\Driver;
 
 use EasySwoole\HttpClient\HttpClient;
-use WonderGame\EsUtility\Common\Classes\LamOpenssl;
+use BasicHub\EsCore\Common\Classes\LamOpenssl;
 
 class Http implements Interfaces
 {

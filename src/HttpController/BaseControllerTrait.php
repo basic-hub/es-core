@@ -1,13 +1,13 @@
 <?php
 
-namespace WonderGame\EsUtility\HttpController;
+namespace BasicHub\EsCore\HttpController;
 
 use EasySwoole\Http\AbstractInterface\Controller;
 use EasySwoole\Redis\Redis;
-use WonderGame\EsUtility\Common\Exception\HttpParamException;
-use WonderGame\EsUtility\Common\Exception\WarnException;
-use WonderGame\EsUtility\Common\Http\Code;
-use WonderGame\EsUtility\Common\Languages\Dictionary;
+use BasicHub\EsCore\Common\Exception\HttpParamException;
+use BasicHub\EsCore\Common\Exception\WarnException;
+use BasicHub\EsCore\Common\Http\Code;
+use BasicHub\EsCore\Common\Languages\Dictionary;
 
 /**
  * @extends Controller
@@ -137,7 +137,7 @@ trait BaseControllerTrait
         } elseif ($throwable instanceof WarnException) {
             $message = $throwable->getMessage();
             $task = \EasySwoole\EasySwoole\Task\TaskManager::getInstance();
-            $task->async(new \WonderGame\EsUtility\Task\Error(
+            $task->async(new \BasicHub\EsCore\Task\Error(
                     [
                         'message' => $message,
                         'file' => $throwable->getFile(),

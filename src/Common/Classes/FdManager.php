@@ -1,7 +1,7 @@
 <?php
 
 
-namespace WonderGame\EsUtility\Common\Classes;
+namespace BasicHub\EsCore\Common\Classes;
 
 use EasySwoole\Component\Singleton;
 use EasySwoole\Component\TableManager;

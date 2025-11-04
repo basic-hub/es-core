@@ -1,6 +1,6 @@
 <?php
 
-namespace WonderGame\EsUtility;
+namespace BasicHub\EsCore;
 
 use EasySwoole\Command\Color;
 use EasySwoole\Component\AtomicManager;
@@ -13,7 +13,7 @@ use EasySwoole\RedisPool\RedisPool;
 use EasySwoole\Socket\AbstractInterface\ParserInterface;
 use EasySwoole\Spl\SplBean;
 use EasySwoole\WordsMatch\WMServer;
-use WonderGame\EsUtility\Notify\EsNotify;
+use BasicHub\EsCore\Notify\EsNotify;
 
 class EventMainServerCreate extends SplBean
 {
@@ -125,7 +125,6 @@ class EventMainServerCreate extends SplBean
     protected function registerCrontab()
     {
         if (is_array($this->crontabRunEnv) && class_exists($this->crontabClass) && is_env($this->crontabRunEnv)) {
-            config('crontab_delivery') && AtomicManager::getInstance()->add($this->crontabClass::KEY_CRONTAB_DELIVERY_TIMEOUT);
             $Crontab = \EasySwoole\EasySwoole\Crontab\Crontab::getInstance();
             $Crontab->addTask($this->crontabClass);
         }
@@ -274,7 +273,7 @@ class EventMainServerCreate extends SplBean
             if ( ! is_array($val)) {
                 continue;
             }
-            $className = '\\WonderGame\\EsUtility\\Notify\\' . ucfirst($key) . '\\Config';
+            $className = '\\BasicHub\\EsCore\\Notify\\' . ucfirst($key) . '\\Config';
 
             foreach ($val as $k => $v) {
                 if ( ! is_array($v)) {

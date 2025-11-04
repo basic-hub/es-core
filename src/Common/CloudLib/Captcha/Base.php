@@ -1,6 +1,6 @@
 <?php
 
-namespace WonderGame\EsUtility\Common\CloudLib\Captcha;
+namespace BasicHub\EsCore\Common\CloudLib\Captcha;
 
 use EasySwoole\Spl\SplBean;
 

@@ -1,11 +1,11 @@
 <?php
 
-namespace WonderGame\EsUtility\WebSocket\Controller;
+namespace BasicHub\EsCore\WebSocket\Controller;
 
 use EasySwoole\EasySwoole\ServerManager;
 use EasySwoole\Socket\AbstractInterface\Controller;
 use EasySwoole\Socket\Client\WebSocket;
-use WonderGame\EsUtility\Common\Classes\CtxRequest;
+use BasicHub\EsCore\Common\Classes\CtxRequest;
 
 /**
  * @extends Controller

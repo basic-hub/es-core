@@ -1,8 +1,8 @@
 <?php
 
-namespace WonderGame\EsUtility\Common\CloudLib\Dns;
+namespace BasicHub\EsCore\Common\CloudLib\Dns;
 
-use WonderGame\EsUtility\Common\Exception\HttpParamException;
+use BasicHub\EsCore\Common\Exception\HttpParamException;
 
 abstract class Base implements DnsInterface
 {

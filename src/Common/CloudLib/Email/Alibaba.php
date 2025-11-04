@@ -1,6 +1,6 @@
 <?php
 
-namespace WonderGame\EsUtility\Common\CloudLib\Email;
+namespace BasicHub\EsCore\Common\CloudLib\Email;
 
 use AlibabaCloud\SDK\Dm\V20151123\Dm;
 use AlibabaCloud\SDK\Dm\V20151123\Models\SingleSendMailRequest;

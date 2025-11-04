@@ -1,11 +1,11 @@
 <?php
 
-namespace WonderGame\EsUtility\Notify\Feishu;
+namespace BasicHub\EsCore\Notify\Feishu;
 
 use EasySwoole\HttpClient\HttpClient;
-use WonderGame\EsUtility\Notify\Interfaces\ConfigInterface;
-use WonderGame\EsUtility\Notify\Interfaces\MessageInterface;
-use WonderGame\EsUtility\Notify\Interfaces\NotifyInterface;
+use BasicHub\EsCore\Notify\Interfaces\ConfigInterface;
+use BasicHub\EsCore\Notify\Interfaces\MessageInterface;
+use BasicHub\EsCore\Notify\Interfaces\NotifyInterface;
 
 class Notify implements NotifyInterface
 {

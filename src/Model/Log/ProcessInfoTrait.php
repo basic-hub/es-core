@@ -1,6 +1,6 @@
 <?php
 
-namespace WonderGame\EsUtility\Model\Log;
+namespace BasicHub\EsCore\Model\Log;
 
 trait ProcessInfoTrait
 {

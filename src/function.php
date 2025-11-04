@@ -10,28 +10,28 @@ use EasySwoole\ORM\DbManager;
 use EasySwoole\Redis\Redis;
 use EasySwoole\RedisPool\RedisPool;
 use EasySwoole\Spl\SplArray;
-use WonderGame\EsUtility\Common\Classes\CtxRequest;
-use WonderGame\EsUtility\Common\Classes\HttpRequest;
-use WonderGame\EsUtility\Common\Classes\LamJwt;
-use WonderGame\EsUtility\Common\Classes\LamOpenssl;
-use WonderGame\EsUtility\Common\Classes\Mysqli;
-use WonderGame\EsUtility\Common\CloudLib\Captcha\CaptchaInterface;
-use WonderGame\EsUtility\Common\CloudLib\Cdn\CdnInterface;
-use WonderGame\EsUtility\Common\CloudLib\Dns\DnsInterface;
-use WonderGame\EsUtility\Common\CloudLib\Email\EmailInterface;
-use WonderGame\EsUtility\Common\CloudLib\Sms\SmsInterface;
-use WonderGame\EsUtility\Common\CloudLib\Storage\StorageInterface;
-use WonderGame\EsUtility\Common\Exception\HttpParamException;
-use WonderGame\EsUtility\Common\Http\Code;
-use WonderGame\EsUtility\Common\OrmCache\Strings;
-use WonderGame\EsUtility\HttpTracker\Index as HttpTracker;
-use WonderGame\EsUtility\Notify\DingTalk\Message\Markdown;
-use WonderGame\EsUtility\Notify\DingTalk\Message\Text;
-use WonderGame\EsUtility\Notify\EsNotify;
-use WonderGame\EsUtility\Notify\Feishu\Message\Card;
-use WonderGame\EsUtility\Notify\Feishu\Message\Text as FeishuText;
-use WonderGame\EsUtility\Notify\Feishu\Message\Textarea;
-use WonderGame\EsUtility\Notify\WeChat\Message\Notice;
+use BasicHub\EsCore\Common\Classes\CtxRequest;
+use BasicHub\EsCore\Common\Classes\HttpRequest;
+use BasicHub\EsCore\Common\Classes\LamJwt;
+use BasicHub\EsCore\Common\Classes\LamOpenssl;
+use BasicHub\EsCore\Common\Classes\Mysqli;
+use BasicHub\EsCore\Common\CloudLib\Captcha\CaptchaInterface;
+use BasicHub\EsCore\Common\CloudLib\Cdn\CdnInterface;
+use BasicHub\EsCore\Common\CloudLib\Dns\DnsInterface;
+use BasicHub\EsCore\Common\CloudLib\Email\EmailInterface;
+use BasicHub\EsCore\Common\CloudLib\Sms\SmsInterface;
+use BasicHub\EsCore\Common\CloudLib\Storage\StorageInterface;
+use BasicHub\EsCore\Common\Exception\HttpParamException;
+use BasicHub\EsCore\Common\Http\Code;
+use BasicHub\EsCore\Common\OrmCache\Strings;
+use BasicHub\EsCore\HttpTracker\Index as HttpTracker;
+use BasicHub\EsCore\Notify\DingTalk\Message\Markdown;
+use BasicHub\EsCore\Notify\DingTalk\Message\Text;
+use BasicHub\EsCore\Notify\EsNotify;
+use BasicHub\EsCore\Notify\Feishu\Message\Card;
+use BasicHub\EsCore\Notify\Feishu\Message\Text as FeishuText;
+use BasicHub\EsCore\Notify\Feishu\Message\Textarea;
+use BasicHub\EsCore\Notify\WeChat\Message\Notice;
 
 
 if ( ! function_exists('is_super')) {
@@ -543,7 +543,7 @@ if ( ! function_exists('ip')) {
     {
         // Request继承 \EasySwoole\Http\Message\Message 皆可
         if ( ! $Request instanceof \EasySwoole\Http\Request) {
-            $Request = \WonderGame\EsUtility\Common\Classes\CtxRequest::getInstance()->request;
+            $Request = \BasicHub\EsCore\Common\Classes\CtxRequest::getInstance()->request;
             if (empty($Request)) {
                 return false;
             }
@@ -1266,7 +1266,7 @@ if ( ! function_exists('get_drivers')) {
         $driver = ucfirst(is_array($cfg['driver']) ? $config['driver'] : $cfg['driver']);
 
         $cfg = $cfg[$driver] ?? $cfg['config'];
-        $className = "\\WonderGame\\EsUtility\\Common\\CloudLib\\$clsname\\$driver";
+        $className = "\\BasicHub\\EsCore\\Common\\CloudLib\\$clsname\\$driver";
         if ( ! class_exists($className)) {
             throw new \Exception("$clsname Driver Not Found");
         }

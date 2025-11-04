@@ -1,9 +1,9 @@
 <?php
 
-namespace WonderGame\EsUtility\HttpController\Admin;
+namespace BasicHub\EsCore\HttpController\Admin;
 
-use WonderGame\EsUtility\Common\Exception\HttpParamException;
-use WonderGame\EsUtility\Common\Languages\Dictionary;
+use BasicHub\EsCore\Common\Exception\HttpParamException;
+use BasicHub\EsCore\Common\Languages\Dictionary;
 
 /**
  * @property \App\Model\Admin\Game $Model

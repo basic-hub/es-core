@@ -1,6 +1,6 @@
 <?php
 
-namespace WonderGame\EsUtility;
+namespace BasicHub\EsCore;
 
 use EasySwoole\Component\Di;
 use EasySwoole\EasySwoole\Config;
@@ -11,10 +11,10 @@ use EasySwoole\I18N\I18N;
 use EasySwoole\ORM\DbManager;
 use EasySwoole\Spl\SplBean;
 use EasySwoole\Trigger\TriggerInterface;
-use WonderGame\EsUtility\Common\Classes\CtxRequest;
-use WonderGame\EsUtility\Common\Classes\ExceptionTrigger;
-use WonderGame\EsUtility\Common\Classes\LamUnit;
-use WonderGame\EsUtility\HttpTracker\Index as HttpTracker;
+use BasicHub\EsCore\Common\Classes\CtxRequest;
+use BasicHub\EsCore\Common\Classes\ExceptionTrigger;
+use BasicHub\EsCore\Common\Classes\LamUnit;
+use BasicHub\EsCore\HttpTracker\Index as HttpTracker;
 
 class EventInitialize extends SplBean
 {

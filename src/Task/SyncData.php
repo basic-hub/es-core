@@ -1,12 +1,12 @@
 <?php
 
-namespace WonderGame\EsUtility\Task;
+namespace BasicHub\EsCore\Task;
 
 use EasySwoole\Mysqli\QueryBuilder;
 use EasySwoole\ORM\AbstractModel;
 use EasySwoole\Task\AbstractInterface\TaskInterface;
-use WonderGame\EsUtility\Common\Classes\CtxRequest;
-use WonderGame\EsUtility\Model\BaseModelTrait;
+use BasicHub\EsCore\Common\Classes\CtxRequest;
+use BasicHub\EsCore\Model\BaseModelTrait;
 
 /**
  * 异步更新从库数据

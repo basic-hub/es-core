@@ -1,6 +1,6 @@
 <?php
 
-namespace WonderGame\EsUtility\Notify\Feishu\Message;
+namespace BasicHub\EsCore\Notify\Feishu\Message;
 
 /**
  * 表分区不足提醒卡片

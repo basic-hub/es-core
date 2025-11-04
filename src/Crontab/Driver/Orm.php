@@ -1,6 +1,6 @@
 <?php
 
-namespace WonderGame\EsUtility\Crontab\Driver;
+namespace BasicHub\EsCore\Crontab\Driver;
 
 use EasySwoole\ORM\AbstractModel;
 

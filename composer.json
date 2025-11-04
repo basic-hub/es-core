@@ -1,13 +1,9 @@
 {
-  "name": "wonder-game/es-utility",
+  "name": "basic-hub/es-core",
   "description": "utility for easyswoole",
   "type": "library",
   "license": "MIT",
   "authors": [
-    {
-      "name": "lamson",
-      "email": "171004297@qq.com"
-    },
     {
       "name": "Joyboo",
       "email": "Joyboo@aliyun.com"
@@ -48,7 +44,7 @@
   },
   "autoload": {
     "psr-4": {
-      "WonderGame\\EsUtility\\": "src",
+      "BasicHub\\EsCore\\": "src",
       "Tests\\": "tests/"
     }
   },

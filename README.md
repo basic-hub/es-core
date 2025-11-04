@@ -65,7 +65,7 @@ Controller
 
 ```php
 <?php
-use WonderGame\EsUtility\HttpController\Admin\AdminTrait;
+use BasicHub\EsCore\HttpController\Admin\AdminTrait;
 
 class MyAdminController
 {
@@ -80,7 +80,7 @@ Model
 
 ```php
 <?php
-use WonderGame\EsUtility\Model\AdminModelTrait;
+use BasicHub\EsCore\Model\AdminModelTrait;
 
 class MyAdminModel
 {
@@ -123,6 +123,7 @@ trait有哪些坑
 - [x] es-orm-cache 组件封装，替换原有的cacheinfo系列方法
 - [ ] WebSocket实现导出全部，永不超时，进度实时可见，随时取消
 - [ ] 定义模型Class映射
+- [ ] 重写verify_token为面向对象风格，验证与生成token解耦
 
 ## 其他
 

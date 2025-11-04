@@ -6,7 +6,7 @@
  * @version 1.0.2 最后修改时间 2020年10月21日
  */
 
-namespace WonderGame\EsUtility\Common\Classes;
+namespace BasicHub\EsCore\Common\Classes;
 
 use EasySwoole\Http\Request;
 use EasySwoole\I18N\I18N;

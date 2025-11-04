@@ -1,10 +1,10 @@
 <?php
 
-namespace WonderGame\EsUtility\Notify\WeChat;
+namespace BasicHub\EsCore\Notify\WeChat;
 
 use EasySwoole\Spl\SplBean;
-use WonderGame\EsUtility\Notify\Interfaces\ConfigInterface;
-use WonderGame\EsUtility\Notify\Interfaces\NotifyInterface;
+use BasicHub\EsCore\Notify\Interfaces\ConfigInterface;
+use BasicHub\EsCore\Notify\Interfaces\NotifyInterface;
 
 /**
  * @document https://developers.weixin.qq.com/doc/offiaccount/Message_Management/Template_Message_Interface.html

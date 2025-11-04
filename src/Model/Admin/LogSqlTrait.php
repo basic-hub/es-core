@@ -1,11 +1,11 @@
 <?php
 
 
-namespace WonderGame\EsUtility\Model\Admin;
+namespace BasicHub\EsCore\Model\Admin;
 
 
 use EasySwoole\Mysqli\QueryBuilder;
-use WonderGame\EsUtility\Common\Classes\CtxRequest;
+use BasicHub\EsCore\Common\Classes\CtxRequest;
 
 trait LogSqlTrait
 {

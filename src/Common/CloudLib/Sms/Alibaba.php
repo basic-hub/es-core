@@ -1,6 +1,6 @@
 <?php
 
-namespace WonderGame\EsUtility\Common\CloudLib\Sms;
+namespace BasicHub\EsCore\Common\CloudLib\Sms;
 
 use AlibabaCloud\SDK\Dysmsapi\V20170525\Dysmsapi;
 use AlibabaCloud\SDK\Dysmsapi\V20170525\Models\SendSmsRequest;
