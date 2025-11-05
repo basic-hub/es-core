@@ -19,7 +19,7 @@ use BasicHub\EsCore\Common\Http\Code;
 use BasicHub\EsCore\Common\Languages\Dictionary;
 
 /**
- * @extends Base
+ * @mixin BaseTrait
  */
 trait AuthTrait
 {

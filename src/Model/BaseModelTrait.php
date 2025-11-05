@@ -7,25 +7,19 @@ use EasySwoole\ORM\DbManager;
 use EasySwoole\RedisPool\RedisPool;
 
 /**
- * @extends AbstractModel
+ * @mixin AbstractModel
  */
 trait BaseModelTrait
 {
     /**
-     * 待废弃！在未来的大版本中会删除此属性，请使用subid替代
-     * @var mixed|string
-     */
-    protected $gameid = '';
-
-    /**
-     * 分表标识，在后续的程序中应逐步使用subid来替换gameid，原因是分表不一定依靠gameid，应考虑变量和属性命名的规范性、合理性，避免误导使用者和阅读者
+     * 分表标识
      * @var mixed|string
      */
     protected $subid = '';
 
     protected $sort = ['id' => 'desc'];
 
-    // 编辑提交时 extension字段的处理方式： merge-合并；replace-覆盖
+    // 编辑提交时 extension字段的处理方式： merge-合并；replace-覆盖  todo 待优化
     protected $_extSave = 'replace';
 
     public function __construct($data = [], $tabname = '', $subid = '')
@@ -63,7 +57,6 @@ trait BaseModelTrait
 
     public function getPk()
     {
-        /* @var AbstractModel $this */
         return $this->schemaInfo()->getPkFiledName();
     }
 
@@ -91,7 +84,6 @@ trait BaseModelTrait
          * 如果需要合并extension，需要在模型内部的setBaseTraitProtected方法中将extSave属性改为merge
          * 或者在实例化模型后，外部调用setExtSave('merge')方法
          */
-        /* @var AbstractModel $this */
         if ($this->_extSave == 'merge') {
             // 现有数据
             $ext = $this->toArray()['extension'] ?? [];
@@ -129,7 +121,6 @@ trait BaseModelTrait
     {
         $model = parent::_clone();
         // 本为受保护属性，原理：同一个类的不同实例间可互相访问受保护或私有成员
-        $model->gameid = $this->gameid;
         $model->subid = $this->subid;
         return $model;
     }
@@ -155,7 +146,7 @@ trait BaseModelTrait
                 }
             }
         }
-        /* @var AbstractModel $this */
+
         foreach ($order as $key => $value) {
             $this->order($key, $value);
         }
@@ -171,7 +162,6 @@ trait BaseModelTrait
      */
     public function ormToCollection($toArray = true)
     {
-        /* @var AbstractModel $this */
         $result = $this->all();
         if ( ! $result instanceof \EasySwoole\ORM\Collection\Collection) {
             $result = new \EasySwoole\ORM\Collection\Collection($result);
@@ -192,20 +182,16 @@ trait BaseModelTrait
     // 开启事务
     public function startTrans()
     {
-        /* @var AbstractModel $this */
         DbManager::getInstance()->startTransaction($this->getQueryConnection());
     }
 
     public function commit()
     {
-        /* @var AbstractModel $this */
         DbManager::getInstance()->commit($this->getQueryConnection());
-
     }
 
     public function rollback()
     {
-        /* @var AbstractModel $this */
         DbManager::getInstance()->rollback($this->getQueryConnection());
     }
 

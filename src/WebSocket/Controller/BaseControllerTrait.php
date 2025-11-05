@@ -8,7 +8,7 @@ use EasySwoole\Socket\Client\WebSocket;
 use BasicHub\EsCore\Common\Classes\CtxRequest;
 
 /**
- * @extends Controller
+ * @mixin Controller
  */
 trait BaseControllerTrait
 {

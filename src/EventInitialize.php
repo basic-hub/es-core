@@ -13,8 +13,6 @@ use EasySwoole\Spl\SplBean;
 use EasySwoole\Trigger\TriggerInterface;
 use BasicHub\EsCore\Common\Classes\CtxRequest;
 use BasicHub\EsCore\Common\Classes\ExceptionTrigger;
-use BasicHub\EsCore\Common\Classes\LamUnit;
-use BasicHub\EsCore\HttpTracker\Index as HttpTracker;
 
 class EventInitialize extends SplBean
 {
@@ -56,13 +54,6 @@ class EventInitialize extends SplBean
         '_before_func' => null, // 前置
         '_after_func' => null, // 后置
     ];
-
-    /**
-     * 开启链路追踪，string-根节点名称, empty=false 不开启
-     * @var null | string
-     */
-    protected $httpTracker = null;
-    protected $httpTrackerConfig = [];
 
     /**
      * 设置属性默认值
@@ -297,21 +288,7 @@ class EventInitialize extends SplBean
                 // 自定义协程单例Request
                 CtxRequest::getInstance()->request = $request;
 
-                LamUnit::setI18n($request);
-
-                $isTracker = ! is_null($this->httpTracker);
-                // 不记录的path
-                if (is_array($this->httpTrackerConfig['ignore_path']) && in_array($request->getUri()->getPath(), $this->httpTrackerConfig['ignore_path'])) {
-                    $isTracker = false;
-                }
-                if ($isTracker) {
-                    $repeated = intval(stripos($request->getHeaderLine('user-agent'), ';HttpTracker') !== false);
-                    // 开启链路追踪
-                    $point = HttpTracker::getInstance($this->httpTrackerConfig)->createStart($this->httpTracker);
-                    $point && $point->setStartArg(
-                        HttpTracker::startArgsRequest($request, ['repeated' => $repeated])
-                    );
-                }
+                $this->setI18n($request);
 
                 // 后置
                 if (is_callable($this->httpOnRequestFunc['_after_func'])) {
@@ -326,9 +303,33 @@ class EventInitialize extends SplBean
         );
     }
 
+    protected function setI18n(Request $request, $headerKey = 'accept-language', $paramKey = 'lang')
+    {
+        // 请求参数的优先级高于头信息
+        if ( ! $langage = $request->getRequestParam($paramKey) ?: $request->getHeader($headerKey)) {
+            return;
+        }
+        is_array($langage) && $langage = current($langage);
+        $languages = config('LANGUAGES') ?: [];
+        foreach ($languages as $lang => $value) {
+            // 回调
+            if (is_callable($value['match'])) {
+                $match = $value['match']($langage);
+                if ($match === true) {
+                    I18N::getInstance()->setLanguage($lang);
+                    break;
+                }
+            } // 正则
+            elseif (is_string($value['match']) && preg_match($value['match'], $langage)) {
+                I18N::getInstance()->setLanguage($lang);
+                break;
+            }
+        }
+    }
+
     protected function registerAfterRequest()
     {
-        if ( ! ($this->httpAfterRequestOpen || ! is_null($this->httpTracker))) {
+        if ( ! $this->httpAfterRequestOpen) {
             return;
         }
 
@@ -341,16 +342,6 @@ class EventInitialize extends SplBean
                     if ($this->httpAfterRequestFunc['_before_func']($request, $response) === false) {
                         return;
                     }
-                }
-
-                $isTracker = ! is_null($this->httpTracker);
-                // 不记录的path
-                if (is_array($this->httpTrackerConfig['ignore_path']) && in_array($request->getUri()->getPath(), $this->httpTrackerConfig['ignore_path'])) {
-                    $isTracker = false;
-                }
-                if ($isTracker) {
-                    $point = HttpTracker::getInstance()->startPoint();
-                    $point && $point->setEndArg(HttpTracker::endArgsResponse($response))->end();
                 }
 
                 // 后置

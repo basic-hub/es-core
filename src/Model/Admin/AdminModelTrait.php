@@ -5,7 +5,7 @@ namespace BasicHub\EsCore\Model\Admin;
 use EasySwoole\ORM\AbstractModel;
 
 /**
- * @extends AbstractModel
+ * @mixin AbstractModel
  */
 trait AdminModelTrait
 {
@@ -47,13 +47,11 @@ trait AdminModelTrait
      */
     public function relation()
     {
-        /* @var AbstractModel $this */
         return $this->hasOne(find_model('Admin\Role'), null, 'rid', 'id');
     }
 
     public function getAdminByRid($rid, $where = [])
     {
-        /* @var AbstractModel $this */
         if ($where) {
             $this->where($where);
         }

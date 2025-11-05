@@ -2,7 +2,10 @@
 
 namespace BasicHub\EsCore\HttpController;
 
+use BasicHub\EsCore\Common\Classes\LamOpenssl;
+use BasicHub\EsCore\HttpTracker\Index as HttpTracker;
 use EasySwoole\Http\AbstractInterface\Controller;
+use EasySwoole\Http\Message\Status;
 use EasySwoole\Redis\Redis;
 use BasicHub\EsCore\Common\Exception\HttpParamException;
 use BasicHub\EsCore\Common\Exception\WarnException;
@@ -10,27 +13,34 @@ use BasicHub\EsCore\Common\Http\Code;
 use BasicHub\EsCore\Common\Languages\Dictionary;
 
 /**
- * @extends Controller
+ * 此类应该由最父级控制器use，控制器结构应该为  BaseController(此类use) > xxx(Admin|Sdk|Pay|Log)/BaseController(业务Base类) > 各业务类
+ * @mixin Controller
  */
 trait BaseControllerTrait
 {
     /**
-     * onRequest GET 参数
+     * get参数，包含rsa解密参数
      * @var array
      */
     protected $get = [];
 
     /**
-     * onRequest POST 参数
+     * post参数，包含rsa解密参数
      * @var array
      */
     protected $post = [];
 
     /**
-     * onRequest GET + POST 参数
+     * get+post参数，包含rsa解密参数
      * @var array
      */
     protected $input = [];
+
+    /**
+     * 仅通过rsa解密得到的参数，如果业务层有关键参数一定需要通过rsa拿到，则应该使用此属性
+     * @var array
+     */
+    protected $rsa = [];
 
     /**
      * @var mixed rawContent
@@ -41,6 +51,21 @@ trait BaseControllerTrait
 
     protected $actionNotFoundPrefix = '_';
 
+    /**
+     * http_tracker相关配置，由子类重写
+     * @var array
+     */
+    protected $httpTracker = [
+        // 是否开启，默认不开启
+        'open' => false,
+        // redis队列名称
+        'queue_name' => 'Report:Origin-HttpTracker',
+        // redis连接名
+        'pool_name' => 'log',
+        // 不记录链路的uri path
+        'ignore_path' => [],
+    ];
+
     public function __construct()
     {
         parent::__construct();
@@ -50,13 +75,25 @@ trait BaseControllerTrait
 
     protected function onRequest(?string $action): ?bool
     {
+        // 请求参数rsa解密
+        $this->decodeRsa();
+
+        // 请求参数二次处理
         $this->requestParams();
+
+        // 记录http_tracker日志
+        $this->httpTrackerStart();
+
         return parent::onRequest($action);
+    }
+
+    protected function afterAction(?string $actionName): void
+    {
+        $this->httpTrackerEnd();
     }
 
     protected function requestParams()
     {
-        /* @var Controller $this */
         $this->get = $this->request()->getQueryParams();
 
         $post = $this->request()->getParsedBody();
@@ -68,17 +105,115 @@ trait BaseControllerTrait
 
         //  $this->request()->getSwooleRequest()->rawContent()也可以
         $this->raw = $this->request()->getBody()->__toString();
-        // 可以在这个方法里进行项目级别的个性处理
-        $this->_after_requestParams();
+
+        $rsa = is_array($this->rsa) ? $this->rsa : [];
+        $extend = $rsa + $this->requestParamsExtend();
+        foreach ($extend as $key => $value) {
+            foreach (['get', 'post', 'input'] as $proName) {
+                if (empty($this->$proName[$key])) {
+                    $this->$proName[$key] = $value;
+                }
+            }
+        }
     }
 
-    /**
-     * 可以在这个方法里进行项目级别的个性处理
-     * 例如对请求数据的解混淆、……
-     */
-    protected function _after_requestParams()
+    // 写入额外参数至get|post|input
+    protected function requestParamsExtend()
     {
+        return ['ip' => ip($this->request())];
+    }
 
+    protected function decodeRsa()
+    {
+        $cipher = $this->request()->getRequestParam(config('RSA.key'));
+        // 私钥解密
+        $envkeydata = LamOpenssl::getInstance()->privateDecrypt($cipher);
+
+        // 尝试json结构转化，除了json，就是queryString格式
+        if ($json = json_decode($envkeydata, true)) {
+            $struct = $json;
+        } else {
+            parse_str($envkeydata, $struct);
+        }
+
+        $this->rsa = $struct ?: [];
+    }
+
+    protected function httpTrackerStart()
+    {
+        if (empty($this->httpTracker['open'])) {
+            return;
+        }
+        $request = $this->request();
+        if (is_array($this->httpTracker['ignore_path']) && in_array($request->getUri()->getPath(), $this->httpTracker['ignore_path'])) {
+            return;
+        }
+
+        // SaveHandler配置
+        $handleConfig = [
+            'queue' => $this->httpTracker['queue_name'],
+            'redis-name' => $this->httpTracker['pool_name'],
+        ];
+        // 根节点名称
+        $rootName = get_mode('all');
+        $point = HttpTracker::getInstance($handleConfig)->createStart($rootName);
+
+        $_body = $request->getBody()->__toString() ?: $request->getSwooleRequest()->rawContent();
+
+        $effect = [
+            'GET' => $request->getQueryParams(),
+            'POST' => $request->getParsedBody(),
+            'JSON' => json_decode($_body, true),
+        ];
+
+        $isXml = stripos($request->getHeaderLine('content-type'), 'xml') !== false;
+        if ($isXml) {
+            libxml_use_internal_errors(true);
+            $effect['XML'] = json_decode(json_encode(simplexml_load_string($_body, 'SimpleXMLElement', LIBXML_NOCDATA)), true);
+        }
+
+        // 去除空值
+        $effect = array_filter($effect);
+
+        $params = [
+            'url' => $request->getUri()->__toString(),
+            'ip' => ip($request),
+            'method' => $request->getMethod(),
+            'path' => $request->getUri()->getPath(),
+            'server_name' => config('SERVNAME'),
+            'header' => $request->getHeaders(),
+//            'server' => $request->getServerParams(),
+            'repeated' => intval(stripos($request->getHeaderLine('user-agent'), ';HttpTracker') !== false)
+        ] + $effect;
+
+        $point && $point->setStartArg($params);
+    }
+
+    protected function httpTrackerEnd()
+    {
+        if (empty($this->httpTracker['open'])) {
+            return;
+        }
+        $request = $this->request();
+        if (is_array($this->httpTracker['ignore_path']) && in_array($request->getUri()->getPath(), $this->httpTracker['ignore_path'])) {
+            return;
+        }
+
+        $response = $this->response();
+        $data = $response->getBody()->__toString();
+        if (is_string($data) && ($array = json_decode($data, true))) {
+            $data = $array;
+        }
+        $code = $response->getStatusCode();
+
+        // 302重定向，则记录Location地址
+        if ($code === Status::CODE_MOVED_TEMPORARILY) {
+            $data = $response->getHeader('Location');
+        }
+        $endData = ['httpStatusCode' => $code, 'data' => $data];
+
+        $point = HttpTracker::getInstance()->startPoint();
+        $point && $point->setEndArg($endData)->end();
     }
 
     protected function setLanguageConstants()
@@ -95,39 +230,6 @@ trait BaseControllerTrait
     protected function getLanguageConstants()
     {
         return $this->langsConstants;
-    }
-
-    /** 检测是否为rsa解密数据（如本地开发环境则直接为true）
-     * @param array|null $input
-     * @return bool
-     */
-    protected function _isRsaDecode($input = null)
-    {
-        $input = is_null($input) ? $this->input : $input;
-        return ! empty($input[config('RSA.key')]) || is_env('dev');
-    }
-
-    /**
-     * 检测是否至少符合Jwt或RSA
-     * @param array|null $input
-     * @return array
-     */
-    protected function _isJwtOrRsa($input = [], $category = 'pay')
-    {
-        try {
-            // 先尝试JWT
-            $data = verify_token([], 'uid', $input);
-        } catch (HttpParamException $e) {
-            // 记日志
-            trace('jwt验证不通过：【' . $e->getMessage() . '】将进行rsa检测。', 'error', $category);
-            // 如果不是rsa加密数据并且非本地开发环境
-            if ( ! $this->_isRsaDecode($input)) {
-                throw new HttpParamException('密文有误:', Code::CODE_UNAUTHORIZED);
-            }
-        }
-
-        unset($data['token']);
-        return $data;
     }
 
     protected function onException(\Throwable $throwable): void
@@ -165,7 +267,6 @@ trait BaseControllerTrait
 
     protected function writeJson($statusCode = 200, $result = null, $msg = null)
     {
-        /* @var Controller $this */
         if ( ! $this->response()->isEndResponse()) {
 
             if (is_null($msg)) {
@@ -191,7 +292,6 @@ trait BaseControllerTrait
 
     protected function writeUpload($url, $code = 200, $msg = '')
     {
-        /* @var Controller $this */
         if ( ! $this->response()->isEndResponse()) {
 
             $data = [
@@ -210,7 +310,6 @@ trait BaseControllerTrait
 
     protected function isMethod($method)
     {
-        /* @var Controller $this */
         return strtoupper($this->request()->getMethod()) === strtoupper($method);
     }
 
@@ -238,7 +337,6 @@ trait BaseControllerTrait
 
     protected function actionNotFoundName()
     {
-        /* @var Controller $this */
         return $this->actionNotFoundPrefix . $this->getActionName();
     }
 
@@ -249,7 +347,6 @@ trait BaseControllerTrait
      */
     protected function getAllowMethods($call = null)
     {
-        /* @var Controller $this */
         return array_map(
             function ($val) use ($call) {
                 if (strpos($val, $this->actionNotFoundPrefix) === 0) {
@@ -266,7 +363,6 @@ trait BaseControllerTrait
      */
     protected function actionNotFound(?string $action)
     {
-        /* @var Controller $this */
         $actionName = $this->actionNotFoundName();
         // 仅调用public，避免与普通方法混淆
         $publics = $this->getAllowMethodReflections();
