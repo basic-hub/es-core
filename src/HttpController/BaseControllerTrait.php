@@ -2,7 +2,9 @@
 
 namespace BasicHub\EsCore\HttpController;
 
+use BasicHub\EsCore\Common\Classes\LamJwt;
 use BasicHub\EsCore\Common\Classes\LamOpenssl;
+use BasicHub\EsCore\Common\Exception\JwtException;
 use BasicHub\EsCore\HttpTracker\Index as HttpTracker;
 use EasySwoole\Http\AbstractInterface\Controller;
 use EasySwoole\Http\Message\Status;
@@ -139,6 +141,34 @@ trait BaseControllerTrait
         $this->rsa = $struct ?: [];
     }
 
+    /**
+     * 校验jwt token
+     * @param string $chkdata 检查参数key，空值则不进行检查
+     * @return void
+     */
+    protected function checkJwtToken($chkKey = '')
+    {
+        $jwtCfg = config('ENCRYPT');
+        $token = $this->request()->getHeader($jwtCfg['jwtkey'])[0] ?? '';
+        if (empty($token)) {
+            throw new HttpParamException('Jwt token is Empty.', Code::CODE_BAD_REQUEST);
+        }
+
+        // 验证JWT
+        $jwt = LamJwt::verifyToken($token, $jwtCfg['key']);
+
+        if ($chkKey) {
+            if (empty($jwt[$chkKey])) {
+                throw new HttpParamException('jwt Error', Code::CODE_UNAUTHORIZED);
+            }
+
+            // input中无此参数，或与jwt解密参数不符
+            if (empty($this->input[$chkKey]) || $this->input[$chkKey] != $jwt[$chkKey]) {
+                throw new HttpParamException("jwt的 $chkKey 不符:" . ($jwt[$chkKey] ?? ''), Code::CODE_PRECONDITION_FAILED);
+            }
+        }
+    }
+
     protected function httpTrackerStart()
     {
         if (empty($this->httpTracker['open'])) {
@@ -160,6 +190,7 @@ trait BaseControllerTrait
 
         $_body = $request->getBody()->__toString() ?: $request->getSwooleRequest()->rawContent();
 
+        // 如果希望查询某一个key，又不确定在GET还是POST还是XML中，此时查起来会很麻烦，是否需要新增一个ALL 将所有参数合并集中到一个key来进行查询 ??
         $effect = [
             'GET' => $request->getQueryParams(),
             'POST' => $request->getParsedBody(),
@@ -234,7 +265,7 @@ trait BaseControllerTrait
 
     protected function onException(\Throwable $throwable): void
     {
-        if ($throwable instanceof HttpParamException) {
+        if ($throwable instanceof HttpParamException || $throwable instanceof JwtException) {
             $message = $throwable->getMessage();
         } elseif ($throwable instanceof WarnException) {
             $message = $throwable->getMessage();

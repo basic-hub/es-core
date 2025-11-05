@@ -16,4 +16,11 @@ class Code extends Status
 
     // 没有为评分的会话complete
     const NO_COMPLETE_TOPIC = 1100;
+
+    // jwt token无效
+    const JWT_INVALID = 2000;
+    // jwt token过期
+    const JWT_EXPIRED = 2001;
+    // jwt 其他异常
+    const JWT_OTHER = 2003;
 }
