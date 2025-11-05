@@ -78,4 +78,11 @@ class Dictionary extends AbstractDictionary
 
     const PERMISSION_DENIED = 'PERMISSION_DENIED';
     const PARAMS_ERROR = 'PARAMS_ERROR';
+
+    // jwt token无效
+    const JWT_INVALID = 'JWT_INVALID';
+    // jwt token过期
+    const JWT_EXPIRED = 'JWT_EXPIRED';
+    // jwt 其他异常
+    const JWT_OTHER = 'JWT_OTHER';
 }

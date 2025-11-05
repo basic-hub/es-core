@@ -112,6 +112,17 @@ trait有哪些坑
 
     1. OrmCache/Strings的bloom功能使用时需注意：如果不同的系统（例如log, sdk）刚好用的是同一个redis实例，而且又刚好有同名的表(例如game,package)，请务必保证两表内容是同步的！！像pay.order_GAMEID分表和log.order_GAMEID分表，这个得注意了，因为它俩就是主键和内容都不同的，不能启用这个功能！！！
 
+## 与老版本变化
+
+- 扩展参数不再直接修改EasySwoole的Request对象，而是存储在控制器的属性中。
+    
+    改动原因：直接修改原Request会导致一些需要所有参数参与签名的地方无法处理
+
+- rsa密文解密参数独立rsa属性，强制某些数据必须是经过rsa解密得到。
+
+    改动原因：例如： envkeydata=xxxxxxxxx&name=Joyboo 。传递的envkeydata密文中是不包含 `name` 字段的，通过解密再合并到input中，此时 在业务层是无法区分name是不是由rsa解密的来的，只能区分有没有经过rsa解密和name字段有没有值，如果被外部恶意攻击关键字段，这里就是隐患。
+
+
 ## TODO
 
 - [x] 创建定时任务Crontab和消费任务Consumer，src/Common/Classes/Crontab移动至src/Crontab目录
@@ -123,7 +134,7 @@ trait有哪些坑
 - [x] es-orm-cache 组件封装，替换原有的cacheinfo系列方法
 - [ ] WebSocket实现导出全部，永不超时，进度实时可见，随时取消
 - [ ] 定义模型Class映射
-- [ ] 重写verify_token为面向对象风格，验证与生成token解耦
+- [x] 重写verify_token为面向对象风格，验证与生成token解耦
 
 ## 其他
 
@@ -136,4 +147,4 @@ trait有哪些坑
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=wonder-game/es-utility&type=Date)](https://star-history.com/#wonder-game/es-utility&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=basic-hub/es-core&type=Date)](https://star-history.com/#basic-hub/es-core&Date)

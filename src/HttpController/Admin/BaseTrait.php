@@ -8,7 +8,7 @@ use BasicHub\EsCore\Common\Http\Code;
 use BasicHub\EsCore\HttpController\BaseControllerTrait;
 
 /**
- * @extends BaseControllerTrait
+ * @mixin BaseControllerTrait
  */
 trait BaseTrait
 {

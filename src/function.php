@@ -496,43 +496,6 @@ if ( ! function_exists('get_token')) {
     }
 }
 
-if ( ! function_exists('verify_token')) {
-    /**
-     * 验证jwt并读取用户信息
-     * @param array $header jwt所在的数组，传[]则自动从头信息中获取
-     * @param string|null|bool $key 为string类型时会校验这个key值是否非空；为null或false或空时直接返回token
-     * @param array $orgs 如果有传则会进行二次校验
-     */
-    function verify_token($header = [], $key = 'uid', $orgs = [])
-    {
-        $request = CtxRequest::getInstance()->request;
-        $header or $header = $request->getHeaders();
-        // jwt所在的key
-        $jk = config('ENCRYPT.jwtkey');
-        // 有些功能需求要靠url带上所有用户信息。 所以这里改成如果从header拿不到则会尝试取get参数的
-        if ( ! $token = $header[$jk][0] ?? $request->getQueryParam($jk)) {
-            throw new HttpParamException('缺少token', Code::CODE_BAD_REQUEST);
-        }
-        if ( ! $key) {
-            return $token;
-        }
-        // 验证JWT
-        $jwt = LamJwt::verifyToken($token, '', false);
-        is_array($jwt['data']) && $jwt['data'] = $jwt['data'] + ($jwt['data']['data'] ?? []);
-        if ($jwt['status'] != 1 || empty($jwt['data'][$key])) {
-            throw new HttpParamException('jwt有误', Code::CODE_UNAUTHORIZED);
-        }
-        // 二次校验
-        if ($orgs && (empty($orgs[$key]) || $jwt['data'][$key] != $orgs[$key])) {
-            throw new HttpParamException("jwt的 $key 不符:" . ($jwt['data'][$key] ?? ''), Code::CODE_PRECONDITION_FAILED);
-        }
-
-        $jwt['data']['token'] = $token;
-        return $jwt['data'];
-    }
-}
-
-
 if ( ! function_exists('ip')) {
     /**
      * 获取http客户端ip

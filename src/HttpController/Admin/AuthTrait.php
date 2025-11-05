@@ -19,7 +19,7 @@ use BasicHub\EsCore\Common\Http\Code;
 use BasicHub\EsCore\Common\Languages\Dictionary;
 
 /**
- * @extends Base
+ * @mixin BaseTrait
  */
 trait AuthTrait
 {
@@ -71,7 +71,7 @@ trait AuthTrait
     {
         // jwt验证
         try {
-            $jwt = verify_token([], 'id');
+            $jwt = $this->checkJwtToken('id');
         } catch (HttpParamException $e) {
             // jwt认证失败必须返回401，否则无法跳转登录页
             $this->error(Code::CODE_UNAUTHORIZED, $e->getMessage());

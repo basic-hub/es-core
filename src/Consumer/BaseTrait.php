@@ -9,7 +9,7 @@ use EasySwoole\RedisPool\RedisPool;
 use BasicHub\EsCore\EventMainServerCreate;
 
 /**
- * @extends AbstractProcess;
+ * @mixin AbstractProcess;
  */
 trait BaseTrait
 {
@@ -68,7 +68,6 @@ trait BaseTrait
      */
     public function run($arg)
     {
-        /* @var AbstractProcess $this */
         $this->args = $this->getArg();
 
         if (config('PROCESS_INFO.isopen')) {

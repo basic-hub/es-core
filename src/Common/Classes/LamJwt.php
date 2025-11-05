@@ -1,13 +1,10 @@
 <?php
-/**
- * jwt生成与解析
- *
- * @author 林坤源
- * @version 1.0.2 最后修改时间 2020年10月21日
- */
 
 namespace BasicHub\EsCore\Common\Classes;
 
+use BasicHub\EsCore\Common\Exception\JwtException;
+use BasicHub\EsCore\Common\Http\Code;
+use BasicHub\EsCore\Common\Languages\Dictionary;
 use EasySwoole\Jwt\Jwt;
 
 class LamJwt
@@ -20,15 +17,14 @@ class LamJwt
      * @param array $extend
      * @return string jwt值
      */
-    public static function getToken($data = [], $key = '', $expire = null, $extend = [])
+    public static function getToken($data = [], $key = '', $expire = null)
     {
         $time = time();
         $uniqid = uniqid();
 
-        is_array($extend) && extract($extend);
-
+        $secret = $key ?: config('ENCRYPT.key');
         $jwt = Jwt::getInstance()
-            ->setSecretKey($key ?: config('ENCRYPT.key')) // 秘钥
+            ->setSecretKey($secret) // 秘钥
             ->publish();
 
         $jwt->setAlg('HMACSHA256'); // 加密方式
@@ -55,11 +51,12 @@ class LamJwt
      * @param bool $only_data 是否只返回data字段的内容
      * @return array status为1才代表成功
      */
-    public static function verifyToken($token = '', $key = '', $only_data = true)
+    public static function verifyToken($token, $key = '')
     {
         $token = base64_decode($token);
         try {
-            $jwt = Jwt::getInstance()->setSecretKey($key ?: config('ENCRYPT.key'))->decode($token);
+            $secret = $key ?: config('ENCRYPT.key');
+            $jwt = Jwt::getInstance()->setSecretKey($secret)->decode($token);
             $status = $jwt->getStatus();
 
             switch ($status) {
@@ -73,19 +70,14 @@ class LamJwt
                         'jti' => $jwt->getJti(),
                         'sub' => $jwt->getSub()
                     ];
-                    $only_data && $data = $data['data'];
-                    break;
+                    return $data;
                 case  -1:
-                    $data = '无效';
-                    break;
+                    throw new JwtException(lang(Dictionary::JWT_INVALID), Code::JWT_INVALID);
                 case  -2:
-                    $data = 'token过期';
-                    break;
+                    throw new JwtException(lang(Dictionary::JWT_EXPIRED), Code::JWT_EXPIRED);
             }
-        } catch (\EasySwoole\Jwt\Exception $e) {
-
+        } catch (\Exception $e) {
+            throw new JwtException($e->getMessage(), Code::JWT_OTHER, $e);
         }
-
-        return ['status' => $status, 'data' => $data];
     }
 }

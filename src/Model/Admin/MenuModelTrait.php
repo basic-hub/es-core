@@ -7,7 +7,7 @@ use BasicHub\EsCore\Common\Classes\Tree;
 use BasicHub\EsCore\Model\BaseModelTrait;
 
 /**
- * @extends AbstractModel
+ * @mixin BaseModelTrait
  */
 trait MenuModelTrait
 {
@@ -49,7 +49,6 @@ trait MenuModelTrait
      */
     public function getTree($where = [], array $options = [])
     {
-        /* @var AbstractModel|BaseModelTrait $this */
         if ($where) {
             $this->where($where);
         }
@@ -60,7 +59,6 @@ trait MenuModelTrait
 
     public function getHomePage($id)
     {
-        /* @var AbstractModel|BaseModelTrait $this */
         $data = $this->where(['type' => [[0, 1], 'in']])->setOrder()->all();
         $Tree = new Tree(['data' => $data, 'filterIds' => $id]);
         return $Tree->getHomePage();
@@ -76,7 +74,6 @@ trait MenuModelTrait
      */
     public function permCode($rid): array
     {
-        /* @var AbstractModel $this */
         $where = ['permission' => ['', '<>']];
 
         if ( ! is_super($rid)) {
