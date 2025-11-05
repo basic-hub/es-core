@@ -10,7 +10,7 @@ use EasySwoole\ORM\DbManager;
 use EasySwoole\Redis\Redis;
 use EasySwoole\RedisPool\RedisPool;
 use EasySwoole\Spl\SplArray;
-use BasicHub\EsCore\Common\Classes\CtxRequest;
+use EasySwoole\Utility\Str;
 use BasicHub\EsCore\Common\Classes\HttpRequest;
 use BasicHub\EsCore\Common\Classes\LamJwt;
 use BasicHub\EsCore\Common\Classes\LamOpenssl;
@@ -21,8 +21,6 @@ use BasicHub\EsCore\Common\CloudLib\Dns\DnsInterface;
 use BasicHub\EsCore\Common\CloudLib\Email\EmailInterface;
 use BasicHub\EsCore\Common\CloudLib\Sms\SmsInterface;
 use BasicHub\EsCore\Common\CloudLib\Storage\StorageInterface;
-use BasicHub\EsCore\Common\Exception\HttpParamException;
-use BasicHub\EsCore\Common\Http\Code;
 use BasicHub\EsCore\Common\OrmCache\Strings;
 use BasicHub\EsCore\HttpTracker\Index as HttpTracker;
 use BasicHub\EsCore\Notify\DingTalk\Message\Markdown;
@@ -179,13 +177,6 @@ if ( ! function_exists('model_media')) {
     }
 }
 
-if ( ! function_exists('model_oper')) {
-    function model_oper(string $name = '', array $data = [], $inject = false)
-    {
-        return model('Oper\\' . ucfirst($name), $data, $inject);
-    }
-}
-
 if ( ! function_exists('config')) {
     /**
      * 获取和设置配置参数
@@ -220,20 +211,6 @@ if ( ! function_exists('trace')) {
     }
 }
 
-if ( ! function_exists('trace_immediate')) {
-    /**
-     * 记录日志信息,立即写入
-     * @param string|array $log log信息 支持字符串和数组
-     * @param string $level 日志级别
-     * @return void|bool
-     */
-    function trace_immediate($log = '', $level = 'info')
-    {
-        return trace($log, $level, 'immediate');
-    }
-}
-
-
 if ( ! function_exists('defer_redis')) {
     /**
      * 返回redis句柄资源
@@ -259,12 +236,9 @@ if ( ! function_exists('parse_name')) {
     function parse_name($name, $type = 0, $ucfirst = true)
     {
         if ($type) {
-            $name = preg_replace_callback('/_([a-zA-Z])/', function ($match) {
-                return strtoupper($match[1]);
-            }, $name);
-            return $ucfirst ? ucfirst($name) : lcfirst($name);
+            return $ucfirst ? Str::studly($name) : Str::camel($name);
         } else {
-            return strtolower(trim(preg_replace('/[A-Z]/', '_\\0', $name), '_'));
+            return strtolower(Str::snake($name));
         }
     }
 }
@@ -499,7 +473,7 @@ if ( ! function_exists('get_token')) {
 if ( ! function_exists('ip')) {
     /**
      * 获取http客户端ip
-     * @param null $Request
+     * @param Request $Request
      * @return false|string
      */
     function ip($Request = null)
@@ -644,12 +618,11 @@ if ( ! function_exists('feishu_card')) {
 
 
 if ( ! function_exists('array_to_std')) {
-    function array_to_std(array $array = [])
+    function array_to_std(array $array = [], array $filterKey = [])
     {
-        $func = __FUNCTION__;
         $std = new \stdClass();
         foreach ($array as $key => $value) {
-            $std->{$key} = is_array($value) ? $func($value) : $value;
+            $std->{$key} = (is_array($value) && !in_array($key, $filterKey)) ? array_to_std($value, $filterKey) : $value;
         }
         return $std;
     }
@@ -701,8 +674,6 @@ if ( ! function_exists('geo')) {
             $region = $dbSearcher->search($ip);
             $dbSearcher->close();
 
-            // 注意分隔符一定要用–，最好是复制粘贴，以防写错！！！
-
             // ip解析示例：
             // ["美国–新泽西州–伯灵顿", "Comcast有线通信股份有限公司"]
             // ["中国–广东–深圳", "电信"]
@@ -742,8 +713,9 @@ if ( ! function_exists('sysinfo')) {
      */
     function sysinfo($key = null, $default = null)
     {
+        $mode = ucfirst(APP_MODULE);
         /** @var \App\Model\Admin\Sysinfo $model */
-        $model = model_admin('sysinfo');
+        $model = model("$mode\sysinfo");
         return $model->cacheSpl($key, $default);
     }
 }
@@ -846,20 +818,6 @@ if ( ! function_exists('json_decode_ext')) {
 }
 
 
-if ( ! function_exists('get_google_service_account')) {
-
-    /**
-     * Google服务账号文件路径
-     * @param string $pkgbnd
-     * @return string
-     */
-    function get_google_service_account($pkgbnd)
-    {
-        return EASYSWOOLE_ROOT . "/../utility/google-service-account_$pkgbnd.json";
-    }
-}
-
-
 if ( ! function_exists('http_tracker')) {
     /**
      * 子链路记录，返回一个结束回调，必须保证结束回调被调用
@@ -900,14 +858,14 @@ if ( ! function_exists('http_tracker')) {
 
 
 if ( ! function_exists('format_keyval')) {
-    function format_keyval($kv = [])
+    function format_keyval($kv = [], $keyName = 'Key', $valName = 'Value')
     {
         $data = [];
         foreach ($kv as $arr) {
-            if (empty($arr['Key']) || empty($arr['Value'])) {
+            if (empty($arr[$keyName]) || empty($arr[$valName])) {
                 continue;
             }
-            $data[$arr['Key']] = $arr['Value'];
+            $data[$arr[$keyName]] = $arr[$valName];
         }
         return $data;
     }
@@ -915,13 +873,13 @@ if ( ! function_exists('format_keyval')) {
 
 
 if ( ! function_exists('unformat_keyval')) {
-    function unformat_keyval($kv = [])
+    function unformat_keyval($kv = [], $keyName = 'Key', $valName = 'Value')
     {
         $result = [];
         foreach ($kv as $key => $value) {
             $result[] = [
-                'Key' => $key,
-                'Value' => $value
+                $keyName => $key,
+                $valName => $value
             ];
         }
         return $result;
@@ -931,25 +889,33 @@ if ( ! function_exists('unformat_keyval')) {
 
 if ( ! function_exists('sign')) {
     /**
-     * 简单的签名与验签
+     * 本站简单的签名与验签
      * @param string|array $data 要参与签名的数据
      * @param string|null $sign 有传值则表示要验签
      * @param string $key 指定密钥，空则取 config('ENCRYPT.apikey')
      * @return string|bool  返回签名或验签结果
      */
-    function sign($data, $sign = null, $key = '')
+    function self_sign($data, $sign = null, $key = '')
     {
         $key = $key ?: config('ENCRYPT.apikey');
         if ( ! $key) {
             throw new \Exception('Missing configuration: ENCRYPT.apikey');
         }
 
+        // 是否验签
+        $ischk = !is_null($sign);
+
         if (is_array($data)) {
+            if ($ischk) {
+                // 验签是不包含sign字段的
+                unset($data['sign']);
+            }
             ksort($data);
             $data = json_encode($data);
         }
         $hash = md5($data . $key);
-        return is_null($sign) ? $hash : $hash === $sign;
+
+        return $ischk ? $hash === $sign : $hash;
     }
 }
 
@@ -1176,7 +1142,7 @@ if ( ! function_exists('request_lan_api')) {
                         'encry' => 'md5',
                         'time' => time(),
                     ];
-                $params['sign'] = md5($params['encry'] . $params['time'] . config('ENCRYPT.apikey'));
+                $params['sign'] = self_sign($data);
                 break;
 
             default:
@@ -1247,7 +1213,7 @@ if ( ! function_exists('cdn')) {
      */
     function cdn($config = []): CdnInterface
     {
-        return get_drivers(__FUNCTION__, 'CDN_CLOUD', $config);
+        return get_drivers(__FUNCTION__, strtoupper(__FUNCTION__), $config);
     }
 }
 
@@ -1441,74 +1407,6 @@ if ( ! function_exists('get_channel_class')) {
         }
         /** @var \App\Common\Channel\Base $class */
         return new $class($construct);
-    }
-}
-
-
-if ( ! function_exists('is_tester')) {
-    /**
-     * 是否为测试员(uid,devid,ip……)
-     * @param array|string $input 数据源
-     * @param string $type 类型。如没有指定则默认会取uid,devid,ip这三个成员
-     * @return bool
-     */
-    function is_tester(Request $request, $input = [], $type = '')
-    {
-        // 防止无限转发
-        if (stripos($request->getUri()->getHost(), 'test-') !== false) {
-            return false;
-        }
-
-        if ( ! $type) {
-            $type = ['uid', 'devid', 'ip'];
-            foreach ($type as $v) {
-                if (call_user_func(__FUNCTION__, $request, $input[$v], $v)) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        return RedisPool::invoke(function (Redis $redis) use ($input, $type) {
-            $key = "Tester:$type:$input";
-            return $redis->get($key);
-        }, strtolower(APP_MODULE));
-    }
-}
-
-if ( ! function_exists('forward_testserv')) {
-    /**
-     * 将请求转到test服
-     * @return void
-     */
-    function forward_testserv(Request $request, $config = [])
-    {
-        $uri = $request->getUri();
-        $swoole = $request->getSwooleRequest();
-        $query = $uri->getQuery();
-        $method = $request->getMethod();
-        $host = 'test-' . $uri->getHost();
-
-        $_body = $request->getBody()->__toString() ?: $swoole->rawContent();
-        $params = array_merge($swoole->post ?: [], json_decode($_body, true) ?: [], json_decode(json_encode(simplexml_load_string($_body, 'SimpleXMLElement', LIBXML_NOCDATA)), true) ?: []);
-
-        $url = $uri->getScheme() . '://' . (config('TESTER_BOX') ?: $host) . $uri->getPath() . ($query ? "?$query" : '');
-
-        $result = hcurl(
-            $url,
-            $params,
-            json_decode($_body, true) ? 'JSON' : $method,
-            ['host' => $host] + $swoole->header,
-            array_merge(['retryCallback' => false], $config)
-        );
-        if (empty($result) && (empty($config['resultType']) || $config['resultType'] === 'json')) {
-            $result = [
-                'code' => 555,
-                'msg' => 'Test request error',
-                'result' => []
-            ];
-        }
-        return $result;
     }
 }
 
