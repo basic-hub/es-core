@@ -33,7 +33,6 @@ trait BaseModelTrait
             $this->tableName = $this->_getTable();
         }
 
-        $this->gameid = $subid;
         $this->subid = $subid;
 
 //        $this->autoTimeStamp = false;
@@ -166,6 +165,31 @@ trait BaseModelTrait
             $result = new \EasySwoole\ORM\Collection\Collection($result);
         }
         return $toArray ? $result->toArray() : $result;
+    }
+
+    /**
+     * 生成基本的 key=>value 结构
+     * @param string $key
+     * @param string $value
+     * @param mixed $where 模型where，除了链式语法之外，此参数也是一种选择
+     * @return array
+     * @throws \EasySwoole\ORM\Exception\Exception
+     * @throws \Throwable
+     */
+    public function getMap($key = 'id', $value = 'name', $where = null)
+    {
+        $result = [];
+        if (!is_null($value)) {
+            $this->field([$key, $value]);
+        }
+        $all = $this->all($where);
+        foreach ($all as $item) {
+            if ($item instanceof AbstractModel) {
+                $item = $item->toArray();
+            }
+            $result[$item[$key]] = is_null($value) ? $item : $item[$value];
+        }
+        return $result;
     }
 
     /**

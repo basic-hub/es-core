@@ -4,7 +4,11 @@
 namespace BasicHub\EsCore\Model\Admin;
 
 use BasicHub\EsCore\Common\OrmCache\Hash;
+use EasySwoole\ORM\AbstractModel;
 
+/**
+ * @mixin AbstractModel
+ */
 trait CrontabTrait
 {
     use Hash;
