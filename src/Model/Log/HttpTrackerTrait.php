@@ -4,7 +4,7 @@ namespace BasicHub\EsCore\Model\Log;
 
 use EasySwoole\HttpClient\Bean\Response;
 use EasySwoole\HttpClient\HttpClient;
-use BasicHub\EsCore\Common\Classes\LamOpenssl;
+use BasicHub\EsCore\Common\Classes\OpensslManager;
 
 trait HttpTrackerTrait
 {
@@ -89,7 +89,7 @@ trait HttpTrackerTrait
             $url,
             [
                 // 可能不一定为POST
-                config('RSA.key') => LamOpenssl::getInstance()->encrypt(json_encode($request['POST']))
+                config('RSA.key') => OpensslManager::getInstance()->encrypt(json_encode($request['POST']))
             ],
             strtolower($request['method']),
             $headers,

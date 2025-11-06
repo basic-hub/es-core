@@ -56,7 +56,7 @@ trait AuthTrait
     }
 
     // 返回主体数据
-    protected function _getEntityData($id = 0)
+    protected function getAdmin($id = 0)
     {
         $Admin = model_admin('Admin');
         // 当前用户信息
@@ -79,7 +79,7 @@ trait AuthTrait
         }
 
         // 当前用户信息
-        $data = $this->_getEntityData($jwt['id']);
+        $data = $this->getAdmin($jwt['id']);
         if (empty($data)) {
             $this->error(Code::CODE_UNAUTHORIZED, Dictionary::ADMIN_AUTHTRAIT_3);
             return false;
@@ -251,24 +251,17 @@ trait AuthTrait
 
     public function _edit($return = false)
     {
-        $pk = $this->Model->getPk();
         $model = $this->__getModel();
         $request = array_merge($this->get, $this->post);
 
         if ($this->isHttpPost()) {
-
-            $where = null;
-            // 单独处理id为0值的情况，因为update传where后，data不会取差集，会每次update所有字段, 而不传$where时会走进preSetWhereFromExistModel用empty判断主键，0值会报错
-            if (intval($request[$pk]) === 0) {
-                $where = [$pk => $request[$pk]];
-            }
 
             /*
              * update返回的是执行语句是否成功,只有mysql语句出错时才会返回false,否则都为true
              * 所以需要getAffectedRows来判断是否更新成功
              * 只要SQL没错误就认为成功
              */
-            $upd = $model->setExtSave($this->Model->getExtSave())->update($request, $where);
+            $upd = $model->setExtSave($this->Model->getExtSave())->update($request);
             if ($upd === false) {
                 trace('edit update失败: ' . $model->lastQueryResult()->getLastError());
                 throw new HttpParamException(lang(Dictionary::ADMIN_AUTHTRAIT_9));
@@ -303,20 +296,14 @@ trait AuthTrait
 
         $model = $this->__getModel();
 
-        $where = null;
-        // 单独处理id为0值的情况，因为update传where后，data不会取差集，会每次update所有字段, 而不传$where时会走进preSetWhereFromExistModel用empty判断主键，0值会报错
-        if (intval($post[$pk]) === 0) {
-            $where = [$pk => $post[$pk]];
-        }
-
         $value = $post[$column] ?? $post['value'];
         if (strpos($column, '.') === false) {
             // 普通字段
-            $upd = $model->update([$column => $value], $where);
+            $upd = $model->update([$column => $value]);
         } else {
             // json字段
             list($one, $two) = explode('.', $column);
-            $upd = $model->update([$one => QueryBuilder::func(sprintf("json_set($one, '$.%s','%s')", $two, $value))], $where);
+            $upd = $model->update([$one => QueryBuilder::func(sprintf("json_set($one, '$.%s','%s')", $two, $value))]);
         }
 
 //        $rowCount = $model->lastQueryResult()->getAffectedRows();
@@ -347,8 +334,6 @@ trait AuthTrait
         // 处理排序
         $this->__order();
 
-        $this->Model->scopeIndex();
-
         $this->Model->limit($limit * ($page - 1), $limit)->withTotalCount();
         $items = $this->Model->all($where);
 
@@ -361,7 +346,14 @@ trait AuthTrait
 
     protected function __after_index($items = [], $total = 0, $summer = [])
     {
-        return [config('fetchSetting.listField') => $items, config('fetchSetting.totalField') => $total] + ($summer ? [config('fetchSetting.footerField') => $summer] : []);
+        $result = [
+            config('fetchSetting.listField') => $items,
+            config('fetchSetting.totalField') => $total
+        ];
+        if ($summer) {
+            $result[config('fetchSetting.footerField')] = $summer;
+        }
+        return $result;
     }
 
     protected function __with($column = 'relation')
@@ -686,11 +678,11 @@ trait AuthTrait
             $filter['endfmt'] = date(DateUtils::FMT_1, $filter['endtime']);
         }
 
-        $extColName = ['gameid', 'pkgbnd', 'adid'];
+        $extColName = ['gameid', 'pkgid'];
 
         // 特意让$filter拥有以下这几个key的成员，值至少为[]
         // 这样外围有需要可直接写 $filter['XXX'] && ....，而不需要写isset($filter['XXX']) && $filter['XXX'] && ....
-        foreach ([... $extColName, 'status'] as $col) {
+        foreach ([... $extColName, 'adid', 'pkgbnd', 'status'] as $col) {
             $filter[$col] = (isset($filter[$col]) && $filter[$col] !== '') ? explode(',', ($filter[$col])) : [];
         }
 

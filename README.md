@@ -23,8 +23,8 @@
      │      │     ├── ExceptionTrigger 自定义异常处理器，将异常上报至redis或http
      │      │     ├── FdManager  WebSocket连接符管理，共享内存(Swoole\Table)实现
      │      │     ├── LamJwt jwt
-     │      │     ├── LamOpenssl RSA数据加密和解密
-     │      │     ├── LamUnit 辅助工具类
+     │      │     ├── Openssl RSA数据加密和解密，可动态实例化
+     │      │     ├── OpensslManager 全局单例RSA类
      │      │     ├── Mysqli 对MysqlClient的二次封装
      │      │     ├── TablePart 定时建分区、续分区
      │      │     ├── Tree 数行结构处理
