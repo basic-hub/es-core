@@ -2,7 +2,7 @@
 
 namespace BasicHub\EsCore\HttpController\Api;
 
-use BasicHub\EsCore\Common\Classes\LamOpenssl;
+use BasicHub\EsCore\Common\Classes\OpensslManager;
 
 trait BaseTrait
 {
@@ -20,7 +20,7 @@ trait BaseTrait
         if ( ! $secret) {
             return false;
         }
-        $data = LamOpenssl::getInstance()->decrypt($secret);
+        $data = OpensslManager::getInstance()->decrypt($secret);
         $this->rsa = json_decode($data, true);
         return is_array($this->rsa);
     }

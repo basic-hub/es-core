@@ -13,7 +13,7 @@ use EasySwoole\Spl\SplArray;
 use EasySwoole\Utility\Str;
 use BasicHub\EsCore\Common\Classes\HttpRequest;
 use BasicHub\EsCore\Common\Classes\LamJwt;
-use BasicHub\EsCore\Common\Classes\LamOpenssl;
+use BasicHub\EsCore\Common\Classes\OpensslManager;
 use BasicHub\EsCore\Common\Classes\Mysqli;
 use BasicHub\EsCore\Common\CloudLib\Captcha\CaptchaInterface;
 use BasicHub\EsCore\Common\CloudLib\Cdn\CdnInterface;
@@ -1129,7 +1129,7 @@ if ( ! function_exists('request_lan_api')) {
         switch (strtolower($encry)) {
             case 'rsa':
                 // es-utility里默认有验证rsa的（仅验签，没做阻拦）
-                $openssl = LamOpenssl::getInstance();
+                $openssl = OpensslManager::getInstance();
                 $params = [
                     'encry' => 'rsa',
                     config('RSA.key') => $openssl->encrypt(json_encode($data))

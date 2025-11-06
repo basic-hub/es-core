@@ -3,7 +3,7 @@
 namespace BasicHub\EsCore\HttpController;
 
 use BasicHub\EsCore\Common\Classes\LamJwt;
-use BasicHub\EsCore\Common\Classes\LamOpenssl;
+use BasicHub\EsCore\Common\Classes\OpensslManager;
 use BasicHub\EsCore\Common\Exception\JwtException;
 use BasicHub\EsCore\HttpTracker\Index as HttpTracker;
 use EasySwoole\Http\AbstractInterface\Controller;
@@ -129,7 +129,7 @@ trait BaseControllerTrait
     {
         $cipher = $this->request()->getRequestParam(config('RSA.key'));
         // 私钥解密
-        $envkeydata = LamOpenssl::getInstance()->privateDecrypt($cipher);
+        $envkeydata = OpensslManager::getInstance()->privateDecrypt($cipher);
 
         // 尝试json结构转化，除了json，就是queryString格式
         if ($json = json_decode($envkeydata, true)) {
