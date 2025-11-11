@@ -58,14 +58,14 @@ trait HttpTrackerTrait
                 'runtime' => $runtime
             ];
 
-            $this->_getModel()->data($insert)->save();
+            $this->saveModal($insert);
         } catch (\Throwable|\Exception $e) {
             trace($e->__toString(), 'error');
         }
     }
 
-    protected function _getModel()
+    protected function saveModal($data)
     {
-        return model('HttpTracker');
+        return model('HttpTracker')->data($data)->save();
     }
 }
