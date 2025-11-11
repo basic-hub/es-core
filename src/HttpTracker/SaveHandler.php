@@ -9,14 +9,14 @@ use EasySwoole\Tracker\SaveHandlerInterface;
 
 class SaveHandler implements SaveHandlerInterface
 {
-    protected $config = [
-        'queue' => 'Report:Origin-HttpTracker',
-        'redis-name' => 'log',
-    ];
+    /**
+     * @var Config|null
+     */
+    protected $config = null;
 
-    public function __construct(array $cfg = [])
+    public function __construct(Config $config)
     {
-        $cfg && $this->config = array_merge($this->config, $cfg);
+        $this->config = $config;
     }
 
     /**
@@ -30,9 +30,9 @@ class SaveHandler implements SaveHandlerInterface
             try {
                 RedisPool::invoke(function (Redis $redis) use ($array, $globalArg) {
                     foreach ($array as $value) {
-                        redis_list_push($redis, $this->config['queue'], array_merge($value, $globalArg ?? []), true);
+                        redis_list_push($redis, $this->config->getSaveQueueName(), array_merge($value, $globalArg ?? []), true);
                     }
-                }, $this->config['redis-name']);
+                }, $this->config->getSaveRedisName());
             } catch (\Exception|\Throwable $e) {
                 trace($e->getMessage(), 'error');
                 return false;

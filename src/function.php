@@ -22,7 +22,7 @@ use BasicHub\EsCore\Common\CloudLib\Email\EmailInterface;
 use BasicHub\EsCore\Common\CloudLib\Sms\SmsInterface;
 use BasicHub\EsCore\Common\CloudLib\Storage\StorageInterface;
 use BasicHub\EsCore\Common\OrmCache\Strings;
-use BasicHub\EsCore\HttpTracker\Index as HttpTracker;
+use BasicHub\EsCore\HttpTracker\HTManager;
 use BasicHub\EsCore\Notify\DingTalk\Message\Markdown;
 use BasicHub\EsCore\Notify\DingTalk\Message\Text;
 use BasicHub\EsCore\Notify\EsNotify;
@@ -828,24 +828,14 @@ if ( ! function_exists('http_tracker')) {
      */
     function http_tracker(string $pointName, array $data = [], $parentId = null)
     {
-        // TODO 代码可能有冗余，待优化
-        // 兼容go函数内的场景
-        if ( ! is_null($parentId)) {
-            $point = HttpTracker::getInstance()->createStart($pointName);
-            $parentId && $point->setParentId($parentId);
-            $point && $point->setStartArg($data + ['server_name' => config('SERVNAME')]);
-
-            return function ($data = [], int $httpCode = 200) use ($point) {
-                if ($point) {
-                    $point->setEndArg(['httpStatusCode' => $httpCode, 'data' => $data])->end();
-                }
-            };
-        }
-
-        $point = HttpTracker::getInstance()->startPoint();
+        $point = HTManager::getInstance()->startPoint();
         $childPoint = false;
         if ($point) {
-            $childPoint = $point->appendChild($pointName)->setStartArg($data + ['server_name' => config('SERVNAME')]);
+            $childPoint = $point->appendChild($pointName);
+            if ($parentId){
+                $childPoint->setParentId($parentId);
+            }
+            $childPoint->setStartArg($data + ['server_name' => config('SERVNAME')]);
         }
 
         return function ($data = [], int $httpCode = 200) use ($point, $childPoint) {
