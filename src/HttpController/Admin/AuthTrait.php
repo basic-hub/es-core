@@ -261,7 +261,7 @@ trait AuthTrait
              * 所以需要getAffectedRows来判断是否更新成功
              * 只要SQL没错误就认为成功
              */
-            $upd = $model->setExtSave($this->Model->getExtSave())->update($request);
+            $upd = $model->update($request);
             if ($upd === false) {
                 trace('edit update失败: ' . $model->lastQueryResult()->getLastError());
                 throw new HttpParamException(lang(Dictionary::ADMIN_AUTHTRAIT_9));

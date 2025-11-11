@@ -108,9 +108,6 @@ trait有哪些坑
     2. 不允许重载方法，当某些项目可能比方法多一个小逻辑时，需要及时调整代码的封装，否则需要整个复制多一份，日积月累，反而可能更难维护
     3. 由于 2 的限制，现将普通控制器方法的public方法名默认添加一个固定前缀，通过基础控制器 /src/HttpController/BaseControllerTrait.php 的 actionNotFound 方法来实现更加灵活的调用方式
 
-## 开发备忘
-
-    1. OrmCache/Strings的bloom功能使用时需注意：如果不同的系统（例如log, sdk）刚好用的是同一个redis实例，而且又刚好有同名的表(例如game,package)，请务必保证两表内容是同步的！！像pay.order_GAMEID分表和log.order_GAMEID分表，这个得注意了，因为它俩就是主键和内容都不同的，不能启用这个功能！！！
 
 ## 与老版本变化
 

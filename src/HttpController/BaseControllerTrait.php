@@ -5,7 +5,8 @@ namespace BasicHub\EsCore\HttpController;
 use BasicHub\EsCore\Common\Classes\LamJwt;
 use BasicHub\EsCore\Common\Classes\OpensslManager;
 use BasicHub\EsCore\Common\Exception\JwtException;
-use BasicHub\EsCore\HttpTracker\Index as HttpTracker;
+use BasicHub\EsCore\HttpTracker\HTManager;
+use BasicHub\EsCore\HttpTracker\Config as HTConfig;
 use EasySwoole\Http\AbstractInterface\Controller;
 use EasySwoole\Http\Message\Status;
 use EasySwoole\Redis\Redis;
@@ -179,14 +180,16 @@ trait BaseControllerTrait
             return;
         }
 
-        // SaveHandler配置
-        $handleConfig = [
-            'queue' => $this->httpTracker['queue_name'],
-            'redis-name' => $this->httpTracker['pool_name'],
-        ];
+        $HTConfig = new HTConfig([
+            'saveRedisName' => $this->httpTracker['queue_name'],
+            'saveQueueName' => $this->httpTracker['pool_name'],
+            'saveGlobalArg' => [
+                'server_name' => config('SERVNAME')
+            ],
+        ]);
         // 根节点名称
         $rootName = get_mode('all');
-        $point = HttpTracker::getInstance($handleConfig)->createStart($rootName);
+        $point = HTManager::getInstance($HTConfig)->createStart($rootName);
 
         $_body = $request->getBody()->__toString() ?: $request->getSwooleRequest()->rawContent();
 
@@ -211,7 +214,6 @@ trait BaseControllerTrait
             'ip' => ip($request),
             'method' => $request->getMethod(),
             'path' => $request->getUri()->getPath(),
-            'server_name' => config('SERVNAME'),
             'header' => $request->getHeaders(),
 //            'server' => $request->getServerParams(),
             'repeated' => intval(stripos($request->getHeaderLine('user-agent'), ';HttpTracker') !== false)
@@ -243,7 +245,7 @@ trait BaseControllerTrait
         }
         $endData = ['httpStatusCode' => $code, 'data' => $data];
 
-        $point = HttpTracker::getInstance()->startPoint();
+        $point = HTManager::getInstance()->startPoint();
         $point && $point->setEndArg($endData)->end();
     }
 

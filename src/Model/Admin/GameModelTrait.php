@@ -6,6 +6,9 @@ namespace BasicHub\EsCore\Model\Admin;
 use EasySwoole\ORM\AbstractModel;
 use BasicHub\EsCore\Model\BaseModelTrait;
 
+/**
+ * @mixin BaseModelTrait
+ */
 trait GameModelTrait
 {
     protected function setBaseTraitProtected()
@@ -52,38 +55,9 @@ trait GameModelTrait
      */
     public function getKeyVlaueByid($idArray = [])
     {
-        /* @var AbstractModel $this */
         if ($idArray) {
             $this->where(['id' => [$idArray, 'in']]);
         }
-        $all = $this->field('id,name')->indexBy('id');
-        if ($all) {
-            $all = array_map(function ($value) {
-                return $value['name'];
-            }, $all);
-        }
-        return $all;
-    }
-
-    protected function getExtensionAttr($extension = '', $all = [])
-    {
-        $extension = is_array($extension) ? $extension : json_decode($extension, true);
-        // 强类型转换
-        if (isset($extension['type'])) {
-            $extension['type'] = intval($extension['type']);
-        }
-        if (isset($extension['h5sdk']['gameid'])) {
-            $extension['h5sdk']['gameid'] = intval($extension['h5sdk']['gameid']);
-        }
-        if (isset($extension['h5sdk']['isshow'])) {
-            $extension['h5sdk']['isshow'] = intval($extension['h5sdk']['isshow']);
-        }
-        if (isset($extension['h5sdk']['isshowmnlogo'])) {
-            $extension['h5sdk']['isshowmnlogo'] = intval($extension['h5sdk']['isshowmnlogo']);
-        }
-        if (isset($extension['mtn']['switch'])) {
-            $extension['mtn']['switch'] = intval($extension['mtn']['switch']);
-        }
-        return $extension;
+        return $this->getMap();
     }
 }

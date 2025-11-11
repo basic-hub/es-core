@@ -28,60 +28,61 @@ class Error implements TaskInterface
 
     public function run(int $taskId, int $workerIndex)
     {
-        if ($this->checkTime()) {
-            $title = '程序异常';
-            $servname = config('SERVNAME');
-            $servername = config('SERVER_NAME');
-
-            $driver = config('ES_NOTIFY.driver') ?: 'dingTalk';
-
-            switch ($driver) {
-                case 'feishu': // 飞书 card
-
-                    $message = $this->data['message'] ?? '';
-                    foreach ($this->merge as $key => $value) {
-                        $message = "\n" . (is_int($key) ? $value : "$key: $value");
-                    }
-
-                    $Message = new CardError([
-                        'servername' => $servname,
-                        'project' => $servername,
-                        'datetime' => date(DateUtils::FULL),
-                        'trigger' => $this->data['trigger'] ?? '',
-                        'filename' => "{$this->data['file']} 第 {$this->data['line']} 行",
-                        'content' => $message,
-                        'isAtAll' => true
-                    ]);
-
-                    break;
-                default: // 钉钉 markdown
-                    $data = [
-                        '### **' . $title . '**',
-                        '- 服务器: ' . $servname,
-                        '- 项 目：' . $servername,
-                        "- 文 件：{$this->data['file']} 第 {$this->data['line']} 行",
-                        "- 详 情：" . $this->data['message'] ?? '',
-                        '- 触发方式： ' . $this->data['trigger'] ?? '',
-                    ];
-
-                    foreach ($this->merge as $key => $value) {
-                        $data[] = "- " . (is_int($key) ? $value : "$key: $value");
-                    }
-
-                    $message = implode($this->warp, $data);
-                    $Message = new Markdown([
-                        'title' => $title,
-                        'text' => $message,
-                        'isAtAll' => true
-                    ]);
-                    break;
-            }
-
-            EsNotify::getInstance()->doesOne($driver, $Message);
-
-            $message = "$title: {$this->data['message']}, 文件 {$this->data['file']} 第 {$this->data['line']} 行";
-            wechat_warning($message);
+        if (!$this->checkTime()) {
+            return;
         }
+        $title = '程序异常';
+        $servname = config('SERVNAME');
+        $servername = config('SERVER_NAME');
+
+        $driver = config('ES_NOTIFY.driver') ?: 'dingTalk';
+
+        switch ($driver) {
+            case 'feishu': // 飞书 card
+
+                $message = $this->data['message'] ?? '';
+                foreach ($this->merge as $key => $value) {
+                    $message = "\n" . (is_int($key) ? $value : "$key: $value");
+                }
+
+                $Message = new CardError([
+                    'servername' => $servname,
+                    'project' => $servername,
+                    'datetime' => date(DateUtils::FULL),
+                    'trigger' => $this->data['trigger'] ?? '',
+                    'filename' => "{$this->data['file']} 第 {$this->data['line']} 行",
+                    'content' => $message,
+                    'isAtAll' => true
+                ]);
+
+                break;
+            default: // 钉钉 markdown
+                $data = [
+                    '### **' . $title . '**',
+                    '- 服务器: ' . $servname,
+                    '- 项 目：' . $servername,
+                    "- 文 件：{$this->data['file']} 第 {$this->data['line']} 行",
+                    "- 详 情：" . $this->data['message'] ?? '',
+                    '- 触发方式： ' . $this->data['trigger'] ?? '',
+                ];
+
+                foreach ($this->merge as $key => $value) {
+                    $data[] = "- " . (is_int($key) ? $value : "$key: $value");
+                }
+
+                $message = implode($this->warp, $data);
+                $Message = new Markdown([
+                    'title' => $title,
+                    'text' => $message,
+                    'isAtAll' => true
+                ]);
+                break;
+        }
+
+        EsNotify::getInstance()->doesOne($driver, $Message);
+
+        $message = "$title: {$this->data['message']}, 文件 {$this->data['file']} 第 {$this->data['line']} 行";
+        wechat_warning($message);
     }
 
     public function onException(\Throwable $throwable, int $taskId, int $workerIndex)

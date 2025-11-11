@@ -49,12 +49,6 @@ class EventInitialize extends SplBean
         '_after_func' => null, // 后置
     ];
 
-    protected $httpAfterRequestOpen = true;
-    protected $httpAfterRequestFunc = [
-        '_before_func' => null, // 前置
-        '_after_func' => null, // 后置
-    ];
-
     /**
      * 设置属性默认值
      * @return void
@@ -196,6 +190,7 @@ class EventInitialize extends SplBean
                         return;
                     }
                 }
+
                 $sql = $builder->getLastQuery();
                 if (empty($sql)) {
                     return;
@@ -325,30 +320,5 @@ class EventInitialize extends SplBean
                 break;
             }
         }
-    }
-
-    protected function registerAfterRequest()
-    {
-        if ( ! $this->httpAfterRequestOpen) {
-            return;
-        }
-
-        Di::getInstance()->set(
-            SysConst::HTTP_GLOBAL_AFTER_REQUEST,
-            function (Request $request, Response $response) {
-                // 前置
-                if (is_callable($this->httpAfterRequestFunc['_before_func'])) {
-                    // 返回false结束运行
-                    if ($this->httpAfterRequestFunc['_before_func']($request, $response) === false) {
-                        return;
-                    }
-                }
-
-                // 后置
-                if (is_callable($this->httpAfterRequestFunc['_after_func'])) {
-                    $this->httpAfterRequestFunc['_after_func']($request, $response);
-                }
-            }
-        );
     }
 }

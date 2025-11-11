@@ -19,8 +19,11 @@ trait BaseModelTrait
 
     protected $sort = ['id' => 'desc'];
 
-    // 编辑提交时 extension字段的处理方式： merge-合并；replace-覆盖  todo 待优化
-    protected $_extSave = 'replace';
+    /**
+     * 在Extension修改器中，是否将数据合并进原字段，true-合并，false-覆盖(默认)
+     * @var bool
+     */
+    protected $isMergeExtension = false;
 
     public function __construct($data = [], $tabname = '', $subid = '')
     {
@@ -30,7 +33,6 @@ trait BaseModelTrait
             $this->tableName = $this->_getTable();
         }
 
-        $this->gameid = $subid;
         $this->subid = $subid;
 
 //        $this->autoTimeStamp = false;
@@ -78,25 +80,20 @@ trait BaseModelTrait
             return $extension;
         }
 
-        $ext = [];
-
-        /*
-         * 如果需要合并extension，需要在模型内部的setBaseTraitProtected方法中将extSave属性改为merge
-         * 或者在实例化模型后，外部调用setExtSave('merge')方法
-         */
-        if ($this->_extSave == 'merge') {
-            // 现有数据
-            $ext = $this->toArray()['extension'] ?? [];
-            $ext or $ext = [];
-        }
-
         if (is_string($extension)) {
             $extension = json_decode($extension, true);
             if ( ! $extension) {
                 return json_encode(new \stdClass());
             }
         }
-        return json_encode(array_merge_multi($ext, $extension));
+
+        if ($this->isMergeExtension) {
+            // 现有数据
+            $ext = $this->getAttr('extension') ?: [];
+            $extension = array_merge_multi($ext, $extension);
+        }
+
+        return json_encode($extension);
     }
 
     protected function setInstimeAttr($instime, $all)
@@ -122,6 +119,7 @@ trait BaseModelTrait
         $model = parent::_clone();
         // 本为受保护属性，原理：同一个类的不同实例间可互相访问受保护或私有成员
         $model->subid = $this->subid;
+        $model->isMergeExtension = $this->isMergeExtension;
         return $model;
     }
 
@@ -170,6 +168,31 @@ trait BaseModelTrait
     }
 
     /**
+     * 生成基本的 key=>value 结构
+     * @param string $key
+     * @param string $value
+     * @param mixed $where 模型where，除了链式语法之外，此参数也是一种选择
+     * @return array
+     * @throws \EasySwoole\ORM\Exception\Exception
+     * @throws \Throwable
+     */
+    public function getMap($key = 'id', $value = 'name', $where = null)
+    {
+        $result = [];
+        if (!is_null($value)) {
+            $this->field([$key, $value]);
+        }
+        $all = $this->all($where);
+        foreach ($all as $item) {
+            if ($item instanceof AbstractModel) {
+                $item = $item->toArray();
+            }
+            $result[$item[$key]] = is_null($value) ? $item : $item[$value];
+        }
+        return $result;
+    }
+
+    /**
      * 删除rediskey
      * @param mixed ...$key
      */
@@ -195,15 +218,14 @@ trait BaseModelTrait
         DbManager::getInstance()->rollback($this->getQueryConnection());
     }
 
-
-    public function getExtSave()
+    public function getIsMergeExtension()
     {
-        return $this->_extSave;
+        return $this->isMergeExtension;
     }
 
-    public function setExtSave($way = null)
+    public function setIsMergeExtension(bool $isMerge)
     {
-        in_array($way, ['merge', 'replace']) && $this->_extSave = $way;
+        $this->isMergeExtension = $isMerge;
         return $this;
     }
 }
