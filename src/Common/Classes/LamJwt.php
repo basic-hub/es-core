@@ -51,20 +51,19 @@ class LamJwt
     /**
      * 验证和解析jwt
      * @param string $token
-     * @param string $key
+     * @param string $secret
      * @param bool $only_data 是否只返回data字段的内容
      * @return array status为1才代表成功
      */
-    public static function verifyToken($token, $key = '')
+    public static function verifyToken($token, $secret = '')
     {
         $token = base64_decode($token);
         try {
-            $secret = $key ?: config('ENCRYPT.key');
             $jwt = Jwt::getInstance()->setSecretKey($secret)->decode($token);
             $status = $jwt->getStatus();
 
             switch ($status) {
-                case  1:
+                case JwtObject::STATUS_OK:
                     $data = [
                         'aud' => $jwt->getAud(),
                         'data' => $jwt->getData(),
@@ -75,10 +74,12 @@ class LamJwt
                         'sub' => $jwt->getSub()
                     ];
                     return $data;
-                case  -1:
+                case JwtObject::STATUS_SIGNATURE_ERROR:
                     throw new JwtException(lang(Dictionary::JWT_INVALID), Code::JWT_INVALID);
-                case  -2:
+                case JwtObject::STATUS_EXPIRED:
                     throw new JwtException(lang(Dictionary::JWT_EXPIRED), Code::JWT_EXPIRED);
+                default:
+                    throw new JwtException('Other Error', Code::JWT_OTHER);
             }
         } catch (\Exception $e) {
             throw new JwtException($e->getMessage(), Code::JWT_OTHER, $e);
