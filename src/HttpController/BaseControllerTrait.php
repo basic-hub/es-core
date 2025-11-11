@@ -168,6 +168,8 @@ trait BaseControllerTrait
                 throw new HttpParamException("jwt的 $chkKey 不符:" . ($jwt[$chkKey] ?? ''), Code::CODE_PRECONDITION_FAILED);
             }
         }
+
+        return $jwt;
     }
 
     protected function httpTrackerStart()

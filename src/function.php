@@ -459,14 +459,19 @@ if ( ! function_exists('difdate')) {
 
 if ( ! function_exists('get_token')) {
     /**
-     * 生成jwt值并返回
-     * @param array|int $id
+     * 生成jwt token
+     * @param array $data
      * @param string|null $expire 有效期（秒）
      * @return string
      */
-    function get_token($id, $expire = null)
+    function get_token(array $data, $expire = null)
     {
-        return LamJwt::getToken(is_array($id) ? $id : ['id' => $id], '', $expire);
+        $config = config('ENCRYPT');
+
+        if (is_null($expire)) {
+            $expire = $config['expire'];
+        }
+        return LamJwt::getToken($data, $config['key'], $expire);
     }
 }
 

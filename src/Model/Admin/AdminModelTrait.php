@@ -9,14 +9,6 @@ use EasySwoole\ORM\AbstractModel;
  */
 trait AdminModelTrait
 {
-    /**
-     * 保存登录日志，新项目将log表统一命名规则，自己实现记录日志的操作
-     *   实现示例: $model->data($data)->save();
-     * @param array $data
-     * @return mixed
-     */
-    abstract public function signInLog($data = []);
-
     protected function setBaseTraitProtected()
     {
         $this->autoTimeStamp = true;
