@@ -3,11 +3,12 @@
 
 namespace BasicHub\EsCore\HttpController\Admin;
 
-use BasicHub\EsCore\Common\Classes\CtxRequest;
 use BasicHub\EsCore\Common\Exception\HttpParamException;
 use BasicHub\EsCore\Common\Languages\Dictionary;
+use EasySwoole\Http\AbstractInterface\Controller;
 
 /**
+ * @mixin Controller
  * @property \App\Model\Admin\Admin $Model
  */
 trait PubTrait
@@ -40,21 +41,33 @@ trait PubTrait
 
         $data = $data->toArray();
 
-        // 被锁定
-        if (empty($data['status']) && ( ! is_super($data['rid']))) {
+        // 已被锁定
+        if (empty($data['status'])) {
             throw new HttpParamException(lang(Dictionary::ADMIN_PUBTRAIT_2));
         }
 
-        $request = CtxRequest::getInstance()->request;
-        $this->Model->signInLog([
+        /** @var \App\Model\Admin\LogLogin $model */
+        $model = model_admin('LogLogin');
+        $model->data([
             'uid' => $data['id'],
             'name' => $data['realname'] ?: $data['username'],
-            'ip' => ip($request),
-        ]);
+            'ip' => ip($this->request()),
+        ])->save();
 
-        $token = get_token($data['id']);
-        $result = ['token' => $token];
+        $result = [
+            'token' => $this->getLoginToken($data['id'])
+        ];
         return $return ? $result + ['data' => $data] : $this->success($result, Dictionary::ADMIN_PUBTRAIT_3);
+    }
+
+    /**
+     * 后台登录token
+     * @param $data
+     * @return string
+     */
+    protected function getLoginToken($data)
+    {
+        return get_token(['id' => $data['id']]);
     }
 
     public function logout()

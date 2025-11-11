@@ -71,7 +71,7 @@ trait AuthTrait
     {
         // jwt验证
         try {
-            $jwt = $this->checkJwtToken('id');
+            $jwt = $this->checkJwtToken();
         } catch (HttpParamException $e) {
             // jwt认证失败必须返回401，否则无法跳转登录页
             $this->error(Code::CODE_UNAUTHORIZED, $e->getMessage());
