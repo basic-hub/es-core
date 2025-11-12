@@ -7,6 +7,7 @@ use BasicHub\EsCore\Common\Exception\HttpParamException;
 use BasicHub\EsCore\Common\Languages\Dictionary;
 
 /**
+ * @mixin AuthTrait
  * @property \App\Model\Admin\Admin $Model
  */
 trait AdminTrait
@@ -88,6 +89,8 @@ trait AdminTrait
     {
         if (empty($this->post['password'])) {
             unset($this->post['password']);
+        } else {
+            $this->post['extension']['logflag'] = ($this->post['extension']['logflag'] ?? 0) + 1;
         }
         return $this->_edit();
     }
@@ -116,11 +119,15 @@ trait AdminTrait
                 throw new HttpParamException(lang(Dictionary::ADMIN_ADMINTRAIT_6));
             }
 
-            if ($this->post['__password'] && ! password_verify($this->post['__password'], $userInfo['password'])) {
-                throw new HttpParamException(lang(Dictionary::ADMIN_ADMINTRAIT_7));
-            }
+            // 确认要修改密码
+            if (!empty($this->post['__password']) && !empty($this->post['password'])) {
 
-            if (empty($this->post['__password']) || empty($this->post['password'])) {
+                if (!password_verify($this->post['__password'], $userInfo['password'])) {
+                    // 旧密码校验不通过
+                    throw new HttpParamException(lang(Dictionary::ADMIN_ADMINTRAIT_7));
+                }
+                $this->post['extension']['logflag'] = ($this->post['extension']['logflag'] ?? 0) + 1;
+            } else {
                 unset($this->post['password']);
             }
 
@@ -138,11 +145,11 @@ trait AdminTrait
             throw new HttpParamException(lang(Dictionary::ADMIN_ADMINTRAIT_8));
         }
         $id = $this->get['id'];
-        $isExtsis = $this->Model->where(['id' => $id, 'status' => 1])->count();
-        if ( ! $isExtsis) {
+        $Admin = $this->Model->where(['id' => $id, 'status' => 1])->get();
+        if (empty($Admin)) {
             throw new HttpParamException(lang(Dictionary::ADMIN_ADMINTRAIT_9));
         }
-        $token = get_token(['id' => $id], 3600);
+        $token = $this->getAdminToken($Admin, 3600);
         return $return ? $token : $this->success($token);
     }
 }

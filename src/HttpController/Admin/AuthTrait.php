@@ -79,20 +79,26 @@ trait AuthTrait
         }
 
         // 当前用户信息
-        $data = $this->getAdmin($jwt['id']);
-        if (empty($data)) {
+        $Admin = $this->getAdmin($jwt['id']);
+        if (empty($Admin)) {
             $this->error(Code::CODE_UNAUTHORIZED, Dictionary::ADMIN_AUTHTRAIT_3);
             return false;
         }
 
-        if (empty($data['status']) && ( ! is_super($data['rid']))) {
+        if (empty($Admin['status']) && ( ! is_super($Admin['rid']))) {
             $this->error(Code::ERROR_OTHER, Dictionary::ADMIN_AUTHTRAIT_4);
             return false;
         }
 
+        $logflag = $Admin->getAttr('extension')['logflag'] ?? 0;
+        if ($jwt['logflag'] != $logflag) {
+            $this->error(Code::CODE_UNAUTHORIZED, 'LOGFLAG');
+            return false;
+        }
+
         // 关联的分组信息
-        $relation = $data->relation ? $data->relation->toArray() : [];
-        $this->operinfo = $data->toArray();
+        $relation = $Admin->relation ? $Admin->relation->toArray() : [];
+        $this->operinfo = $Admin->toArray();
         $this->operinfo['role'] = $relation;
 
         $this->operinfoAfter();
