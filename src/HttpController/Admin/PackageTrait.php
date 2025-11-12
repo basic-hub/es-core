@@ -3,8 +3,10 @@
 namespace BasicHub\EsCore\HttpController\Admin;
 
 use BasicHub\EsCore\Common\Exception\HttpParamException;
+use BasicHub\EsCore\Common\Languages\Dictionary;
 
 /**
+ * @mixin AuthTrait
  * @property \App\Model\Admin\Package $Model
  */
 trait PackageTrait
@@ -23,44 +25,22 @@ trait PackageTrait
         return $this->_search($where);
     }
 
-    public function _add($return = false)
-    {
-        if ($this->isHttpPost()) {
-            $pkgbnd = $this->post['pkgbnd'];
-            $count = $this->Model->where('pkgbnd', $pkgbnd)->count();
-            if ($count > 0) {
-                throw new HttpParamException('pkgbnd已存在： ' . $pkgbnd);
-            }
-        }
-        return parent::_add($return);
-    }
-
     public function _saveKeyValue($return = false)
     {
-        $kv = format_keyval($this->post['kv'] ?? []);
-        $model = $this->Model->where('id', $this->post['id'])->get();
-        $extension = $model->getAttr('extension');
-
-        // 由a.b.c 组装成 ['a']['b']['c']
-        $name = "['" . str_replace('.', "']['", $this->post['name']) . "']";
-        eval("\$extension$name = " . var_export($kv, true) . ';');
-
-        $model->extension = $extension;
-        $model->update();
-        return $return ? $model->toArray() : $this->success();
-    }
-
-
-    // 检查pkgbnd是否已存在了
-    public function _pkgbndExist($return = false)
-    {
-        $pkgbnd = $this->get['pkgbnd'];
-        if (empty($pkgbnd)) {
-            throw new HttpParamException('pkgbnd为空！');
+        $model = $this->__getModel();
+        if (empty($this->post['kv']) || empty($this->post['name'])) {
+            throw new HttpParamException(lang(Dictionary::MISS_KEY_PARA));
         }
-        $count = $this->Model->where('pkgbnd', $pkgbnd)->count();
-        $data = ['count' => $count];
-        return $return ? $data : $this->success($data);
+
+        // 支持无限极 a.b.c 语法
+        $parts = explode('.', $this->post['name']);
+        $node = $this->post['kv'];
+        foreach (array_reverse($parts) as $part) {
+            $node = [$part => $node];
+        }
+
+        $model->update(['extension' => $node]);
+        return $return ? $model->toArray() : $this->success();
     }
 
     public function _options($return = false)
@@ -71,6 +51,7 @@ trait PackageTrait
             ->field(['p.id', 'p.name', 'p.gameid', 'p.pkgbnd', 'p.os', 'p.sort'])
             ->alias('p')
             ->where('g.status', 1)
+            ->where('p.status', 1)
             ->join('game as g', 'p.gameid=g.id')
             ->all();
         return $return ? $options : $this->success($options);

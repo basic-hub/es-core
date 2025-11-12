@@ -5,10 +5,9 @@ namespace BasicHub\EsCore\HttpController\Admin;
 
 use BasicHub\EsCore\Common\Exception\HttpParamException;
 use BasicHub\EsCore\Common\Languages\Dictionary;
-use EasySwoole\Http\AbstractInterface\Controller;
 
 /**
- * @mixin Controller
+ * @mixin BaseTrait
  * @property \App\Model\Admin\Admin $Model
  */
 trait PubTrait
@@ -55,19 +54,9 @@ trait PubTrait
         ])->save();
 
         $result = [
-            'token' => $this->getLoginToken($data['id'])
+            'token' => $this->getAdminToken($data)
         ];
         return $return ? $result + ['data' => $data] : $this->success($result, Dictionary::ADMIN_PUBTRAIT_3);
-    }
-
-    /**
-     * 后台登录token
-     * @param $data
-     * @return string
-     */
-    protected function getLoginToken($data)
-    {
-        return get_token(['id' => $data['id']]);
     }
 
     public function logout()

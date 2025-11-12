@@ -40,13 +40,6 @@ class Crontab implements TaskInterface
     {
         $data = is_array($this->args) ? $this->args : [];
 
-        foreach ($data as $k => $v) {
-            // 解析指定函数
-            if (preg_match('/date\(|time\(|strtotime\(/i', $v)) {
-                eval('$data["' . $k . '"] = ' . $v . ';');
-            }
-        }
-
         $className = $this->data['eclass'];
         $method = $this->data['method'];
 

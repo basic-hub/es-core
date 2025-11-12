@@ -623,13 +623,41 @@ if ( ! function_exists('feishu_card')) {
 
 
 if ( ! function_exists('array_to_std')) {
-    function array_to_std(array $array = [], array $filterKey = [])
+    function array_to_std(array $array = [], array $filterKeys = [])
     {
-        $std = new \stdClass();
-        foreach ($array as $key => $value) {
-            $std->{$key} = (is_array($value) && !in_array($key, $filterKey)) ? array_to_std($value, $filterKey) : $value;
+        // 1. 递归删除指定路径的键
+        $delete = function (&$data, $keyPath) use (&$delete) {
+            $parts = explode('.', $keyPath, 2);
+            $currentKey = $parts[0];
+            if (!isset($data[$currentKey])) return;
+
+            // 单级键直接删除，多级键递归处理
+            if (count($parts) === 1) {
+                unset($data[$currentKey]);
+            } elseif (is_array($data[$currentKey])) {
+                $delete($data[$currentKey], $parts[1]);
+            }
+        };
+
+        // 处理所有需要删除的键
+        foreach ($filterKeys as $key) {
+            $delete($array, $key);
         }
-        return $std;
+
+        // 2. 递归转换为stdClass
+        $convert = function ($item) use (&$convert) {
+            if (! is_array($item)) {
+                return $item;
+            }
+
+            $obj = new \stdClass();
+            foreach ($item as $k => $v) {
+                $obj->$k = $convert($v);
+            }
+            return $obj;
+        };
+
+        return $convert($array);
     }
 }
 
@@ -700,7 +728,7 @@ if ( ! function_exists('geo')) {
 
             return is_numeric($num) ? $arr[$num] : $arr;
         } catch (\Exception|\Throwable $e) {
-            $dbSearcher->close();
+            $dbSearcher && $dbSearcher->close();
             trace("geo: $ip error:" . $e->getMessage(), 'error');
             return is_numeric($num) ? '' : [];
         }
@@ -914,26 +942,6 @@ if ( ! function_exists('sign')) {
     }
 }
 
-
-if ( ! function_exists('report_redis_key')) {
-    /**
-     * 返回上报队列里的redis-key
-     * @param string $key 具体动作 或 归类.具体动作
-     * @param string $type 归类
-     * @param string $sys 系统
-     * @return string
-     */
-    function report_redis_key($key = '', $type = 'origin', $sys = 'log')
-    {
-        $k = strpos($key, '.') ? explode('.', $key) : [$type, $key];
-        return config("QUEUE.$sys.$k[0].$k[1]")
-            // 定义啥就是啥
-            ?// 例如： Report:Origin-Active
-            : (config("QUEUE.$sys.prefix") . ucfirst($k[0]) . '-' . ucfirst($k[1]));
-    }
-}
-
-
 if ( ! function_exists('redis_list_push')) {
     /**
      * 入redis队列
@@ -980,8 +988,15 @@ if ( ! function_exists('repeat_array_keys')) {
         foreach ($data as $key => &$val) {
             if (in_array($key, $keys)) {
 
-                $prefix = substr($val, 0, $len);
-                $suffix = substr($val, 0 - $len);
+                // 如果总长度小于len,则len应该为 / 2 -1，绝不让明文全部展示出去
+                $slen = $len;
+                $vallen = strlen($val);
+                if ($vallen <= $slen) {
+                    $slen = floor($vallen / 2) - 1;
+                }
+
+                $prefix = substr($val, 0, $slen);
+                $suffix = substr($val, 0 - $slen);
 
                 $val = "$prefix***********$suffix";
             }
@@ -1095,6 +1110,13 @@ if ( ! function_exists('request_lan_api')) {
     {
         $method = strtoupper($method);
         /**
+         * MODULE_DOMAIN = [
+         *     sdk_url => 'xxx.com',
+         *     log_url => 'xxx.com',
+         *     pay_url => 'xxx.com',
+         *     admin_url => 'xxx.com',
+         * ]
+         *
          * 配置的结构可参考如下： ip为服务器的内网IP（建议填固定的服务器，不受减服影响的那种），多组可实现类似负载的效果
          {
             "produce": {
@@ -1113,12 +1135,23 @@ if ( ! function_exists('request_lan_api')) {
              }
          }
          */
-        $lan = sysinfo($lan_key . '_lan');
-        $lan = $lan[get_mode()] ?? config(strtoupper($lan_key . '_lan'));
-        if ( ! $lan) {
+
+        // 优先判断配置项  MODULE_DOMAIN.sdk_url
+        $url = config("MODULE_DOMAIN.{$lan_key}_url");
+        if (empty($url)) {
+            $env = get_mode();
+            $lan = sysinfo("{$lan_key}_lan.$env");
+            // 支持字符串和数组配置
+            $lanIp = is_array($lan['ip']) ? ($lan['ip'][array_rand($lan['ip'])]) : $lan['ip'];
+            // 支持带协议
+            $url = is_http_protocol($lanIp) ? $lanIp : "http://{$lanIp}{$uri}";
+        }
+
+        if ($url) {
             notice("{$lan_key} API请求失败，config或sysinfo未配置{$lan_key}_lan");
             return false;
         }
+
 
         // 参数加密
         switch (strtolower($encry)) {
@@ -1145,10 +1178,7 @@ if ( ! function_exists('request_lan_api')) {
                 return false;
         }
 
-        // 支持字符串和数组配置
-        $lanIp = is_array($lan['ip']) ? ($lan['ip'][array_rand($lan['ip'])]) : $lan['ip'];
-        // 支持带协议
-        $url = is_http_protocol($lanIp) ? $lanIp : "http://{$lanIp}{$uri}";
+
 
         $cfg = array_merge($cfg, [
             'keyword' => $lan_key,

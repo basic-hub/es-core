@@ -114,4 +114,17 @@ trait BaseTrait
         }
         return $result;
     }
+
+    /**
+     * 后台登录token
+     * @param $data
+     * @return string
+     */
+    protected function getAdminToken($admin, $expire = null)
+    {
+        return get_token([
+            'id' => $admin['id'],
+            'logflag' => $admin['extension']['logflag'] ?? 0
+        ], $expire);
+    }
 }

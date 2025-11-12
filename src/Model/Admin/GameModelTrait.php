@@ -14,6 +14,7 @@ trait GameModelTrait
     protected function setBaseTraitProtected()
     {
         $this->autoTimeStamp = true;
+        $this->isMergeExtension = true;
         $this->sort = ['sort' => 'asc', 'id' => 'desc'];
     }
 

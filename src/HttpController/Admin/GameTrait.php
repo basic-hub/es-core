@@ -6,6 +6,7 @@ use BasicHub\EsCore\Common\Exception\HttpParamException;
 use BasicHub\EsCore\Common\Languages\Dictionary;
 
 /**
+ * @mixin AuthTrait
  * @property \App\Model\Admin\Game $Model
  */
 trait GameTrait
@@ -24,10 +25,12 @@ trait GameTrait
 
     public function _gkey($return = false)
     {
-        $rand = [
-            'logkey' => mt_rand(10, 20),
-            'paykey' => mt_rand(30, 40)
-        ];
+        mt_srand();
+        $logPreix = mt_rand(10, 20);
+        mt_srand();
+        $payPrefix = mt_rand(30, 40);
+        $rand = ['logkey' => $logPreix, 'paykey' => $payPrefix];
+
         if ( ! isset($this->get['column']) || ! isset($rand[$this->get['column']])) {
             throw new HttpParamException(lang(Dictionary::PARAMS_ERROR));
         }
