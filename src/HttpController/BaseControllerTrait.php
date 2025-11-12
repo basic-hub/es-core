@@ -2,7 +2,7 @@
 
 namespace BasicHub\EsCore\HttpController;
 
-use BasicHub\EsCore\Common\Classes\LamJwt;
+use BasicHub\EsCore\Common\Classes\CtxRequest;
 use BasicHub\EsCore\Common\Classes\OpensslManager;
 use BasicHub\EsCore\Common\Exception\JwtException;
 use BasicHub\EsCore\HttpTracker\HTManager;
@@ -55,19 +55,10 @@ trait BaseControllerTrait
     protected $actionNotFoundPrefix = '_';
 
     /**
-     * http_tracker相关配置，由子类重写
+     * http_tracker相关配置
      * @var array
      */
-    protected $httpTracker = [
-        // 是否开启，默认不开启
-        'open' => false,
-        // redis队列名称
-        'queue_name' => 'Report:Origin-HttpTracker',
-        // redis连接名
-        'pool_name' => 'log',
-        // 不记录链路的uri path
-        'ignore_path' => [],
-    ];
+    protected $htcfg = [];
 
     public function __construct()
     {
@@ -78,6 +69,7 @@ trait BaseControllerTrait
 
     protected function onRequest(?string $action): ?bool
     {
+        $this->htcfg = config('HTTP_TRACKER') ?: [];
         // 请求参数rsa解密
         $this->decodeRsa();
 
@@ -128,7 +120,11 @@ trait BaseControllerTrait
 
     protected function decodeRsa()
     {
-        $cipher = $this->request()->getRequestParam(config('RSA.key'));
+        $rsaCfg = config('RSA');
+        if (empty($rsaCfg['open'])) {
+            return;
+        }
+        $cipher = $this->request()->getRequestParam($rsaCfg['key']);
         // 私钥解密
         $envkeydata = OpensslManager::getInstance()->privateDecrypt($cipher);
 
@@ -137,6 +133,11 @@ trait BaseControllerTrait
             $struct = $json;
         } else {
             parse_str($envkeydata, $struct);
+        }
+
+        if (is_array($struct) && $struct) {
+            CtxRequest::getInstance()->setIsrsa(true);
+            $struct = $this->requestParamsExtend() + $this->rsa;
         }
 
         $this->rsa = $struct ?: [];
@@ -151,40 +152,24 @@ trait BaseControllerTrait
     {
         $jwtCfg = config('ENCRYPT');
         $token = $this->request()->getHeader($jwtCfg['jwtkey'])[0] ?? '';
-        if (empty($token)) {
-            throw new HttpParamException('Jwt token is Empty.', Code::CODE_BAD_REQUEST);
-        }
 
-        // 验证JWT
-        $jwt = LamJwt::verifyToken($token, $jwtCfg['key']);
-
-        if ($chkKey) {
-            if (empty($jwt[$chkKey])) {
-                throw new HttpParamException('jwt Error', Code::CODE_UNAUTHORIZED);
-            }
-
-            // input中无此参数，或与jwt解密参数不符
-            if (empty($this->input[$chkKey]) || $this->input[$chkKey] != $jwt[$chkKey]) {
-                throw new HttpParamException("jwt的 $chkKey 不符:" . ($jwt[$chkKey] ?? ''), Code::CODE_PRECONDITION_FAILED);
-            }
-        }
-
-        return $jwt;
+        return verify_jwt_token($token, $chkKey, $this->input, $jwtCfg);
     }
 
     protected function httpTrackerStart()
     {
-        if (empty($this->httpTracker['open'])) {
+        $htConfig = $this->htcfg;
+        if (empty($htConfig['open'])) {
             return;
         }
         $request = $this->request();
-        if (is_array($this->httpTracker['ignore_path']) && in_array($request->getUri()->getPath(), $this->httpTracker['ignore_path'])) {
+        if (is_array($htConfig['ignore_path']) && in_array($request->getUri()->getPath(), $htConfig['ignore_path'])) {
             return;
         }
 
         $HTConfig = new HTConfig([
-            'saveRedisName' => $this->httpTracker['queue_name'],
-            'saveQueueName' => $this->httpTracker['pool_name'],
+            'saveRedisName' => $htConfig['queue_name'],
+            'saveQueueName' => $htConfig['pool_name'],
             'saveGlobalArg' => [
                 'server_name' => config('SERVNAME')
             ],
@@ -197,8 +182,9 @@ trait BaseControllerTrait
 
         // 如果希望查询某一个key，又不确定在GET还是POST还是XML中，此时查起来会很麻烦，是否需要新增一个ALL 将所有参数合并集中到一个key来进行查询 ??
         $effect = [
-            'GET' => $request->getQueryParams(),
-            'POST' => $request->getParsedBody(),
+            'GET' => $this->get,
+            'POST' => $this->post,
+            'RSA' => $this->rsa,
             'JSON' => json_decode($_body, true),
         ];
 
@@ -226,11 +212,12 @@ trait BaseControllerTrait
 
     protected function httpTrackerEnd()
     {
-        if (empty($this->httpTracker['open'])) {
+        $htConfig = $this->htcfg;
+        if (empty($htConfig['open'])) {
             return;
         }
         $request = $this->request();
-        if (is_array($this->httpTracker['ignore_path']) && in_array($request->getUri()->getPath(), $this->httpTracker['ignore_path'])) {
+        if (is_array($htConfig['ignore_path']) && in_array($request->getUri()->getPath(), $htConfig['ignore_path'])) {
             return;
         }
 
