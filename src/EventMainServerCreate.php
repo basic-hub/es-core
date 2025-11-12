@@ -2,6 +2,7 @@
 
 namespace BasicHub\EsCore;
 
+use BasicHub\EsCore\Template\RenderEngine;
 use EasySwoole\Command\Color;
 use EasySwoole\Component\AtomicManager;
 use EasySwoole\EasySwoole\Command\Utility;
@@ -12,6 +13,7 @@ use EasySwoole\Redis\Redis;
 use EasySwoole\RedisPool\RedisPool;
 use EasySwoole\Socket\AbstractInterface\ParserInterface;
 use EasySwoole\Spl\SplBean;
+use EasySwoole\Template\Render;
 use EasySwoole\WordsMatch\WMServer;
 use BasicHub\EsCore\Notify\EsNotify;
 
@@ -69,6 +71,7 @@ class EventMainServerCreate extends SplBean
         $this->watchHotReload();
         $this->registerNotify();
         $this->wordsMatch();
+        $this->tplEngine();
 
         if (config('PROCESS_INFO.isopen')) {
             $this->EventRegister->add(EventRegister::onWorkerStart, [static::class, 'listenProcessInfo']);
@@ -384,5 +387,28 @@ class EventMainServerCreate extends SplBean
 
         // 注册服务
         WMServer::getInstance($wdConfig)->attachServer(ServerManager::getInstance()->getSwooleServer());
+    }
+
+    /**
+     * 注册模板进程
+     * @param array $init
+     * @param $serverNum
+     * @return void
+     */
+    protected function tplEngine()
+    {
+        if ( ! $cfg = config('TPL_TEMPLATE')) {
+            return;
+        }
+        $renderConfig = Render::getInstance()->getConfig();
+        // 模板引擎，也可以使用 tp、smarty 等
+        $engineName = (!empty($cfg['engine_class']) && class_exists($cfg['engine_class'])) ? $cfg['engine_class'] : RenderEngine::class;
+
+        $renderConfig->setRender(new $engineName($cfg['init_params'] ?? []));
+        $renderConfig->setTempDir($cfg['temp_dir'] ?? EASYSWOOLE_TEMP_DIR);
+        $renderConfig->setTimeout($cfg['timeout'] ?? 5);
+        $renderConfig->setServerName($cfg['server_name'] ?? config('SERVER_NAME'));
+        $renderConfig->setWorkerNum($cfg['server_num'] ?? 2);
+        Render::getInstance()->attachServer(ServerManager::getInstance()->getSwooleServer());
     }
 }

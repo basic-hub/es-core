@@ -40,7 +40,8 @@
     "ext-simplexml": "*",
     "ext-libxml": "*",
     "ext-curl": "*",
-    "tencentcloud/cdn": "^3.0"
+    "tencentcloud/cdn": "^3.0",
+    "easyswoole/template": "^1.1"
   },
   "autoload": {
     "psr-4": {
