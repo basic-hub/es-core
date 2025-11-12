@@ -1,5 +1,7 @@
 <?php
 
+use BasicHub\EsCore\Common\Exception\HttpParamException;
+use BasicHub\EsCore\Common\Http\Code;
 use EasySwoole\EasySwoole\Config;
 use EasySwoole\EasySwoole\Logger;
 use EasySwoole\Http\Request;
@@ -1542,6 +1544,91 @@ if ( ! function_exists('is_http_protocol')) {
     function is_http_protocol($url): bool
     {
         return strpos($url, 'http://') === 0 || strpos($url, 'https://') === 0;
+    }
+}
+
+if (!function_exists('versions_compare')) {
+    /**
+     * 两个版本号判断
+     * @param $version1
+     * @param $version2
+     * @return int|bool
+     *            -1: $version1小于$version2
+     *             1：$version1大于$version2
+     *             0: 完全相等
+     *             fasle: 版本号规则不一致
+     */
+    function versions_compare($version1, $version2)
+    {
+        $v1 = explode('.', $version1);
+        $v2 = explode('.', $version2);
+
+        if (substr_count($version1, '.') != substr_count($version2, '.')) {
+            // 版本号规则不一致
+            return false;
+        }
+
+        if ($v1[0] < $v2[0]) {
+            return -1;
+        } elseif ($v1[0] > $v2[0]) {
+            return 1;
+        }
+
+        if (isset($v1[1])) {
+            if ($v1[1] < $v2[1]) {
+                return -1;
+            } elseif ($v1[1] > $v2[1]) {
+                return 1;
+            }
+        }
+
+
+        if (isset($v1[2])) {
+            if ($v1[2] < $v2[2]) {
+                return -1;
+            } elseif ($v1[2] > $v2[2]) {
+                return 1;
+            }
+        }
+
+        return 0;
+    }
+}
+
+if (!function_exists('verify_jwt_token')) {
+    /**
+     * 校验jwt和参数
+     * @param string $token jwt token
+     * @param string $chkKey 需要校验的参数key
+     * @param array $input 请求参数
+     * @param array $jwtcfg jwt配置
+     * @return array
+     * @throws HttpParamException
+     * @throws \BasicHub\EsCore\Common\Exception\JwtException
+     */
+    function verify_jwt_token($token, $chkKey = '', $input = [], $jwtcfg = []) {
+        if (empty($jwtcfg)) {
+            $jwtcfg = config('ENCRYPT');
+        }
+        if (empty($token)) {
+            throw new HttpParamException('Jwt token is Empty.', Code::CODE_BAD_REQUEST);
+        }
+
+        // 验证JWT
+        $jwt = LamJwt::verifyToken($token, $jwtcfg['key']);
+
+        if ($chkKey) {
+            if (empty($jwt[$chkKey])) {
+                throw new HttpParamException('jwt Error', Code::CODE_UNAUTHORIZED);
+            }
+
+            // input中无此参数，或与jwt解密参数不符
+            if (empty($input[$chkKey]) || $input[$chkKey] != $jwt[$chkKey]) {
+                throw new HttpParamException("jwt的 $chkKey 不符:" . ($jwt[$chkKey] ?? ''), Code::CODE_PRECONDITION_FAILED);
+            }
+        }
+
+        return $jwt;
     }
 }
 

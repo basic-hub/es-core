@@ -30,6 +30,22 @@ class CtxRequest
 
     protected $operinfo = [];
 
+    /**
+     * 标记是否经过rsa解密，用于一些不是非常严格要求rsa加密场景，如果需要严格判断rsa加密，则应该直接从控制器的rsa属性中获取请求参数
+     * @var bool
+     */
+    protected $isrsa = false;
+
+    public function setIsrsa(bool $isrsa)
+    {
+        $this->isrsa = $isrsa;
+    }
+
+    public function getIsrsa()
+    {
+        return $this->isrsa;
+    }
+
     public function getOperinfo(): array
     {
         return $this->operinfo;
