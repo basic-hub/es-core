@@ -11,6 +11,10 @@ class EsNotify
 {
     use Singleton;
 
+    const NOTIFY_TYPE_FEISHU = 'feishu';
+    const NOTIFY_TYPE_DINGTALK = 'dingTalk';
+    const NPTIFY_TYPE_WECHAT = 'weChat';
+
     protected $container = [];
 
     protected function getContainer(string $type, string $name = 'default'): ?NotifyInterface
