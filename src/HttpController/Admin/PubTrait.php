@@ -5,10 +5,11 @@ namespace BasicHub\EsCore\HttpController\Admin;
 
 use BasicHub\EsCore\Common\Exception\HttpParamException;
 use BasicHub\EsCore\Common\Languages\Dictionary;
+use EasySwoole\ORM\AbstractModel;
 
 /**
  * @mixin BaseTrait
- * @property \App\Model\Admin\Admin $Model
+ * @property AbstractModel $Model
  */
 trait PubTrait
 {
@@ -32,31 +33,29 @@ trait PubTrait
         }
 
         // 查询记录
-        $data = $this->Model->where('username', $array['username'])->get();
+        $Admin = $this->Model->where('username', $array['username'])->get();
 
-        if (empty($data) || ! password_verify($array['password'], $data['password'])) {
+        if (empty($Admin) || ! password_verify($array['password'], $Admin['password'])) {
             throw new HttpParamException(lang(Dictionary::ADMIN_PUBTRAIT_4));
         }
 
-        $data = $data->toArray();
-
         // 已被锁定
-        if (empty($data['status'])) {
+        if (empty($Admin['status'])) {
             throw new HttpParamException(lang(Dictionary::ADMIN_PUBTRAIT_2));
         }
 
-        /** @var \App\Model\Admin\LogLogin $model */
+        /** @var AbstractModel $model */
         $model = model_admin('LogLogin');
         $model->data([
-            'uid' => $data['id'],
-            'name' => $data['realname'] ?: $data['username'],
+            'uid' => $Admin['id'],
+            'name' => $Admin['realname'] ?: $Admin['username'],
             'ip' => ip($this->request()),
         ])->save();
 
         $result = [
-            'token' => $this->getAdminToken($data)
+            'token' => get_admin_token($Admin)
         ];
-        return $return ? $result + ['data' => $data] : $this->success($result, Dictionary::ADMIN_PUBTRAIT_3);
+        return $return ? $result + ['data' => $Admin->toArray()] : $this->success($result, Dictionary::ADMIN_PUBTRAIT_3);
     }
 
     public function logout()

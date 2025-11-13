@@ -52,10 +52,10 @@ class LamJwt
      * 验证和解析jwt
      * @param string $token
      * @param string $secret
-     * @param bool $only_data 是否只返回data字段的内容
+     * @param bool $onlydata 是否只返回data字段的内容
      * @return array status为1才代表成功
      */
-    public static function verifyToken($token, $secret = '')
+    public static function verifyToken($token, $secret = '', bool $onlydata = true)
     {
         $token = base64_decode($token);
         try {
@@ -73,7 +73,7 @@ class LamJwt
                         'jti' => $jwt->getJti(),
                         'sub' => $jwt->getSub()
                     ];
-                    return $data;
+                    return $onlydata ? $data['data'] : $data;
                 case JwtObject::STATUS_SIGNATURE_ERROR:
                     throw new JwtException(lang(Dictionary::JWT_INVALID), Code::JWT_INVALID);
                 case JwtObject::STATUS_EXPIRED:

@@ -477,6 +477,22 @@ if ( ! function_exists('get_token')) {
     }
 }
 
+if (!function_exists('get_admin_token')) {
+    /**
+     * 获取后台登录token
+     * @param AbstractModel $admin
+     * @param int $expire
+     * @return string
+     */
+    function get_admin_token(AbstractModel $Admin, $expire = null)
+    {
+        return get_token([
+            'id' => $Admin->getAttr('id'),
+            'logflag' => $Admin->getAttr('extension')['logflag'] ?? 0,
+        ], $expire);
+    }
+}
+
 if ( ! function_exists('ip')) {
     /**
      * 获取http客户端ip
@@ -1606,7 +1622,7 @@ if (!function_exists('verify_jwt_token')) {
      * @throws HttpParamException
      * @throws \BasicHub\EsCore\Common\Exception\JwtException
      */
-    function verify_jwt_token($token, $chkKey = '', $input = [], $jwtcfg = []) {
+    function verify_jwt_token($token, $chkKey = '', $input = [], $jwtcfg = [], $onlydata = true) {
         if (empty($jwtcfg)) {
             $jwtcfg = config('ENCRYPT');
         }
@@ -1615,7 +1631,7 @@ if (!function_exists('verify_jwt_token')) {
         }
 
         // 验证JWT
-        $jwt = LamJwt::verifyToken($token, $jwtcfg['key']);
+        $jwt = LamJwt::verifyToken($token, $jwtcfg['key'], $onlydata);
 
         if ($chkKey) {
             if (empty($jwt[$chkKey])) {
@@ -1629,6 +1645,16 @@ if (!function_exists('verify_jwt_token')) {
         }
 
         return $jwt;
+    }
+}
+
+if (!function_exists('is_rsa_ctx')) {
+    /**
+     * 快捷函数
+     * @return bool
+     */
+    function is_rsa_ctx() {
+        return \BasicHub\EsCore\Common\Classes\CtxRequest::getInstance()->getIsrsa();
     }
 }
 
