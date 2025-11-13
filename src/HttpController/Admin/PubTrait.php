@@ -53,7 +53,7 @@ trait PubTrait
         ])->save();
 
         $result = [
-            'token' => get_admin_token($Admin)
+            'token' => get_admin_jwt_token($Admin)
         ];
         return $return ? $result + ['data' => $Admin->toArray()] : $this->success($result, Dictionary::ADMIN_PUBTRAIT_3);
     }

@@ -459,14 +459,14 @@ if ( ! function_exists('difdate')) {
     }
 }
 
-if ( ! function_exists('get_token')) {
+if ( ! function_exists('get_jwt_token')) {
     /**
      * 生成jwt token
      * @param array $data
      * @param string|null $expire 有效期（秒）
      * @return string
      */
-    function get_token(array $data, $expire = null)
+    function get_jwt_token(array $data, $expire = null)
     {
         $config = config('ENCRYPT');
 
@@ -477,16 +477,16 @@ if ( ! function_exists('get_token')) {
     }
 }
 
-if (!function_exists('get_admin_token')) {
+if (!function_exists('get_admin_jwt_token')) {
     /**
      * 获取后台登录token
      * @param AbstractModel $admin
      * @param int $expire
      * @return string
      */
-    function get_admin_token(AbstractModel $Admin, $expire = null)
+    function get_admin_jwt_token(AbstractModel $Admin, $expire = null)
     {
-        return get_token([
+        return get_jwt_token([
             'id' => $Admin->getAttr('id'),
             'logflag' => $Admin->getAttr('extension')['logflag'] ?? 0,
         ], $expire);
