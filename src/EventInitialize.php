@@ -73,7 +73,6 @@ class EventInitialize extends SplBean
         $this->registerMysqlOnQuery();
         $this->registerI18n();
         $this->registerHttpOnRequest();
-        $this->registerAfterRequest();
     }
 
     /**
