@@ -115,7 +115,7 @@ trait BaseControllerTrait
     // 写入额外参数至get|post|input
     protected function requestParamsExtend()
     {
-        return ['ip' => ip($this->request())];
+        return [];
     }
 
     protected function decodeRsa()

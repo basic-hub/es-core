@@ -145,7 +145,7 @@ trait AdminTrait
         if (empty($Admin)) {
             throw new HttpParamException(lang(Dictionary::ADMIN_ADMINTRAIT_9));
         }
-        $token = get_admin_token($Admin, 3600);
+        $token = get_admin_jwt_token($Admin, 3600);
         return $return ? $token : $this->success($token);
     }
 }
