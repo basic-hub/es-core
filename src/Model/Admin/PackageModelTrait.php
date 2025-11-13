@@ -9,7 +9,6 @@ trait PackageModelTrait
 {
     protected function setBaseTraitProtected()
     {
-        $this->isMergeExtension = true;
         $this->sort = ['sort' => 'asc', 'id' => 'desc'];
     }
 

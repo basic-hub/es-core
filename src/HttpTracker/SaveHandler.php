@@ -30,7 +30,9 @@ class SaveHandler implements SaveHandlerInterface
             try {
                 RedisPool::invoke(function (Redis $redis) use ($array, $globalArg) {
                     foreach ($array as $value) {
-                        redis_list_push($redis, $this->config->getSaveQueueName(), array_merge($value, $globalArg ?? []), true);
+                        // data > 协程级公共参数 > 全局公共参数
+                        $data = array_merge($this->config->getSaveGlobalArg(), $globalArg ?: [], $value);
+                        redis_list_push($redis, $this->config->getSaveQueueName(), $data);
                     }
                 }, $this->config->getSaveRedisName());
             } catch (\Exception|\Throwable $e) {
