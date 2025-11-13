@@ -988,6 +988,59 @@ if ( ! function_exists('redis_list_push')) {
     }
 }
 
+if (!function_exists('notice_alarm_times')) {
+    /**
+     * 基于redis计数器报警，相同的内容超过x次就不报了
+     * @param mixed $content
+     * @param Redis|string|null $redis Redis实例 | 连接名 | null-自动获取当前mode
+     * @param int $times 报警次数
+     * @param string $warname 报警的key（关联webhoook机器人配置）
+     * @return void
+     */
+    function notice_alarm_times($content, $redis = null, $times = 3, $warname = 'default')
+    {
+        try {
+            if (!is_scalar($content)) {
+                $content = json_encode($content);
+            }
+
+            $fn = function (Redis $redis) use ($content, $times, $warname) {
+                $Ymd = date('Ymd');
+                $md5 = md5($content);
+                $redisKey = "alarm_times_{$Ymd}_{$md5}";
+
+                // 按自然日,缓存到今天结束
+                $expire = strtotime('tomorrow') - time();
+
+                if ($redis->exists($redisKey)) {
+
+                    // 再次检查ttl
+                    $ttl = $redis->ttl($redisKey);
+                    if ($ttl < 0) {
+                        $redis->expire($redisKey, $expire);
+                    }
+
+                    if ($redis->get($redisKey) <= $times) {
+                        notice($content, null, $warname);
+                    }
+                    $redis->incr($redisKey);
+                } else {
+                    $redis->setEx($redisKey, $expire, 1);
+                    notice($content, null, $warname);
+                }
+            };
+
+            if ($redis instanceof Redis) {
+                call_user_func($fn, $redis);
+            } else {
+                $poolName = is_string($redis) ? $redis : get_mode('mode');
+                RedisPool::invoke($fn, $poolName);
+            }
+        } catch (\Exception|\Throwable $e) {
+            trace($e->__toString(), 'error');
+        }
+    }
+}
 
 if ( ! function_exists('repeat_array_keys')) {
     /**

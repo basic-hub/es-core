@@ -105,7 +105,7 @@ trait BaseControllerTrait
         $extend = $rsa + $this->requestParamsExtend();
         foreach ($extend as $key => $value) {
             foreach (['get', 'post', 'input'] as $proName) {
-                if (empty($this->$proName[$key])) {
+                if (!empty($this->$proName) && !isset($this->$proName[$key])) {
                     $this->$proName[$key] = $value;
                 }
             }
@@ -168,11 +168,8 @@ trait BaseControllerTrait
         }
 
         $HTConfig = new HTConfig([
-            'saveRedisName' => $htConfig['queue_name'],
-            'saveQueueName' => $htConfig['pool_name'],
-            'saveGlobalArg' => [
-                'server_name' => config('SERVNAME')
-            ],
+            'saveRedisName' => $htConfig['pool_name'],
+            'saveQueueName' => $htConfig['queue_name'],
         ]);
         // 根节点名称
         $rootName = get_mode('all');
@@ -204,6 +201,7 @@ trait BaseControllerTrait
             'path' => $request->getUri()->getPath(),
             'header' => $request->getHeaders(),
 //            'server' => $request->getServerParams(),
+            'server_name' => config('SERVNAME'),
             'repeated' => intval(stripos($request->getHeaderLine('user-agent'), ';HttpTracker') !== false)
         ] + $effect;
 
