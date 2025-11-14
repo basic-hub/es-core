@@ -143,6 +143,7 @@ trait BaseControllerTrait
 
         if (is_array($struct) && $struct) {
             CtxRequest::getInstance()->setIsrsa(true);
+            // 争议，通用参数是否要加入rsa属性?
             $struct = array_merge($struct, $this->requestParamsExtend());
         }
 

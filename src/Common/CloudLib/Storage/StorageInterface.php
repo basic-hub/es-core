@@ -5,6 +5,13 @@ namespace BasicHub\EsCore\Common\CloudLib\Storage;
 interface StorageInterface
 {
     /**
+     * 获取上传对象存储的临时密钥，用于客户端直传超大文件至对象存储
+     * @param int $expire 有效期
+     * @return mixed
+     */
+    function sts($expire = 14400);
+
+    /**
      * 判断云端文件是否已存在
      * @param $key
      * @param $options

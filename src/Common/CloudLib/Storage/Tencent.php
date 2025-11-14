@@ -151,5 +151,31 @@ class Tencent extends Base
         $this->delete($formKey, $options);
     }
 
+    public function sts($expire = 14400)
+    {
+        $Sts = new \BasicHub\EsCore\Common\CloudLib\Sts\Tencent([
+            'region' => $this->region,
+            'secretId' => $this->secretId,
+            'secretKey' => $this->secretKey
+        ]);
 
+        $policy = json_encode([
+            'version' => '2.0',
+            'statement' => [
+                [
+                    'effect' => 'allow',
+                    // 那些资源权限
+                    'resource' => '*',
+                    'action' => [
+                        // 上传对象权限
+                        'name/cos:PutObject',
+                        // 删除对象权限
+                        'name/cos:DeleteObject'
+                    ],
+                ],
+            ],
+        ]);
+
+        return $Sts->get($policy, $expire);
+    }
 }
