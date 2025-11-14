@@ -60,6 +60,8 @@ trait BaseControllerTrait
      */
     protected $htcfg = [];
 
+    protected $rsacfg = [];
+
     public function __construct()
     {
         parent::__construct();
@@ -70,6 +72,7 @@ trait BaseControllerTrait
     protected function onRequest(?string $action): ?bool
     {
         $this->htcfg = config('HTTP_TRACKER') ?: [];
+        $this->rsacfg = config('RSA') ?: [];
         // 请求参数rsa解密
         $this->decodeRsa();
 
@@ -108,6 +111,9 @@ trait BaseControllerTrait
                 if (!empty($this->$proName) && !isset($this->$proName[$key])) {
                     $this->$proName[$key] = $value;
                 }
+                if (!empty($this->rsacfg['key'])) {
+                    unset($this->$proName[$this->rsacfg['key']]);
+                }
             }
         }
     }
@@ -120,7 +126,7 @@ trait BaseControllerTrait
 
     protected function decodeRsa()
     {
-        $rsaCfg = config('RSA');
+        $rsaCfg = $this->rsacfg;
         if (empty($rsaCfg['open'])) {
             return;
         }
@@ -175,17 +181,20 @@ trait BaseControllerTrait
         $rootName = get_mode('all');
         $point = HTManager::getInstance($HTConfig)->createStart($rootName);
 
-        $_body = $request->getBody()->__toString() ?: $request->getSwooleRequest()->rawContent();
-
         // 如果希望查询某一个key，又不确定在GET还是POST还是XML中，此时查起来会很麻烦，是否需要新增一个ALL 将所有参数合并集中到一个key来进行查询 ??
         $effect = [
             'GET' => $this->get,
             'POST' => $this->post,
             'RSA' => $this->rsa,
-            'JSON' => json_decode($_body, true),
         ];
 
-        $isXml = stripos($request->getHeaderLine('content-type'), 'xml') !== false;
+        $_body = $request->getBody()->__toString() ?: $request->getSwooleRequest()->rawContent();
+        $isJson = stripos($request->getHeaderLine('content-type'), '/json') !== false;
+        if ($isJson) {
+            $effect['JOSN'] = json_decode($_body, true);
+        }
+
+        $isXml = stripos($request->getHeaderLine('content-type'), '/xml') !== false;
         if ($isXml) {
             libxml_use_internal_errors(true);
             $effect['XML'] = json_decode(json_encode(simplexml_load_string($_body, 'SimpleXMLElement', LIBXML_NOCDATA)), true);
