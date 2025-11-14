@@ -250,8 +250,9 @@ trait AuthTrait
             $result = $this->Model->data($this->post)->save();
             if ($return) {
                 return $result;
+            } else {
+                return $result ? $this->success() : $this->error(Code::ERROR_OTHER, Dictionary::ADMIN_AUTHTRAIT_6);
             }
-            return $result ? $this->success() : $this->error(Code::ERROR_OTHER, Dictionary::ADMIN_AUTHTRAIT_6);
         }
     }
 
@@ -286,8 +287,9 @@ trait AuthTrait
         $result = $model->destroy();
         if ($return) {
             return $model->toArray();
+        } else {
+            return $result ? $this->success() : $this->error(Code::ERROR_OTHER, Dictionary::ADMIN_AUTHTRAIT_14);
         }
-        return $result ? $this->success() : $this->error(Code::ERROR_OTHER, Dictionary::ADMIN_AUTHTRAIT_14);
     }
 
     public function _change($return = false)
