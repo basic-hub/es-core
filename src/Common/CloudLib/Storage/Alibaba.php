@@ -187,8 +187,18 @@ class Alibaba extends Base
             'accessKeySecret' => $this->accessKeySecret
         ]);
 
+        // todo 待补充
         $policy = json_encode([]);
 
-        return $Sts->get($policy, $expire);
+        $stsResponse = $Sts->get($policy, $expire);
+        $data = $stsResponse->toArray();
+
+        // 除了基本的密钥信息之外，还需要给客户端返回对象存储信息
+        $data['bucket'] = $this->bucket;
+        $data['driver'] = $this->getClassName();
+
+        $data['endpoint'] = $this->endpoint;
+
+        return $data;
     }
 }
