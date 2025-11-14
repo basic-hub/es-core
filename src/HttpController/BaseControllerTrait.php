@@ -137,7 +137,7 @@ trait BaseControllerTrait
 
         if (is_array($struct) && $struct) {
             CtxRequest::getInstance()->setIsrsa(true);
-            $struct = $this->requestParamsExtend() + $this->rsa;
+            $struct = array_merge($struct, $this->requestParamsExtend());
         }
 
         $this->rsa = $struct ?: [];
