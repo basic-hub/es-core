@@ -26,6 +26,16 @@ class Response extends SplBean
      */
     protected $expiredTime;
 
+    /**
+     * @var int 密钥生效时间，由程序自动生成
+     */
+    protected $startTime;
+
+    protected function initialize(): void
+    {
+        $this->startTime = time();
+    }
+
     public function getToken()
     {
         return $this->token;
