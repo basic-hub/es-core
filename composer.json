@@ -41,7 +41,8 @@
     "ext-libxml": "*",
     "ext-curl": "*",
     "tencentcloud/cdn": "^3.0",
-    "easyswoole/template": "^1.1"
+    "easyswoole/template": "^1.1",
+    "tencentcloud/sts": "^3.0"
   },
   "autoload": {
     "psr-4": {
