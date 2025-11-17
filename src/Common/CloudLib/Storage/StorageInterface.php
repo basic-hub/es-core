@@ -9,7 +9,7 @@ interface StorageInterface
      * @param int $expire 有效期
      * @return array
      */
-    function sts($expire = 14400);
+    function stsUpload($expire = 14400);
 
     /**
      * 判断云端文件是否已存在

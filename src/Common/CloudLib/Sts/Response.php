@@ -31,6 +31,11 @@ class Response extends SplBean
      */
     protected $startTime;
 
+    /**
+     * @var 云商RequestId，返回方便定位问题
+     */
+    protected $requestId;
+
     protected function initialize(): void
     {
         $this->startTime = time();
