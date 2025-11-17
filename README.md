@@ -4,7 +4,7 @@
 
 ## 开始
 
-> composer require wonder-game/es-utility
+> composer require basic-hub/es-core
 
 ## 需要掌握的基础知识：
 

@@ -20,7 +20,7 @@ return [
         'apart_category' => ['sql', 'pay', 'cksql', 'media', 'channel'],
     ],
 
-    'SERVER_NAME' => (is_env('test') ? 'test-' : '') . 'ES-utility',
+    'SERVER_NAME' => (is_env('test') ? 'test-' : '') . 'ES-Core',
     'MAIN_SERVER' => [
         'LISTEN_ADDRESS' => '0.0.0.0',
         'SERVER_TYPE' => EASYSWOOLE_WEB_SERVER,
