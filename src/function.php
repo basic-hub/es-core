@@ -1227,7 +1227,7 @@ if ( ! function_exists('request_lan_api')) {
         // 参数加密
         switch (strtolower($encry)) {
             case 'rsa':
-                // es-utility里默认有验证rsa的（仅验签，没做阻拦）
+                // es-core里默认有验证rsa的（仅验签，没做阻拦）
                 $openssl = OpensslManager::getInstance();
                 $params = [
                     'encry' => 'rsa',
