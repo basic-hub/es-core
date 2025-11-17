@@ -179,13 +179,9 @@ class Alibaba extends Base
         $this->delete($formKey, $options);
     }
 
-    public function sts($expire = 14400)
+    public function stsUpload($expire = 14400)
     {
-        $Sts = new \BasicHub\EsCore\Common\CloudLib\Sts\Alibaba([
-            'endpoint' => $this->endpoint,
-            'accessKeyId' => $this->accessKeyId,
-            'accessKeySecret' => $this->accessKeySecret
-        ]);
+        $Sts = new \BasicHub\EsCore\Common\CloudLib\Sts\Alibaba($this->toArray());
 
         // todo 待补充
         $policy = json_encode([]);

@@ -56,6 +56,7 @@ class Tencent extends Base
                 'tmpSecretId' => $resp->getCredentials()->getTmpSecretId(),
                 'tmpSecretKey' => $resp->getCredentials()->getTmpSecretKey(),
                 'expiredTime' => $resp->getExpiredTime(),
+                'requestId' => $resp->getRequestId()
             ]);
         }
         catch(TencentCloudSDKException $e) {
