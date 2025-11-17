@@ -35,7 +35,7 @@ trait AuthTrait
      ***********************************************************************/
 
     // 别名认证
-    protected array $_authAlias = ['change' => 'edit', 'export' => 'index'];
+    protected array $_authAlias = ['change' => 'edit', 'export' => 'index', 'stsUpload' => 'add'];
 
     // 无需认证
     protected array $_authOmit = ['upload', 'options'];
@@ -532,6 +532,21 @@ trait AuthTrait
         }
     }
 
+    /**
+     * 使用Sts临时密钥从客户端直传对象存储,返回客户端需要的参数列表
+     * @param string $cloudKey 对象存储的key（文件路径）
+     * @param int $expire sts有效期
+     * @return array
+     * @throws \Exception
+     */
+    protected function __stsUpload($cloudKey, $expire = 3600 * 4)
+    {
+        $resp = storage()->stsUpload($expire);
+        // 上传对象存储key
+        $resp['cloudKey'] = $cloudKey;
+        return $resp;
+    }
+
     // 分片上传的主目录
     protected function getUploadPartDir()
     {
@@ -542,20 +557,17 @@ trait AuthTrait
     }
 
     /**
-     * 大文件分片上传，合并的操作耗时稍久，记得将客户端timeout设置大一些
+     * 大文件分片上传，如果需要将文件上传到对象存储，请使用stsUpload，从客户端直传对象存储
      * 1. 创建分片id， type=start
-     * 2. 上传每一个分片文件（客户端将File切割为Blob[]）
-     * 3. 合并所有分片，type=end
-     *
-     * todo 待重构：1. 上传每个分片后，立即合并，原因是大文件（例如3G以上的文件）上传需要n久（特别是境外，单片上传比较慢，但一起合并时超级慢）卡在合并这个动作更久，会导致超时失败，放到单片合并能解决这个问题，将合并需要的耗时分散到每一个分片。2. 上传完成type=end时，要检查文件md5，确保文件完整性 3. 上传结束当外部需要上传到对象存储时，上传动作也会需要很久，同步上传同样会超时，异步运行客户端又没法知道什么时候上传成功，这个问题待解决！解决完一起重构
+     * 2. 上传每一个分片文件,且合并（客户端将File切割为Blob[]）在每片上传时合并，因为放在最后一起合并耗时太久，超大文件下会合并超时
+     * 3. 使用文件md5校验文件一致性，type=end
      * @return void
      * @throws \HttpParamException
      */
     public function _uploadPart($return = false)
     {
+        $ext = pathinfo($this->input['filename'], PATHINFO_EXTENSION);
         if ($this->input['type'] === 'start') {
-
-            $ext = pathinfo($this->input['filename'], PATHINFO_EXTENSION);
             mt_srand();
             $uploadId = uniqid("$ext-") . '-' . mt_rand(10000, 99999);
 
@@ -563,11 +575,12 @@ trait AuthTrait
         }
         elseif ($this->input['type'] === 'end')
         {
-            if (empty($this->input['upload_id'])) {
-                throw new HttpParamException("参数错误：upload_id is empty");
-            }
-
             $uploadId = $this->input['upload_id'];
+            $fileMd5 = $this->input['md5'];
+
+            if (empty($uploadId) || empty($fileMd5)) {
+                throw new HttpParamException("参数错误：upload_id or file md5 is empty");
+            }
 
             $dir = $this->getUploadPartDir();
             $relpath = "/$uploadId/";
@@ -576,29 +589,16 @@ trait AuthTrait
             // 保持上传文件名不变
             $filename = $this->input['filename'];
 
-            $parts = scandir($dir);
-            // $parts = array_diff($parts, ['.', '..', '.upload']);
-            // 过滤非分片标识符
-            $parts = array_filter($parts, function ($val) { return is_numeric($val); });
-            if (empty($parts)) {
-                throw new HttpParamException('分片文件未上传');
-            }
-
-            sort($parts);
-
-            $fp = fopen($dir . $filename, 'a');
-            foreach ($parts as $part) {
-                fwrite($fp, file_get_contents($dir . $part));
-                @ unlink($dir . $part);
-            }
-            fclose($fp);
-
             // 相对路径
-            $localPath = $relpath . $filename;
-            return $return ? $localPath : $this->success($localPath);
+            $realPath = "$dir/$filename";
+
+            // md5一致性比对
+            if (md5_file($realPath) !== $fileMd5) {
+                throw new HttpParamException("文件md5不匹配");
+            }
+
+            return $return ? $realPath : $this->success($realPath);
         } else {
-            /** @var \EasySwoole\Http\Message\UploadFile $file */
-            $file = $this->request()->getUploadedFile($this->uploadKey);
 
             $uploadId = $this->input['upload_id'];
             if (empty($uploadId) || ! isset($this->input['part'])) {
@@ -609,10 +609,18 @@ trait AuthTrait
             $dir .= $relpath;
             is_dir($dir) or mkdir($dir, 0777, true);
 
-            $file->moveTo($dir . $this->input['part']);
-            // 相对路径
-            $localPath = $relpath . $this->input['part'];
-            return $return ? $localPath : $this->writeUpload($localPath);
+            /** @var \EasySwoole\Http\Message\UploadFile $file */
+            $file = $this->request()->getUploadedFile($this->uploadKey);
+
+            $fileName = "$uploadId.$ext";
+            $realPath = "$dir/$fileName";
+
+            $fp = fopen($realPath, 'a');
+            fwrite($fp, $file->getStream());
+            fclose($fp);
+
+            // 返回不重要
+            return $return ? $fileName : $this->writeUpload($fileName);
         }
     }
 
