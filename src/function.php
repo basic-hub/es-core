@@ -1214,6 +1214,7 @@ if ( ! function_exists('request_lan_api')) {
             $lan = sysinfo("{$lan_key}_lan.$env");
             // 支持字符串和数组配置
             $lanIp = is_array($lan['ip']) ? ($lan['ip'][array_rand($lan['ip'])]) : $lan['ip'];
+            $headers['Host'] = $lan['domain'];
             // 支持带协议
             $url = is_http_protocol($lanIp) ? $lanIp : "http://{$lanIp}{$uri}";
         }
@@ -1259,7 +1260,7 @@ if ( ! function_exists('request_lan_api')) {
         ]);
 
         try {
-            $res = hcurl($url, $params, $method, ['Host' => $lan['domain']] + $headers, $cfg);
+            $res = hcurl($url, $params, $method, $headers, $cfg);
             return $res['result'];
         } catch (\Exception $e) {
             notice($e->getMessage(), null, $notice);
