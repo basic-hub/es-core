@@ -26,6 +26,11 @@ class Alibaba extends Base
 
     protected $bucket = '';
 
+    /********* stsUpload *********/
+    protected $roleArn = '';
+
+    protected $region = 'cn-guangzhou';
+
     protected function initialize(): void
     {
         try {
@@ -184,24 +189,33 @@ class Alibaba extends Base
         $Sts = new \BasicHub\EsCore\Common\CloudLib\Sts\Alibaba($this->toArray());
 
         $policy = [
-            "Version" => "1",
-            "Statement" => [
+            'Version' => '1',
+            'Statement' => [
                 [
-                    "Effect" => "Allow",
-                    "Action" => [
+                    'Effect' => 'Allow',
+                    // https://help.aliyun.com/zh/oss/developer-reference/listparts?spm=a2c4g.11186623.help-menu-31815.d_1_0_5_1_6.42915fc15cjOXc&scm=20140722.H_31998._.OR_help-T_cn~zh-V_1
+                    'Action' => [
+                        //'*',
                         // 基础上传
-                        "oss:PutObject",
+                        'oss:PutObject',
                         // 分片上传
-                        "oss:InitiateMultipartUpload",
-                        "oss:UploadPart",
-                        "oss:CompleteMultipartUpload",
-                        "oss:AbortMultipartUpload",
+                        'oss:InitiateMultipartUpload',
+                        'oss:UploadPart',
+                        'oss:CompleteMultipartUpload',
+                        'oss:AbortMultipartUpload',
+                        'oss:PutObjectTagging',
+
                         // 辅助权限（可选）
-                        "oss:ListParts",
-                        "oss:ListObjects"
+                        'oss:ListParts',
+                        'oss:ListObjects',
+                        'oss:ListMultipartUploads',
+
+                        'kms:GenerateDataKey',
+                        'kms:Decrypt',
                     ],
-                    "Resource" => [
-                        "acs:oss:*:*:{$this->bucket}", // 桶级权限
+                    'Resource' => [
+                        '*',
+                        //"acs:oss:*:*:{$this->bucket}", // 桶级权限
                         //"acs:oss:*:*:{$bucket}/*" // 对象级权限
                     ]
                 ]
@@ -215,7 +229,8 @@ class Alibaba extends Base
         $data['bucket'] = $this->bucket;
         $data['driver'] = $this->getClassName();
 
-        $data['endpoint'] = $this->endpoint;
+//        $data['endpoint'] = $this->endpoint;
+        $data['region'] = $this->region;
 
         return $data;
     }
