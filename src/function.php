@@ -1216,7 +1216,7 @@ if ( ! function_exists('request_lan_api')) {
             $lanIp = is_array($lan['ip']) ? ($lan['ip'][array_rand($lan['ip'])]) : $lan['ip'];
             $headers['Host'] = $lan['domain'];
             // 支持带协议
-            $url = is_http_protocol($lanIp) ? $lanIp : "http://{$lanIp}{$uri}";
+            $url = is_http_protocol($lanIp) ? $lanIp : "http://{$lanIp}";
         }
 
         if (empty($url)) {
@@ -1224,6 +1224,7 @@ if ( ! function_exists('request_lan_api')) {
             return false;
         }
 
+        $url .= $uri;
 
         // 参数加密
         switch (strtolower($encry)) {
