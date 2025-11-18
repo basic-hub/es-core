@@ -1218,7 +1218,7 @@ if ( ! function_exists('request_lan_api')) {
             $url = is_http_protocol($lanIp) ? $lanIp : "http://{$lanIp}{$uri}";
         }
 
-        if ($url) {
+        if (empty($url)) {
             notice("{$lan_key} API请求失败，config或sysinfo未配置{$lan_key}_lan");
             return false;
         }

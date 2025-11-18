@@ -159,7 +159,7 @@ class Tencent extends Base
      * @return array
      * @throws \TencentCloud\Common\Exception\TencentCloudSDKException
      */
-    public function stsUpload($expire = 14400)
+    public function stsUpload($expire = 3600)
     {
         $Sts = new \BasicHub\EsCore\Common\CloudLib\Sts\Tencent($this->toArray());
 

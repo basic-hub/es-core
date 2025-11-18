@@ -535,11 +535,11 @@ trait AuthTrait
     /**
      * 使用Sts临时密钥从客户端直传对象存储,返回客户端需要的参数列表
      * @param string $cloudKey 对象存储的key（文件路径）
-     * @param int $expire sts有效期
+     * @param int $expire sts有效期,阿里云最大支持1h
      * @return array
      * @throws \Exception
      */
-    protected function __stsUpload($cloudKey, $expire = 3600 * 4)
+    protected function __stsUpload($cloudKey, $expire = 3600)
     {
         $resp = storage()->stsUpload($expire);
         // 上传对象存储key

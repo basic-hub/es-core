@@ -179,14 +179,36 @@ class Alibaba extends Base
         $this->delete($formKey, $options);
     }
 
-    public function stsUpload($expire = 14400)
+    public function stsUpload($expire = 3600)
     {
         $Sts = new \BasicHub\EsCore\Common\CloudLib\Sts\Alibaba($this->toArray());
 
-        // todo 待补充
-        $policy = json_encode([]);
+        $policy = [
+            "Version" => "1",
+            "Statement" => [
+                [
+                    "Effect" => "Allow",
+                    "Action" => [
+                        // 基础上传
+                        "oss:PutObject",
+                        // 分片上传
+                        "oss:InitiateMultipartUpload",
+                        "oss:UploadPart",
+                        "oss:CompleteMultipartUpload",
+                        "oss:AbortMultipartUpload",
+                        // 辅助权限（可选）
+                        "oss:ListParts",
+                        "oss:ListObjects"
+                    ],
+                    "Resource" => [
+                        "acs:oss:*:*:{$this->bucket}", // 桶级权限
+                        //"acs:oss:*:*:{$bucket}/*" // 对象级权限
+                    ]
+                ]
+            ]
+        ];
 
-        $stsResponse = $Sts->get($policy, $expire);
+        $stsResponse = $Sts->get(json_encode($policy), $expire);
         $data = $stsResponse->toArray();
 
         // 除了基本的密钥信息之外，还需要给客户端返回对象存储信息
