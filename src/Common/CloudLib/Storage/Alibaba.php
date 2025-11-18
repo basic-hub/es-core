@@ -184,6 +184,15 @@ class Alibaba extends Base
         $this->delete($formKey, $options);
     }
 
+    /**
+     * 客户端直传对象存储,一般用于超超大文件
+     * 1. RAM访问管理 -> 角色管理 -> 授权oss全读写权限 -> 复制ARN
+     * 2. 对象存储 数据安全 -> 跨域设置： *    暴露header（ETag、x-oss-request-id、x-oss-etag） 勾选“返回 Vary: Origin”
+     * 3. 对象存储 权限控制 -> Bucket授权策略 -> 设置oss子账号（用户）完全控制权限
+     * 4. oss子账号需要AssumeRole权限（AliyunSTSAssumeRoleAccess）、KMS权限（AliyunKMSFullAccess）
+     * @param $expire
+     * @return array
+     */
     public function stsUpload($expire = 3600)
     {
         $Sts = new \BasicHub\EsCore\Common\CloudLib\Sts\Alibaba($this->toArray());
