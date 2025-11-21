@@ -2,7 +2,7 @@
 
 namespace BasicHub\EsCore\Common\Classes;
 
-use EasySwoole\Component\Context\ContextManager as BaseContextManager;
+use EasySwoole\Component\Context\ContextManager;
 use EasySwoole\Http\Request;
 use EasySwoole\Socket\Bean\Caller;
 
@@ -10,7 +10,7 @@ use EasySwoole\Socket\Bean\Caller;
  * 协程上下文管理器，不仅限于Http场景
  * 内置一些快捷操作方法，也可直接调用父类方法
  */
-class CtxManager extends BaseContextManager
+class CtxManager extends ContextManager
 {
     private $httpRequestKey = 'httpRequest';
 
