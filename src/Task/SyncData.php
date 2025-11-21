@@ -2,10 +2,10 @@
 
 namespace BasicHub\EsCore\Task;
 
+use BasicHub\EsCore\Common\Classes\CtxManager;
 use EasySwoole\Mysqli\QueryBuilder;
 use EasySwoole\ORM\AbstractModel;
 use EasySwoole\Task\AbstractInterface\TaskInterface;
-use BasicHub\EsCore\Common\Classes\CtxRequest;
 use BasicHub\EsCore\Model\BaseModelTrait;
 
 /**
@@ -44,7 +44,7 @@ class SyncData implements TaskInterface
     public function run(int $taskId, int $workerIndex)
     {
         if ( ! empty($this->data['operinfo'])) {
-            CtxRequest::getInstance()->withOperinfo($this->data['operinfo']);
+            CtxManager::getInstance()->setOperinfo($this->data['operinfo']);
         }
 
         $classArray = $this->data['class'] ?? [];

@@ -3,6 +3,7 @@
 namespace BasicHub\EsCore\HttpController\Admin;
 
 use App\HttpController\Base;
+use BasicHub\EsCore\Common\Classes\CtxManager;
 use EasySwoole\Component\Timer;
 use EasySwoole\Http\Exception\FileException;
 use EasySwoole\Mysqli\QueryBuilder;
@@ -10,7 +11,6 @@ use EasySwoole\ORM\AbstractModel;
 use EasySwoole\Policy\Policy;
 use EasySwoole\Policy\PolicyNode;
 use EasySwoole\Utility\MimeType;
-use BasicHub\EsCore\Common\Classes\CtxRequest;
 use BasicHub\EsCore\Common\Classes\DateUtils;
 use BasicHub\EsCore\Common\Classes\Mysqli;
 use BasicHub\EsCore\Common\Classes\XlsWriter;
@@ -103,8 +103,8 @@ trait AuthTrait
 
         $this->operinfoAfter();
 
-        // 将管理员信息挂载到Request
-        CtxRequest::getInstance()->withOperinfo($this->operinfo);
+        CtxManager::getInstance()->setOperinfo($this->operinfo);
+
         return $this->checkAuth();
     }
 

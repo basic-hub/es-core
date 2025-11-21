@@ -2,10 +2,10 @@
 
 namespace BasicHub\EsCore\WebSocket\Controller;
 
+use BasicHub\EsCore\Common\Classes\CtxManager;
 use EasySwoole\EasySwoole\ServerManager;
 use EasySwoole\Socket\AbstractInterface\Controller;
 use EasySwoole\Socket\Client\WebSocket;
-use BasicHub\EsCore\Common\Classes\CtxRequest;
 
 /**
  * @mixin Controller
@@ -14,7 +14,7 @@ trait BaseControllerTrait
 {
     protected function onRequest(?string $actionName): bool
     {
-        CtxRequest::getInstance()->caller = $this->caller();
+        CtxManager::getInstance()->setCaller($this->caller());
         return parent::onRequest($actionName);
     }
 

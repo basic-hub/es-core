@@ -32,7 +32,7 @@ use BasicHub\EsCore\Notify\Feishu\Message\Card;
 use BasicHub\EsCore\Notify\Feishu\Message\Text as FeishuText;
 use BasicHub\EsCore\Notify\Feishu\Message\Textarea;
 use BasicHub\EsCore\Notify\WeChat\Message\Notice;
-use BasicHub\EsCore\Common\Classes\CtxRequest;
+use BasicHub\EsCore\Common\Classes\CtxManager;
 
 
 if ( ! function_exists('is_super')) {
@@ -504,7 +504,7 @@ if ( ! function_exists('ip')) {
     {
         // Request继承 \EasySwoole\Http\Message\Message 皆可
         if ( ! $Request instanceof \EasySwoole\Http\Request) {
-            $Request = \BasicHub\EsCore\Common\Classes\CtxRequest::getInstance()->request;
+            $Request = CtxManager::getInstance()->getRequest();
             if (empty($Request)) {
                 return false;
             }
@@ -1714,7 +1714,7 @@ if (!function_exists('is_rsa_ctx')) {
      * @return bool
      */
     function is_rsa_ctx() {
-        return CtxRequest::getInstance()->getIsrsa();
+        return CtxManager::getInstance()->getIsRsa();
     }
 }
 
@@ -1726,7 +1726,7 @@ if (!function_exists('ctx_set')) {
      * @return void
      */
     function ctx_set($key, $value) {
-        CtxRequest::getInstance()->$key = $value;
+        CtxManager::getInstance()->set($key, $value);
     }
 }
 
@@ -1734,14 +1734,9 @@ if (!function_exists('ctx_get')) {
     /**
      * 协程上下文管理器,读取数据
      * @param string $key
-     * @param mixed $default 默认值
      * @return void
      */
-    function ctx_get($key, $default = '') {
-        try {
-            return CtxRequest::getInstance()->$key ?? $default;
-        } catch (\Exception $e) {
-            return $default;
-        }
+    function ctx_get($key) {
+        return CtxManager::getInstance()->get($key);
     }
 }

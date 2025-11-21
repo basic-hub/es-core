@@ -4,8 +4,8 @@
 namespace BasicHub\EsCore\Model\Admin;
 
 
+use BasicHub\EsCore\Common\Classes\CtxManager;
 use EasySwoole\Mysqli\QueryBuilder;
-use BasicHub\EsCore\Common\Classes\CtxRequest;
 
 trait LogSqlTrait
 {
@@ -30,13 +30,13 @@ trait LogSqlTrait
 
     public function sqlWriteLog($sql = '')
     {
-        $Ctx = CtxRequest::getInstance();
-        $operinfo = $Ctx->getOperinfo();
+        $Request = CtxManager::getInstance()->getRequest();
+        $operinfo = CtxManager::getInstance()->getOperinfo();
 
         $data = [
             'admid' => $operinfo['id'] ?? 0,
             'content' => $sql,
-            'ip' => ip($Ctx->request)
+            'ip' => ip($Request)
         ];
 
         $this->data($data)->save();

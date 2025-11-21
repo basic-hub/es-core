@@ -2,11 +2,11 @@
 
 namespace BasicHub\EsCore\Task;
 
+use BasicHub\EsCore\Common\Classes\CtxManager;
 use EasySwoole\Mysqli\QueryBuilder;
 use EasySwoole\ORM\AbstractModel;
 use EasySwoole\ORM\DbManager;
 use EasySwoole\Task\AbstractInterface\TaskInterface;
-use BasicHub\EsCore\Common\Classes\CtxRequest;
 
 /**
  * 异步创建模型分表
@@ -41,7 +41,7 @@ class CreateSubTable implements TaskInterface
     public function run(int $taskId, int $workerIndex)
     {
         if ( ! empty($this->data['operinfo'])) {
-            CtxRequest::getInstance()->withOperinfo($this->data['operinfo']);
+            CtxManager::getInstance()->setOperinfo($this->data['operinfo']);
         }
 
         $classes = $this->data['class'];

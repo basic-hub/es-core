@@ -2,6 +2,7 @@
 
 namespace BasicHub\EsCore;
 
+use BasicHub\EsCore\Common\Classes\CtxManager;
 use EasySwoole\Component\Di;
 use EasySwoole\EasySwoole\Config;
 use EasySwoole\EasySwoole\SysConst;
@@ -11,7 +12,6 @@ use EasySwoole\I18N\I18N;
 use EasySwoole\ORM\DbManager;
 use EasySwoole\Spl\SplBean;
 use EasySwoole\Trigger\TriggerInterface;
-use BasicHub\EsCore\Common\Classes\CtxRequest;
 use BasicHub\EsCore\Common\Classes\ExceptionTrigger;
 
 class EventInitialize extends SplBean
@@ -279,8 +279,8 @@ class EventInitialize extends SplBean
                         return false;
                     }
                 }
-                // 自定义协程单例Request
-                CtxRequest::getInstance()->request = $request;
+
+                CtxManager::getInstance()->setRequest($request);
 
                 $this->setI18n($request);
 
