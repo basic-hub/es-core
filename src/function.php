@@ -1740,3 +1740,13 @@ if (!function_exists('ctx_get')) {
         return CtxManager::getInstance()->get($key);
     }
 }
+
+if (!function_exists('get_ctx_request')) {
+    /**
+     * 助手函数，获取http的request类
+     * @return Request
+     */
+    function get_ctx_request() {
+        return CtxManager::getInstance()->getRequest();
+    }
+}

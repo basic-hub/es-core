@@ -50,7 +50,7 @@ class CtxManager extends ContextManager
      */
     public function getOperinfo()
     {
-        return $this->get($this->adminOperinfoKey);
+        return $this->get($this->adminOperinfoKey) ?? [];
     }
 
     public function setIsRsa(bool $isRsa)
@@ -63,6 +63,6 @@ class CtxManager extends ContextManager
      */
     public function getIsRsa()
     {
-        return $this->get($this->isRsaKey);
+        return $this->get($this->isRsaKey) ?? false;
     }
 }
