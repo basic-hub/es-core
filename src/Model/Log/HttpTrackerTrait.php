@@ -85,12 +85,11 @@ trait HttpTrackerTrait
         // UserAgent区分复发请求
         $headers['user-agent'] = ($headers['user-agent'] ?? '') . ';HttpTracker';
 
+        // 可能不一定为POST取值，待发现更多使用场景可增加处理方式
+        $body = empty($request['POST']) ? [] : [config('RSA.key') => OpensslManager::getInstance()->encrypt(json_encode($request['POST']))];
         return hcurl(
             $url,
-            [
-                // 可能不一定为POST
-                config('RSA.key') => OpensslManager::getInstance()->encrypt(json_encode($request['POST']))
-            ],
+            $body,
             strtolower($request['method']),
             $headers,
             ['resultType' => null],

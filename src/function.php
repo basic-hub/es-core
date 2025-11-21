@@ -32,6 +32,7 @@ use BasicHub\EsCore\Notify\Feishu\Message\Card;
 use BasicHub\EsCore\Notify\Feishu\Message\Text as FeishuText;
 use BasicHub\EsCore\Notify\Feishu\Message\Textarea;
 use BasicHub\EsCore\Notify\WeChat\Message\Notice;
+use BasicHub\EsCore\Common\Classes\CtxRequest;
 
 
 if ( ! function_exists('is_super')) {
@@ -879,6 +880,10 @@ if ( ! function_exists('http_tracker')) {
      */
     function http_tracker(string $pointName, array $data = [], $parentId = null)
     {
+        // 不开启
+        if (empty(config('HTTP_TRACKER.open'))) {
+            return function ($data = [], int $httpCode = 200) {};
+        }
         $point = HTManager::getInstance()->startPoint();
         $childPoint = false;
         if ($point) {
@@ -1709,7 +1714,34 @@ if (!function_exists('is_rsa_ctx')) {
      * @return bool
      */
     function is_rsa_ctx() {
-        return \BasicHub\EsCore\Common\Classes\CtxRequest::getInstance()->getIsrsa();
+        return CtxRequest::getInstance()->getIsrsa();
     }
 }
 
+if (!function_exists('ctx_set')) {
+    /**
+     * 协程上下文管理器,写入数据
+     * @param string $key
+     * @param mixed $value
+     * @return void
+     */
+    function ctx_set($key, $value) {
+        CtxRequest::getInstance()->$key = $value;
+    }
+}
+
+if (!function_exists('ctx_get')) {
+    /**
+     * 协程上下文管理器,读取数据
+     * @param string $key
+     * @param mixed $default 默认值
+     * @return void
+     */
+    function ctx_get($key, $default = '') {
+        try {
+            return CtxRequest::getInstance()->$key ?? $default;
+        } catch (\Exception $e) {
+            return $default;
+        }
+    }
+}
