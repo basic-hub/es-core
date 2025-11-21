@@ -18,7 +18,7 @@
      ├── Common  主要放一些非EasySwoole的东
      |      ├── Classes 自定义类
      │      │     ├── Crontab 实现定时任务的类（后面会移动至Crontab目录）
-     │      │     ├── CtxRequest 协程单例类，解决一些痛点，如Model内无法获取Http Request、WebSocket Caller实例等，作用与EasySwoole\Component\Context\ContextManager类似
+     │      │     ├── CtxManager 二次封装的EasySwoole\Component\Context\ContextManager类，增加一些快捷方法
      │      │     ├── DateUtils 时间日期时区等处理
      │      │     ├── ExceptionTrigger 自定义异常处理器，将异常上报至redis或http
      │      │     ├── FdManager  WebSocket连接符管理，共享内存(Swoole\Table)实现

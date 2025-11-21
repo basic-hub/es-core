@@ -2,7 +2,6 @@
 
 namespace BasicHub\EsCore\HttpController;
 
-use BasicHub\EsCore\Common\Classes\CtxRequest;
 use BasicHub\EsCore\Common\Classes\OpensslManager;
 use BasicHub\EsCore\Common\Exception\JwtException;
 use BasicHub\EsCore\HttpTracker\HTManager;
@@ -14,6 +13,7 @@ use BasicHub\EsCore\Common\Exception\HttpParamException;
 use BasicHub\EsCore\Common\Exception\WarnException;
 use BasicHub\EsCore\Common\Http\Code;
 use BasicHub\EsCore\Common\Languages\Dictionary;
+use BasicHub\EsCore\Common\Classes\CtxManager;
 
 /**
  * 此类应该由最父级控制器use，控制器结构应该为  BaseController(此类use) > xxx(Admin|Sdk|Pay|Log)/BaseController(业务Base类) > 各业务类
@@ -142,7 +142,7 @@ trait BaseControllerTrait
         }
 
         if (is_array($struct) && $struct) {
-            CtxRequest::getInstance()->setIsrsa(true);
+            CtxManager::getInstance()->setIsRsa(true);
             // 争议，通用参数是否要加入rsa属性?
             $struct = array_merge($struct, $this->requestParamsExtend());
         }
