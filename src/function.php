@@ -1,7 +1,27 @@
 <?php
 
+use BasicHub\EsCore\Common\Classes\CtxManager;
+use BasicHub\EsCore\Common\Classes\HttpRequest;
+use BasicHub\EsCore\Common\Classes\LamJwt;
+use BasicHub\EsCore\Common\Classes\Mysqli;
+use BasicHub\EsCore\Common\CloudLib\Captcha\CaptchaInterface;
+use BasicHub\EsCore\Common\CloudLib\Cdn\CdnInterface;
+use BasicHub\EsCore\Common\CloudLib\Dns\DnsInterface;
+use BasicHub\EsCore\Common\CloudLib\Email\EmailInterface;
+use BasicHub\EsCore\Common\CloudLib\Sms\SmsInterface;
+use BasicHub\EsCore\Common\CloudLib\Storage\StorageInterface;
 use BasicHub\EsCore\Common\Exception\HttpParamException;
 use BasicHub\EsCore\Common\Http\Code;
+use BasicHub\EsCore\Common\Openssl\RsaManager;
+use BasicHub\EsCore\Common\OrmCache\Strings;
+use BasicHub\EsCore\HttpTracker\HTManager;
+use BasicHub\EsCore\Notify\DingTalk\Message\Markdown;
+use BasicHub\EsCore\Notify\DingTalk\Message\Text;
+use BasicHub\EsCore\Notify\EsNotify;
+use BasicHub\EsCore\Notify\Feishu\Message\Card;
+use BasicHub\EsCore\Notify\Feishu\Message\Text as FeishuText;
+use BasicHub\EsCore\Notify\Feishu\Message\Textarea;
+use BasicHub\EsCore\Notify\WeChat\Message\Notice;
 use EasySwoole\EasySwoole\Config;
 use EasySwoole\EasySwoole\Logger;
 use EasySwoole\Http\Request;
@@ -13,26 +33,6 @@ use EasySwoole\Redis\Redis;
 use EasySwoole\RedisPool\RedisPool;
 use EasySwoole\Spl\SplArray;
 use EasySwoole\Utility\Str;
-use BasicHub\EsCore\Common\Classes\HttpRequest;
-use BasicHub\EsCore\Common\Classes\LamJwt;
-use BasicHub\EsCore\Common\Classes\OpensslManager;
-use BasicHub\EsCore\Common\Classes\Mysqli;
-use BasicHub\EsCore\Common\CloudLib\Captcha\CaptchaInterface;
-use BasicHub\EsCore\Common\CloudLib\Cdn\CdnInterface;
-use BasicHub\EsCore\Common\CloudLib\Dns\DnsInterface;
-use BasicHub\EsCore\Common\CloudLib\Email\EmailInterface;
-use BasicHub\EsCore\Common\CloudLib\Sms\SmsInterface;
-use BasicHub\EsCore\Common\CloudLib\Storage\StorageInterface;
-use BasicHub\EsCore\Common\OrmCache\Strings;
-use BasicHub\EsCore\HttpTracker\HTManager;
-use BasicHub\EsCore\Notify\DingTalk\Message\Markdown;
-use BasicHub\EsCore\Notify\DingTalk\Message\Text;
-use BasicHub\EsCore\Notify\EsNotify;
-use BasicHub\EsCore\Notify\Feishu\Message\Card;
-use BasicHub\EsCore\Notify\Feishu\Message\Text as FeishuText;
-use BasicHub\EsCore\Notify\Feishu\Message\Textarea;
-use BasicHub\EsCore\Notify\WeChat\Message\Notice;
-use BasicHub\EsCore\Common\Classes\CtxManager;
 
 
 if ( ! function_exists('is_super')) {
@@ -1235,10 +1235,10 @@ if ( ! function_exists('request_lan_api')) {
         switch (strtolower($encry)) {
             case 'rsa':
                 // es-core里默认有验证rsa的（仅验签，没做阻拦）
-                $openssl = OpensslManager::getInstance();
+                $Rsa = RsaManager::getInstance();
                 $params = [
                     'encry' => 'rsa',
-                    config('RSA.key') => $openssl->encrypt(json_encode($data))
+                    config('RSA.key') => $Rsa->publicEncrypt(json_encode($data))
                 ];
                 break;
 

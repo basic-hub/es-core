@@ -22,8 +22,6 @@
      │      │     ├── ExceptionTrigger 自定义异常处理器，将异常上报至redis或http
      │      │     ├── FdManager  WebSocket连接符管理，共享内存(Swoole\Table)实现
      │      │     ├── LamJwt jwt
-     │      │     ├── Openssl RSA数据加密和解密，可动态实例化
-     │      │     ├── OpensslManager 全局单例RSA类
      │      │     ├── Mysqli 对MysqlClient的二次封装
      │      │     ├── TablePart 定时建分区、续分区
      │      │     ├── Tree 数行结构处理
@@ -36,6 +34,7 @@
      │      │     └── Languages I18n助手类，主要用来注册、设置
      │      │
      │      ├── Logs 自定义日志处理器
+     │      ├── Openssl 加密解密处理
      │      └── OrmCache 模型缓存组件，已实现 String、Hash、Set、SplArray
      │
      ├── HttpController
