@@ -2,9 +2,8 @@
 
 namespace BasicHub\EsCore\Model\Log;
 
+use BasicHub\EsCore\Common\Openssl\RsaManager;
 use EasySwoole\HttpClient\Bean\Response;
-use EasySwoole\HttpClient\HttpClient;
-use BasicHub\EsCore\Common\Classes\OpensslManager;
 
 trait HttpTrackerTrait
 {
@@ -86,7 +85,7 @@ trait HttpTrackerTrait
         $headers['user-agent'] = ($headers['user-agent'] ?? '') . ';HttpTracker';
 
         // 可能不一定为POST取值，待发现更多使用场景可增加处理方式
-        $body = empty($request['POST']) ? [] : [config('RSA.key') => OpensslManager::getInstance()->encrypt(json_encode($request['POST']))];
+        $body = empty($request['POST']) ? [] : [config('RSA.key') => RsaManager::getInstance()->publicEncrypt(json_encode($request['POST']))];
         return hcurl(
             $url,
             $body,

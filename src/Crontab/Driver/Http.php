@@ -2,8 +2,7 @@
 
 namespace BasicHub\EsCore\Crontab\Driver;
 
-use EasySwoole\HttpClient\HttpClient;
-use BasicHub\EsCore\Common\Classes\OpensslManager;
+use BasicHub\EsCore\Common\Openssl\RsaManager;
 
 class Http implements Interfaces
 {
@@ -28,10 +27,10 @@ class Http implements Interfaces
     {
         switch (strtolower($data['encry'] = config('CRONTAB.encry'))) {
             case 'rsa':
-                $openssl = OpensslManager::getInstance();
+                $Rsa = RsaManager::getInstance();
                 return [
                     'encry' => $data['encry'],
-                    config('RSA.key') => $openssl->encrypt(json_encode($data))
+                    config('RSA.key') => $Rsa->publicEncrypt(json_encode($data))
                 ];
 
             case 'md5':

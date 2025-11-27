@@ -2,18 +2,18 @@
 
 namespace BasicHub\EsCore\HttpController;
 
-use BasicHub\EsCore\Common\Classes\OpensslManager;
-use BasicHub\EsCore\Common\Exception\JwtException;
-use BasicHub\EsCore\HttpTracker\HTManager;
-use BasicHub\EsCore\HttpTracker\Config as HTConfig;
-use EasySwoole\Http\AbstractInterface\Controller;
-use EasySwoole\Http\Message\Status;
-use EasySwoole\Redis\Redis;
+use BasicHub\EsCore\Common\Classes\CtxManager;
 use BasicHub\EsCore\Common\Exception\HttpParamException;
+use BasicHub\EsCore\Common\Exception\JwtException;
 use BasicHub\EsCore\Common\Exception\WarnException;
 use BasicHub\EsCore\Common\Http\Code;
 use BasicHub\EsCore\Common\Languages\Dictionary;
-use BasicHub\EsCore\Common\Classes\CtxManager;
+use BasicHub\EsCore\Common\Openssl\RsaManager;
+use BasicHub\EsCore\HttpTracker\Config as HTConfig;
+use BasicHub\EsCore\HttpTracker\HTManager;
+use EasySwoole\Http\AbstractInterface\Controller;
+use EasySwoole\Http\Message\Status;
+use EasySwoole\Redis\Redis;
 
 /**
  * 此类应该由最父级控制器use，控制器结构应该为  BaseController(此类use) > xxx(Admin|Sdk|Pay|Log)/BaseController(业务Base类) > 各业务类
@@ -132,7 +132,7 @@ trait BaseControllerTrait
         }
         $cipher = $this->request()->getRequestParam($rsaCfg['key']);
         // 私钥解密
-        $envkeydata = OpensslManager::getInstance()->privateDecrypt($cipher);
+        $envkeydata = RsaManager::getInstance()->privateDecrypt($cipher);
 
         // 尝试json结构转化，除了json，就是queryString格式
         if ($json = json_decode($envkeydata, true)) {
