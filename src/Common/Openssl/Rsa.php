@@ -79,7 +79,7 @@ class Rsa extends Base
         $crypto = $decrypt = '';
         $func = "openssl_{$type}_decrypt";
         foreach (str_split($this->urlsafeB64decode($data), 128) as $chunk) {
-            $func ($chunk, $decrypt, $this->$type);
+            $func($chunk, $decrypt, $this->$type);
             $crypto .= $decrypt;
         }
         return $crypto;
