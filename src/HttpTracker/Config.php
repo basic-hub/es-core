@@ -7,6 +7,10 @@ use EasySwoole\Spl\SplBean;
 class Config extends SplBean
 {
     /**
+     * 复发标识
+     */
+    const REPEATED = ';HttpTracker';
+    /**
      * Save处理类, 默认SaveHandler
      * @var string
      */

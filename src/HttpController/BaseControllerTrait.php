@@ -212,7 +212,7 @@ trait BaseControllerTrait
             'header' => $request->getHeaders(),
 //            'server' => $request->getServerParams(),
             'server_name' => config('SERVNAME'),
-            'repeated' => intval(stripos($request->getHeaderLine('user-agent'), ';HttpTracker') !== false)
+            'repeated' => intval(stripos($request->getHeaderLine('user-agent'), HTConfig::REPEATED) !== false)
         ] + $effect;
 
         $point && $point->setStartArg($params);
