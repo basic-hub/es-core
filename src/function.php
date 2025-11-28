@@ -876,29 +876,29 @@ if ( ! function_exists('http_tracker')) {
      * @param string $pointName 标识名
      * @param array $data 除自定义参数外，这些key尽量传递完整：ip,method,path,url,GET,POST,JSON,server_name,header
      * @param string|null $parentId 父级的pointId(在go函数内才需要传)
-     * @return Closure
+     * @return \BasicHub\EsCore\HttpTracker\End
      */
     function http_tracker(string $pointName, array $data = [], $parentId = null)
     {
         // 不开启
         if (empty(config('HTTP_TRACKER.open'))) {
-            return function ($data = [], int $httpCode = 200) {};
+            return (new \BasicHub\EsCore\HttpTracker\End());
         }
-        $point = HTManager::getInstance()->startPoint();
-        $childPoint = false;
-        if ($point) {
-            $childPoint = $point->appendChild($pointName);
-            if ($parentId){
-                $childPoint->setParentId($parentId);
+        try {
+            $point = HTManager::getInstance()->startPoint();
+            $childPoint = false;
+            if ($point) {
+                $childPoint = $point->appendChild($pointName);
+                if ($parentId){
+                    $childPoint->setParentId($parentId);
+                }
+                $childPoint->setStartArg($data + ['server_name' => config('SERVNAME')]);
             }
-            $childPoint->setStartArg($data + ['server_name' => config('SERVNAME')]);
+            return new \BasicHub\EsCore\HttpTracker\End($childPoint);
+        } catch (\Exception $e) {
+            trace("http_tracker name=$pointName Error: " . $e->getMessage(), 'error');
+            return (new \BasicHub\EsCore\HttpTracker\End());
         }
-
-        return function ($data = [], int $httpCode = 200) use ($point, $childPoint) {
-            if ($point && $childPoint) {
-                $childPoint->setEndArg(['httpStatusCode' => $httpCode, 'data' => $data])->end();
-            }
-        };
     }
 }
 
