@@ -39,6 +39,13 @@ class Aes extends Base
 
     protected $block_size = 0;
 
+    protected function initialize(): void
+    {
+        if (empty($this->secret)) {
+            throw new \Exception('缺少AES密钥');
+        }
+    }
+
     /**
      * 数据解密
      * @param string $encrypt 密文

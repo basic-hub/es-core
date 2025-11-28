@@ -46,15 +46,12 @@ trait BaseTrait
     public function getListenQueues()
     {
         // 在集群模式中，将队列数据均匀分布在不同分片的槽位中
-        // 读一定要比写大！！！不然redis会爆！！！
-        $clusterNumber = config('QUEUE.clusterNumber');
-        $clusterNumberWrite = config('QUEUE.clusterNumberWrite');
+        $shardNumber = config('QUEUE.clusterShardNumber');
         $queue = $this->args['queue'];
-        // 读一定要比写大！！！不然redis会爆！！！
-        $cn = max($clusterNumber ?: 0, $clusterNumberWrite ?: 0);
         $list[] = $queue;
-        if ($cn > 0) {
-            for ($i = 0; $i <= $cn; ++$i) {
+        if ($shardNumber > 0) {
+            // 分key数从1开始，例如配置3，则监听 name、name.1、name.2、name.3
+            for ($i = 1; $i <= $shardNumber; ++$i) {
                 $list[] = "$queue.$i";
             }
         }
@@ -74,7 +71,6 @@ trait BaseTrait
             EventMainServerCreate::listenProcessInfo();
         }
 
-        // TODO 待优化为移入addTick并从sysinfo取?
         // 分片处理
         $queues = $this->getListenQueues();
 

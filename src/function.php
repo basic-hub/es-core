@@ -480,7 +480,7 @@ if ( ! function_exists('get_jwt_token')) {
 
 if (!function_exists('get_admin_jwt_token')) {
     /**
-     * 获取后台登录token
+     * 获取后台登录token,如果规则不一致，请在项目内重写，或直接使用 get_jwt_token
      * @param AbstractModel $admin
      * @param int $expire
      * @return string
@@ -979,14 +979,17 @@ if ( ! function_exists('redis_list_push')) {
         if ( ! is_scalar($data)) {
             $data = json_encode($data);
         }
-        $clusterNumber = config('QUEUE.clusterNumber');
-        $clusterNumberWrite = config('QUEUE.clusterNumberWrite');
-        // 写一定要比读小！！！不然redis会爆！！！
-        $cn = min($clusterNumber ?: 0, $clusterNumberWrite ?: 0);
-        if ($cn > 0) {
-            mt_srand();
-            $index = mt_rand(-1, $cn);
-            $index > 0 && $key .= ".$index";
+
+        $shardNumber = config('QUEUE.clusterShardNumber');
+
+        if ($shardNumber > 0) {
+
+            // 对data哈希得到分片ID，均匀分布
+            $shardId = crc32($data) % $shardNumber;
+            // 分片id从1开始
+            $shardId++;
+
+            $key .= ".$shardId";
         }
 
         return $left ? $redis->lPush($key, $data) : $redis->rPush($key, $data);
