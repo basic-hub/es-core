@@ -886,25 +886,40 @@ if ( ! function_exists('http_tracker')) {
         }
         try {
             $point = HTManager::getInstance()->startPoint();
-            $childPoint = false;
-            if ($point) {
-
-                // 确保pointName一定是可用的
-                $chk = function ($name) use ($point) {
-                    while ($point->findChild($name)) {
-                        $name .= '-' . \EasySwoole\Utility\Random::number(3);
-                    }
-                    return $name;
-                };
-
-                $pointName = $chk($pointName);
-                $childPoint = $point->appendChild($pointName);
-                if ($parentId){
-                    // 设置父级id
-                    $childPoint->setParentId($parentId);
-                }
-                $childPoint->setStartArg($data + ['server_name' => config('SERVNAME')]);
+            if (empty($point)) {
+                return (new \BasicHub\EsCore\HttpTracker\End());
             }
+
+            // 确保pointName一定是可用的，树结构是通过name标识，相同的name会覆盖之前的
+
+            // 取一个内部切割id的标识，值不重要
+            $join = '--';
+            $name = $pointName;
+
+            if ($point->findChild($name)) {
+                // 找到子元素当前的自增id
+                $childrens = $point->children();
+                $incrs = [];
+                /** @var Point $children */
+                foreach ($childrens as $children) {
+                    $childname = $children->getPointName();
+                    $incrs[] = explode($join, $childname)[1] ?? 0;
+                }
+
+                // 从最大id开始
+                $loop = $incrs ? max($incrs) : 0;
+                do {
+                    $loop++;
+                    $name = $pointName . $join . $loop;
+                } while ($point->findChild($name));
+            }
+
+            $childPoint = $point->appendChild($name);
+            if ($parentId){
+                // 设置父级id
+                $childPoint->setParentId($parentId);
+            }
+            $childPoint->setStartArg($data + ['server_name' => config('SERVNAME')]);
             return new \BasicHub\EsCore\HttpTracker\End($childPoint);
         } catch (\Exception $e) {
             trace("http_tracker name=$pointName Error: " . $e->getMessage(), 'error');
