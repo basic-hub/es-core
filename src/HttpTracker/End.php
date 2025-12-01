@@ -15,6 +15,12 @@ class End
      */
     protected $Point;
 
+    /**
+     * 确保回调只运行一次，不会被重复覆盖，特别是被__destruct覆盖
+     * @var bool
+     */
+    protected $isInvoked = false;
+
     public function __construct($point = null)
     {
         $point && $this->Point = $point;
@@ -32,9 +38,10 @@ class End
 
     protected function end($data = [], int $httpCode = 500)
     {
-        if (!$this->Point) {
+        if (!$this->Point || $this->isInvoked) {
             return;
         }
+        $this->isInvoked = true;
         $this->Point->setEndArg(['httpStatusCode' => $httpCode, 'data' => $data])->end();
     }
 }

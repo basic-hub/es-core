@@ -888,8 +888,19 @@ if ( ! function_exists('http_tracker')) {
             $point = HTManager::getInstance()->startPoint();
             $childPoint = false;
             if ($point) {
+
+                // 确保pointName一定是可用的
+                $chk = function ($name) use ($point) {
+                    while ($point->findChild($name)) {
+                        $name .= '-' . \EasySwoole\Utility\Random::number(3);
+                    }
+                    return $name;
+                };
+
+                $pointName = $chk($pointName);
                 $childPoint = $point->appendChild($pointName);
                 if ($parentId){
+                    // 设置父级id
                     $childPoint->setParentId($parentId);
                 }
                 $childPoint->setStartArg($data + ['server_name' => config('SERVNAME')]);
