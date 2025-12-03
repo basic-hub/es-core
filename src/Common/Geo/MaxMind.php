@@ -106,12 +106,12 @@ class MaxMind extends Base
     public function getIsp($ip)
     {
         try {
-            $reader = new Reader($this->db_file_asn, [$this->locales]);
+            $Reader = new Reader($this->db_file_asn, [$this->locales]);
 
             // 解析IP（支持IPv4/IPv6）
             // '70.32.128.248'; // GOOGLE
-            $name = $reader->asn($ip)->autonomousSystemOrganization;
-            $reader->close();
+            $name = $Reader->asn($ip)->autonomousSystemOrganization;
+            $Reader->close();
             return $name;
         } catch (Exception $e) {
             if ($Reader instanceof Reader) {
