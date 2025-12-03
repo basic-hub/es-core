@@ -9,6 +9,7 @@ use EasySwoole\Socket\Bean\Caller;
 /**
  * 协程上下文管理器，不仅限于Http场景
  * 内置一些快捷操作方法，也可直接调用父类方法
+ * 助手函数: ctx_get()、 ctx_set()
  */
 class CtxManager extends ContextManager
 {

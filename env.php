@@ -208,13 +208,22 @@ return [
         'exprotFilename' => '_fname',
     ],
 
-
-    // 纯真 (CZ88.net)
-    'CZ88' => [
-        'db_file_ipv4' => '',
-        'db_file_ipv6' => '',
-        'key' => '',
-        //'query_type' => 'MEMORY'
+    'geo' => [
+        // Cz88 | MaxMind
+        'driver' => 'MaxMind',
+        'Cz88' => [
+            'db_file_ipv4' => '/data/wwwroot/utility/cz88_public_v4.czdb',
+            'db_file_ipv6' => '/data/wwwroot/utility/cz88_public_v6.czdb',
+            'key' => 'xxxxxxx==',
+            //'query_type' => 'MEMORY'
+        ],
+        'MaxMind' => [
+            'db_file_asn' => '/data/wwwroot/utility/GeoLite2-ASN.mmdb',
+            'db_file_city' => '/data/wwwroot/utility/GeoLite2-City.mmdb',
+            'db_file_country' => '/data/wwwroot/utility/GeoLite2-Country.mmdb',
+            'account_id' => 'xxxxx',
+            'license_key' => 'xxxxxxxxxx',
+        ],
     ],
 
     // websocket相关配置

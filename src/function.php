@@ -680,75 +680,49 @@ if ( ! function_exists('array_to_std')) {
     }
 }
 
-
-
 if ( ! function_exists('geo')) {
     /**
      * 将IP解析为地区数据
-     * @install composer require czdb/searcher
-     * @github https://github.com/tagphi/czdb_searcher_php
-     * @website https://cz88.net/
      * @param string $ip
      * @param int|string $num
      *                      all：返回整个ip解析地址，数组格式
      *                      isp：返回包含网络供应商的数组
+     *                      class: 直接返回对象，复杂场景需要独立处理
      *                      数字：返回ip解析地址中的指定索引成员
      * @return string|array
      */
     function geo($ip = '', $num = 'all')
     {
-        /**
-         * db_file_ipv4: ipv4文件路径
-         * db_file_ipv6: ipv6文件路径
-         * key：密钥
-         * query_type（可选）: BTREE(默认) | MEMORY,查询模式，见DbSearcher类常量
-         *
-         */
-        if ( ! $config = config('CZ88')) {
+        // 配置结构见env.php 的geo
+        $config = config('GEO') ?: [];
+        $driver = $config['driver'] ?? '';
+        if (empty($config) || empty($driver) || empty($config[$driver])) {
             trace('geo函数 config empty', 'error');
             return is_numeric($num) ? '' : [];
         }
 
         try {
-            if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
-                // ipv6
-                $dbFile = $config['db_file_ipv6'];
-            } elseif (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-                // ipv4
-                $dbFile = $config['db_file_ipv4'];
-            } else {
-                trace("ip invalid: $ip", 'error');
-                return is_numeric($num) ? '' : [];
+            $className = "\\BasicHub\\EsCore\\Common\\Geo\\" . ucfirst($driver);
+            if (!class_exists($className)) {
+                throw new \Exception("Class Not Found: $className");
             }
 
-            $queryType = $config['query_type'] ?? \Czdb\DbSearcher::QUERY_TYPE_BTREE;
-            $dbSearcher = new \Czdb\DbSearcher($dbFile, $queryType, $config['key']);
-            $region = $dbSearcher->search($ip);
-            $dbSearcher->close();
+            /** @var \BasicHub\EsCore\Common\Geo\GeoInterface $class */
+            $class = new $className($config[$driver]);
 
-            // ip解析示例：
-            // ["美国–新泽西州–伯灵顿", "Comcast有线通信股份有限公司"]
-            // ["中国–广东–深圳", "电信"]
-            // ["中国–台湾", "中华电信]
-            // ["中国–香港", "城市电讯有限公司"]
-            // ["中国–澳门", "澳门电讯"]
-
-            $arr = explode("\t", $region);
-            // 业务需求，港澳台跟大陆一样保持在第一级
-            $str = str_replace(['中国–台湾', '中国–香港', '中国–澳门', '中国–'], ['中国台湾–台湾', '中国香港–香港', '中国澳门–澳门', '中国' . config('INLAND') . '–'], $arr[0]);
-
-            // 支持返回isp网络供应商,注意必须全等，0 == 'isp' 结果为true
-            if ($num === 'isp') {
-                $arr[0] = $str;
-                return $arr;
+            switch (true) {
+                case $num === 'class':
+                    return $class;
+                case $num === 'isp':
+                    return $class->getIsp($ip);
+                case $num === 'all':
+                    return $class->getArea($ip);
+                default:
+                    return $class->getArea($ip)[$num];
             }
 
-            $arr = explode('–', $str);
-
-            return is_numeric($num) ? $arr[$num] : $arr;
-        } catch (\Exception|\Throwable $e) {
-            $dbSearcher && $dbSearcher->close();
-            trace("geo: $ip error:" . $e->getMessage(), 'error');
+        } catch (\Exception $e) {
+            trace($e->__toString(), 'error');
             return is_numeric($num) ? '' : [];
         }
     }
@@ -882,12 +856,12 @@ if ( ! function_exists('http_tracker')) {
     {
         // 不开启
         if (empty(config('HTTP_TRACKER.open'))) {
-            return (new \BasicHub\EsCore\HttpTracker\End());
+            return new \BasicHub\EsCore\HttpTracker\End();
         }
         try {
             $point = HTManager::getInstance()->startPoint();
             if (empty($point)) {
-                return (new \BasicHub\EsCore\HttpTracker\End());
+                return new \BasicHub\EsCore\HttpTracker\End();
             }
 
             // 确保pointName一定是可用的，树结构是通过name标识，相同的name会覆盖之前的
@@ -923,7 +897,7 @@ if ( ! function_exists('http_tracker')) {
             return new \BasicHub\EsCore\HttpTracker\End($childPoint);
         } catch (\Exception $e) {
             trace("http_tracker name=$pointName Error: " . $e->getMessage(), 'error');
-            return (new \BasicHub\EsCore\HttpTracker\End());
+            return new \BasicHub\EsCore\HttpTracker\End();
         }
     }
 }
