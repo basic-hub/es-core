@@ -15,7 +15,7 @@
 ## 目录结构及常用介绍
 
     src 理解为EasySwoole的App目录
-     ├── Common  主要放一些非EasySwoole的东
+     ├── Common  主要放一些非EasySwoole的东西
      |      ├── Classes 自定义类
      │      │     ├── CtxManager 二次封装的EasySwoole\Component\Context\ContextManager类，增加一些快捷方法
      │      │     ├── DateUtils 时间日期时区等处理
@@ -26,6 +26,7 @@
      │      │     ├── TablePart 定时建分区、续分区
      │      │     ├── Tree 数行结构处理
      │      │     └── XlsWriter 数据导入和导出
+     │      ├── CloudLib 云商各产品相关实现类，目前均已支持腾讯云、阿里云，可扩展
      │      ├── Exception 各种自定义异常
      │      ├── Http Http相关的配置
      │      │     └── Code Http响应状态码，项目的Code请`继承`它
@@ -34,8 +35,11 @@
      │      │     └── Languages I18n助手类，主要用来注册、设置
      │      │
      │      ├── Logs 自定义日志处理器
-     │      ├── Openssl 加密解密处理
+     │      ├── Geo IP解析相关
+     │      ├── Openssl 加密解密处理，支持RSA、AES，可扩展
      │      └── OrmCache 模型缓存组件，已实现 String、Hash、Set、SplArray
+     ├── Consumer  一些自定义进程实现，Base抽象类实现了基本Redis队列监听数据消费，但自定义进程能做的事情远不止如此，可自行发挥
+     ├── Crontab  内置定时任务实现，可后台控制开关、运行环境、传递参数 等
      │
      ├── HttpController
      │        ├── Admin
@@ -50,9 +54,12 @@
      ├── Model
      │     ├── BaseModelTrait 所有Model的基类
      │     └── ... 其他业务模型
+     ├── Notify 通知类实现，内置飞书、钉钉、飞书通知
+     │      
      ├── Task 异步任务
      │     ├── Crontab 通用的异步任务模板
      │     └── ... 异步任务类
+     ├── Template 简单的模板引擎实现，可选
      ├── WebSocket 同 HttpController
      ├── ... 其他业务
      ├── EventInitialize 对EasySwooleEvent::initialize事件的一些封装
