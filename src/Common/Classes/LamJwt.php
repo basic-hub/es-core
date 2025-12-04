@@ -27,7 +27,7 @@ class LamJwt
             ->setSecretKey($secret) // 秘钥
             ->publish();
 
-        $jwt->setAlg('HMACSHA256'); // 加密方式
+        $jwt->setAlg(Jwt::ALG_METHOD_HMACSHA256); // 加密方式
         $jwt->setExp($time + $expire); // 过期时间
         $jwt->setIat($time); // 发布时间
         $jwt->setJti($uniqid); // jwt id 用于标识该jwt
