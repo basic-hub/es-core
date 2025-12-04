@@ -54,6 +54,13 @@ class MaxMind extends Base
      */
     public function getArea($ip)
     {
+        // GeoLite2/GeoIP2 数据库仅收录公网可路由IP的地理信息，内网IP、保留IP、局域网IP等不在数据库覆盖范围内，因此会抛出 \GeoIp2\Exception\AddressNotFoundException
+        if ($this->isNonPublicIp($ip)) {
+            // 允许外部修改名称
+            $name = $this->convAreaMap('NonPublic');
+            return [$name];
+        }
+
         try {
             $Reader = new Reader($this->db_file_country, [$this->locales]);
 
@@ -65,6 +72,24 @@ class MaxMind extends Base
 
             $Reader->close();
             return [$country];
+        } catch (Exception $e) {
+            if ($Reader instanceof Reader) {
+                $Reader->close();
+            }
+            throw $e;
+        }
+    }
+
+    public function getIsp($ip)
+    {
+        try {
+            $Reader = new Reader($this->db_file_asn, [$this->locales]);
+
+            // 解析IP（支持IPv4/IPv6）
+            // '70.32.128.248'; // GOOGLE
+            $name = $Reader->asn($ip)->autonomousSystemOrganization;
+            $Reader->close();
+            return $name;
         } catch (Exception $e) {
             if ($Reader instanceof Reader) {
                 $Reader->close();
@@ -102,22 +127,4 @@ class MaxMind extends Base
             throw $e;
         }
     }*/
-
-    public function getIsp($ip)
-    {
-        try {
-            $Reader = new Reader($this->db_file_asn, [$this->locales]);
-
-            // 解析IP（支持IPv4/IPv6）
-            // '70.32.128.248'; // GOOGLE
-            $name = $Reader->asn($ip)->autonomousSystemOrganization;
-            $Reader->close();
-            return $name;
-        } catch (Exception $e) {
-            if ($Reader instanceof Reader) {
-                $Reader->close();
-            }
-            throw $e;
-        }
-    }
 }
