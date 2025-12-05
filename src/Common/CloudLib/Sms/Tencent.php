@@ -35,13 +35,19 @@ class Tencent extends Base
      */
     protected $region = '';
 
-    public function send($to = [], array $params = [], bool $ingo = false)
+    protected function getTemplateId()
+    {
+        if (is_array($this->templateId)) {
+            // key不存在则使用默认模板id
+            return $this->templateId[$this->templateKey] ?? $this->templateId['default'];
+        } else {
+            return $this->templateId;
+        }
+    }
+
+    public function send($to = [], array $params = [])
     {
         $this->phoneNumberSet = is_string($to) ? [$to] : $to;
-
-        $type = $params['type'];
-        $parentId = $ingo ? ($params['parentId'] ?: '') : null;
-        unset($params['type'], $params['parentId']);
 
         $params = array_values(array_map('strval', $params));
         $this->templateParamSet = $params;
@@ -51,7 +57,7 @@ class Tencent extends Base
             $Request->fromJsonString(json_encode([
                 'PhoneNumberSet' => $this->phoneNumberSet,
                 'SmsSdkAppId' => $this->smsSdkAppId,
-                'TemplateId' => is_array($this->templateId) ? ($this->templateId[$type] ?? $this->templateId['-1']) : $this->templateId,
+                'TemplateId' => $this->getTemplateId(),
                 'SignName' => $this->signName ?: null,
                 'TemplateParamSet' => $this->templateParamSet,
             ]));
@@ -60,7 +66,7 @@ class Tencent extends Base
                 'url' => '__TENCENT_SMS__',
                 'POST' => $Request->serialize(),
                 'method' => 'POST',
-            ], $parentId);
+            ], $this->parentId);
 
             $Credential = new Credential($this->secretId, $this->secretKey);
             $Client = new SmsClient($Credential, $this->region);

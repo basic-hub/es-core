@@ -27,11 +27,18 @@ class Alibaba extends Base
 
     protected $templateParam = '';
 
-    public function send($to = [], array $params = [], bool $ingo = false)
+    protected function getTemplateId()
     {
-        $type = $params['type'];
-        $parentId = $ingo ? ($params['parentId'] ?: '') : null;
-        unset($params['type'], $params['parentId']);
+        if (is_array($this->templateCode)) {
+            // key不存在则使用默认模板id
+            return $this->templateCode[$this->templateKey] ?? $this->templateCode['default'];
+        } else {
+            return $this->templateCode;
+        }
+    }
+
+    public function send($to = [], array $params = [])
+    {
 
         $this->phoneNumbers = implode(',', is_string($to) ? [$to] : $to);
         $this->templateParam = json_encode($params);
@@ -41,14 +48,14 @@ class Alibaba extends Base
             'url' => '__ALI_SMS__',
             'POST' => $log,
             'method' => 'POST',
-        ], $parentId);
+        ], $this->parentId);
 
         try {
             $Runtime = new RuntimeOptions();
             $Request = new SendSmsRequest([
                 'phoneNumbers' => $this->phoneNumbers,
                 'signName' => $this->signName,
-                'templateCode' => is_array($this->templateCode) ? ($this->templateCode[$type] ?? $this->templateCode['-1']) : $this->templateCode,
+                'templateCode' => $this->getTemplateId(),
                 'templateParam' => $this->templateParam
             ]);
             $Config = new Config([
