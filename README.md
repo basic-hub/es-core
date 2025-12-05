@@ -54,7 +54,7 @@
      ├── Model
      │     ├── BaseModelTrait 所有Model的基类
      │     └── ... 其他业务模型
-     ├── Notify 通知类实现，内置飞书、钉钉、飞书通知
+     ├── Notify 通知类实现，内置飞书、钉钉、微信通知
      │      
      ├── Task 异步任务
      │     ├── Crontab 通用的异步任务模板

@@ -30,11 +30,8 @@ class Alibaba extends Base
 
     protected $toAddress = '';
 
-    public function send($to = [], array $params = [], bool $ingo = false)
+    public function send($to = [], array $params = [])
     {
-        $parentId = $ingo ? ($params['parentId'] ?: '') : null;
-        unset($params['parentId']);
-
         if (is_string($to)) {
             $to = [$to];
         }
@@ -46,7 +43,7 @@ class Alibaba extends Base
             'url' => '__ALI_EMAIL__',
             'POST' => $log,
             'method' => 'POST',
-        ], $parentId);
+        ], $this->parentId);
 
         try {
             $Runtime = new RuntimeOptions();

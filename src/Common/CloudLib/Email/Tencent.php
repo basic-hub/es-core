@@ -47,23 +47,30 @@ class Tencent extends Base
      */
     protected $region = '';
 
-    public function send($to = [], array $params = [], bool $ingo = false)
+    protected function getTemplateId()
     {
-        $type = $params['type'];
-        $parentId = $ingo ? ($params['parentId'] ?: '') : null;
-        unset($params['type'], $params['parentId']);
+        if (is_array($this->templateId)) {
+            // key不存在则使用默认模板id
+            return $this->templateId[$this->templateKey] ?? $this->templateId['default'];
+        } else {
+            return $this->templateId;
+        }
+    }
 
+    public function send($to = [], array $params = [])
+    {
         settype($to, 'array');
 
         try {
             $Request = new SendEmailRequest();
             $Request->fromJsonString(json_encode([
                 'FromEmailAddress' => $this->fromEmailAddress,
+                // 最多支持50人
                 'Destination' => $to ?: $this->destination,
                 'Subject' => $this->subject,
                 'Template' => [
                     // 腾讯云的此参数要求为int
-                    'TemplateID' => (int)is_array($this->templateId) ? ($this->templateId[$type] ?? $this->templateId['-1']) : $this->templateId,
+                    'TemplateID' => intval($this->getTemplateId()),
                     'TemplateData' => json_encode($params),
                 ],
             ]));
@@ -72,7 +79,7 @@ class Tencent extends Base
                 'url' => '__TENCENT_EMAIL__',
                 'POST' => $Request->serialize(),
                 'method' => 'POST',
-            ], $parentId);
+            ], $this->parentId);
 
             $Credential = new Credential($this->secretId, $this->secretKey);
             $Client = new SesClient($Credential, $this->region);
