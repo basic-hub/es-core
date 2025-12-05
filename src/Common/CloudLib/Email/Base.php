@@ -18,6 +18,6 @@ abstract class Base  extends SplBean implements EmailInterface
      * 简单使用示例： email(['templateKey' => 'Joyboo'])->send()
      * @var string|int
      */
-    protected $templateKey = '';
+    protected $templateKey = 'default';
 
 }

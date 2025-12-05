@@ -18,7 +18,7 @@ abstract class Base extends SplBean implements SmsInterface
      * 简单使用示例： sms(['templateKey' => 'Joyboo'])->send()
      * @var string|int
      */
-    protected $templateKey = '';
+    protected $templateKey = 'default';
 
     /**
      * 转地区码
