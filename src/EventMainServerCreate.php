@@ -134,6 +134,7 @@ class EventMainServerCreate extends SplBean
     }
 
     /**
+     * php easyswoole process show -d -mode=xx.xx.xx
      * 注册自定义进程
      * @return void
      */
@@ -143,21 +144,16 @@ class EventMainServerCreate extends SplBean
         if ( ! is_array($jobs)) {
             return;
         }
-        $group = config('SERVER_NAME') . '.my.';
+
+        // 进程分组
+        $group = config('SERVER_NAME') . '.my';
 
         foreach ($jobs as $value) {
             // 要执行的服务器 []代表不限制
             $server = $value['server'] ?? [];
-            if (
-                $server
-                &&
-                defined('SERVNUM')
-                && ! in_array(SERVNUM, (array)$server)
-            ) {
+            if ($server && defined('SERVNUM') && ! in_array(SERVNUM, (array)$server)) {
                 continue;
             }
-
-            unset($server);
 
             $class = $value['class'];
             if (empty($class) || ! class_exists($class)) {
@@ -175,10 +171,9 @@ class EventMainServerCreate extends SplBean
             $pools = is_array($pool) ? $pool : [$pool];
 
             foreach ($pools as $pool) {
-                $proName = "$group$pool.$value[name]";
                 for ($i = 0; $i < $psnum; ++$i) {
                     $cfg = array_merge([
-                        'processName' => $proName . '.' . $i,
+                        'processName' => "$group.$pool.$value[name].$i",
                         'processGroup' => $group,
                         'arg' => ['pool' => $pool] + $value,
                         'enableCoroutine' => true,
