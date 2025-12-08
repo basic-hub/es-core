@@ -91,7 +91,17 @@ class Tencent extends Base
         } catch (TencentCloudSDKException $e) {
             $msg = '腾讯云短信发送失败2: ' . $e->__toString();
             is_callable($endFn) && $endFn($msg, $e->getCode());
-            notice($msg);
+
+            if (!in_array($e->getErrorCode(), [
+                'FailedOperation.UnsupportMailType',
+                'InvalidParameterValue.IllegalEmailAddress',
+                'InvalidParameterValue.EmailAddressIsNULL',
+                'InvalidParameterValue.ReceiverEmailInvalid',
+                'MissingParameter.EmailsNecessary'
+            ])) {
+                notice($msg);
+            }
+
             return false;
         }
     }
