@@ -37,8 +37,18 @@ class Alibaba extends Base
         }
     }
 
+    /**
+     * @document https://help.aliyun.com/zh/sms/developer-reference/api-error-codes?spm=a2c4g.11186623.help-menu-44282.d_5_6.3f4258d0OBDUKp
+     * @param $to
+     * @param array $params
+     * @return bool
+     */
     public function send($to = [], array $params = [])
     {
+        if ($this->isdebug) {
+            trace(__METHOD__ . ', to=' . var_export($to, true) . ', params=' . var_export($params, true));
+            return true;
+        }
 
         $this->phoneNumbers = implode(',', is_string($to) ? [$to] : $to);
         $this->templateParam = json_encode($params);
@@ -66,12 +76,6 @@ class Alibaba extends Base
             $Config->endpoint = $this->endpoint;
             $Client = new Dysmsapi($Config);
 
-            // 注意：以下代码可在开发模式下请根据需要开启或关闭
-            if (is_env('dev')) {
-                $endFn('env: dev ok');
-                return true;
-            }
-
             $resp = $Client->sendSmsWithOptions($Request, $Runtime);
             $arr = $resp->toMap();
             $endFn($arr, 200);
@@ -88,7 +92,15 @@ class Alibaba extends Base
             }
 
             is_callable($endFn) && $endFn($error->__toString(), $error->getCode());
-            notice('阿里云短信发送失败: ' . $error->__toString());
+
+            trace($msg = '阿里云短信发送失败: ' . $error->__toString(), 'error');
+
+            if (!in_array($error->getCode(), [
+                'isv.MOBILE_NUMBER_ILLEGAL',
+            ])) {
+                notice($msg);
+            }
+
             return false;
         }
     }

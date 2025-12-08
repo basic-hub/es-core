@@ -20,4 +20,10 @@ abstract class Base  extends SplBean implements EmailInterface
      */
     protected $templateKey = 'default';
 
+    /**
+     * 是否开发环境模式，为true则仅记录&输出，不会真实发送
+     * @var bool
+     */
+    protected $isdebug = false;
+
 }

@@ -21,6 +21,12 @@ abstract class Base extends SplBean implements SmsInterface
     protected $templateKey = 'default';
 
     /**
+     * 是否开发环境模式，为true则仅记录&输出，不会真实发送
+     * @var bool
+     */
+    protected $isdebug = false;
+
+    /**
      * 转地区码
      * 由业务自行调用处理，统一封装的话会无法一次发送多个地区的号码
      * @param $numbers

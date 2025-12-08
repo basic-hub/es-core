@@ -59,6 +59,11 @@ class Tencent extends Base
 
     public function send($to = [], array $params = [])
     {
+        if ($this->isdebug) {
+            trace(__METHOD__ . ', to=' . var_export($to, true) . ', params=' . var_export($params, true));
+            return true;
+        }
+
         settype($to, 'array');
 
         try {
@@ -100,8 +105,19 @@ class Tencent extends Base
         } catch (TencentCloudSDKException $e) {
             $msg = "腾讯云邮件发送失败2: " . $e->__toString();
             is_callable($endFn) && $endFn($msg, $e->getCode());
+
             trace($msg, 'error');
-            notice($msg);
+
+            if (!in_array($e->getErrorCode(), [
+                'FailedOperation.UnsupportMailType',
+                'InvalidParameterValue.IllegalEmailAddress',
+                'InvalidParameterValue.EmailAddressIsNULL',
+                'InvalidParameterValue.ReceiverEmailInvalid',
+                'MissingParameter.EmailsNecessary'
+            ])) {
+                notice($msg);
+            }
+
             return false;
         }
     }
