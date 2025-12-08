@@ -32,6 +32,11 @@ class Alibaba extends Base
 
     public function send($to = [], array $params = [])
     {
+        if ($this->isdebug) {
+            trace(__METHOD__ . ', to=' . var_export($to, true) . ', params=' . var_export($params, true));
+            return true;
+        }
+
         if (is_string($to)) {
             $to = [$to];
         }
@@ -79,7 +84,15 @@ class Alibaba extends Base
             }
             is_callable($endFn) && $endFn($error->__toString(), $error->getCode());
             trace($msg = "阿里云邮件发送失败: " . $error->__toString(), 'error');
-            notice($msg);
+            if (!in_array($error->getCode(), [
+                'InvalidReceiverName.Malformed',
+                'InvalidMailAddress.NotFound',
+                'InvalidReceiver.NotFound',
+                'InvalidToAddress',
+                'InvalidToAddress.Spam'
+            ])) {
+                notice($msg);
+            }
             return false;
         }
     }

@@ -45,8 +45,19 @@ class Tencent extends Base
         }
     }
 
+    /**
+     * @document https://cloud.tencent.com/document/product/382/55981
+     * @param string|array $to
+     * @param array $params
+     * @return bool
+     */
     public function send($to = [], array $params = [])
     {
+        if ($this->isdebug) {
+            trace(__METHOD__ . ', to=' . var_export($to, true) . ', params=' . var_export($params, true));
+            return true;
+        }
+
         $this->phoneNumberSet = is_string($to) ? [$to] : $to;
 
         $params = array_values(array_map('strval', $params));
@@ -71,11 +82,6 @@ class Tencent extends Base
             $Credential = new Credential($this->secretId, $this->secretKey);
             $Client = new SmsClient($Credential, $this->region);
 
-            // 注意：以下代码可在开发模式下请根据需要开启或关闭
-            if (is_env('dev')) {
-                return true;
-            }
-
             $resp = $Client->SendSms($Request);
 
             $str = $resp->toJsonString();
@@ -91,7 +97,16 @@ class Tencent extends Base
         } catch (TencentCloudSDKException $e) {
             $msg = '腾讯云短信发送失败2: ' . $e->__toString();
             is_callable($endFn) && $endFn($msg, $e->getCode());
-            notice($msg);
+
+            trace($msg, 'error');
+
+            if (!in_array($e->getErrorCode(), [
+                'InvalidParameterValue.IncorrectPhoneNumber',
+                'MissingParameter.EmptyPhoneNumberSet',
+            ])) {
+                notice($msg);
+            }
+
             return false;
         }
     }
