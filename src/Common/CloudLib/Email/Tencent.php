@@ -57,6 +57,13 @@ class Tencent extends Base
         }
     }
 
+    /**
+     * @document 关于黑名单描述 https://cloud.tencent.com/document/product/1288/51031
+     * @document 发送邮件 https://cloud.tencent.com/document/product/1288/51034
+     * @param $to
+     * @param array $params
+     * @return bool
+     */
     public function send($to = [], array $params = [])
     {
         if ($this->isdebug) {

@@ -102,7 +102,7 @@ abstract class Base extends SplBean implements MessageInterface
             'image_type' => 'message',
             'image' => curl_file_create($img),
         ];
-        $result = curl('https://open.feishu.cn/open-apis/im/v1/images', $sendParams, 'post', $headers);
+        $result = hcurl('https://open.feishu.cn/open-apis/im/v1/images', $sendParams, 'post', $headers);
         if (isset($result['code']) && $result['code'] == 0) {
             return $result['data']['image_key'];
         } else {
