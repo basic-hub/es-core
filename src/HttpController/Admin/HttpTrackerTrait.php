@@ -76,10 +76,22 @@ trait HttpTrackerTrait
             $builder->where("($str)");
         }
 
+        // 请求参数模糊匹配
+        if (!empty($filter['rq_like'])) {
+            $builder->where('request', "%$filter[rq_like]%", 'LIKE');
+        }
+        // 响应参数模糊匹配
+        if (!empty($filter['rp_like'])) {
+            $builder->where('response', "%$filter[rp_like]%", 'LIKE');
+        }
+
         // 自定义部分::
         if ($my = trim($filter['sql'])) {
             $builder->where("($my)");
         }
+
+        // 初始层级
+        //$builder->where('depth', 0);
 
         return $builder;
     }
