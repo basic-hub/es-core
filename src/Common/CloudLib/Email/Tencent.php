@@ -3,7 +3,11 @@
 namespace BasicHub\EsCore\Common\CloudLib\Email;
 
 use TencentCloud\Common\Credential;
+use TencentCloud\Common\Profile\ClientProfile;
+use TencentCloud\Common\Profile\HttpProfile;
 use TencentCloud\Common\Exception\TencentCloudSDKException;
+use TencentCloud\Ses\V20201002\Models\DeleteBlackListRequest;
+use TencentCloud\Ses\V20201002\Models\ListBlackEmailAddressRequest;
 use TencentCloud\Ses\V20201002\Models\SendEmailRequest;
 use TencentCloud\Ses\V20201002\SesClient;
 
@@ -120,12 +124,60 @@ class Tencent extends Base
                 'InvalidParameterValue.IllegalEmailAddress',
                 'InvalidParameterValue.EmailAddressIsNULL',
                 'InvalidParameterValue.ReceiverEmailInvalid',
-                'MissingParameter.EmailsNecessary'
+                'MissingParameter.EmailsNecessary',
+                'FailedOperation.EmailAddrInBlacklist', // 关于黑名单的描述请参考下面文档，基本原因都是因为邮箱地址不存在
             ])) {
                 notice($msg);
             }
 
             return false;
         }
+    }
+
+    /**
+     * 腾讯云发送的邮件一旦被收件方判断为硬退(Hard Bounce)，腾讯云会拉黑该地址，并不允许所有用户向该地址发送邮件。成为邮箱黑名单。如果业务方确认是误判，可以从黑名单中删除。
+     * @document https://cloud.tencent.com/document/product/1288/51031
+     * @param array $params [
+     *              StartDate: 查询开始时间，示例：2025-10-01
+     *              EndDate： 查询结束时间，示例：2025-11-01
+     *              Limit： 分页参数,最大取值为100
+     *              Offset： 分页参数
+     *              EmailAddress： 可选参数，邮箱地址，如果传了则指定查询此邮箱
+     * ]
+     * @return void
+     */
+    public function getBlackList(array $params)
+    {
+        $cred = new Credential($this->secretId, $this->secretKey);
+
+        $client = new SesClient($cred, $this->region);
+
+        $req = new ListBlackEmailAddressRequest();
+
+        $req->fromJsonString(json_encode($params));
+
+        return $client->ListBlackEmailAddress($req);
+    }
+
+    /**
+     * 腾讯云发送的邮件一旦被收件方判断为硬退(Hard Bounce)，腾讯云会拉黑该地址，并不允许所有用户向该地址发送邮件。成为邮箱黑名单。如果业务方确认是误判，可以从黑名单中删除。
+     * @document https://cloud.tencent.com/document/product/1288/51032
+     * @return void
+     */
+    public function deleteBlackList(array $emailList)
+    {
+        $cred = new Credential($this->secretId, $this->secretKey);
+
+        $client = new SesClient($cred, $this->region);
+
+        $req = new DeleteBlackListRequest();
+
+        $req->fromJsonString(json_encode([
+            'EmailAddressList' => $emailList
+        ]));
+
+        $resp = $client->DeleteBlackList($req);
+
+        return !empty($resp->getRequestId());
     }
 }
