@@ -504,17 +504,15 @@ if (!function_exists('get_admin_jwt_token')) {
 
 if (!function_exists('verify_jwt_token')) {
     /**
-     * 校验jwt和参数
+     * 校验jwt
      * @param string $token jwt token
-     * @param string $chkKey 需要校验的参数key
-     * @param array $input 请求参数
      * @param array $jwtcfg jwt配置
-     * @param bool $returnObject true-直接返回Jwt对象，false-返回jwt data
-     * @return array
+     * @param bool $onlydata false-直接返回Jwt对象，true-返回jwt data
+     * @return Jwt
      * @throws HttpParamException
      * @throws \BasicHub\EsCore\Common\Exception\JwtException
      */
-    function verify_jwt_token($token, $chkKey = '', $input = [], $jwtcfg = [], $returnObject = false) {
+    function verify_jwt_token($token, $jwtcfg = []) {
         if (empty($jwtcfg)) {
             $jwtcfg = config('ENCRYPT');
         }
@@ -522,25 +520,36 @@ if (!function_exists('verify_jwt_token')) {
             throw new HttpParamException('Jwt token is Empty.', Code::CODE_BAD_REQUEST);
         }
 
-        $Jwt = (new Jwt())->setSecretKey($jwtcfg['key'])->verifyToken($token);
-        if ($returnObject) {
-            return $Jwt;
-        }
+        $Jwt = new Jwt();
+        return $Jwt->setSecretKey($jwtcfg['key'])->verifyToken($token);
+    }
+}
 
-        $jwt = $Jwt->getData();
+if ( ! function_exists('verify_jwt_params')) {
+    /**
+     * 校验jwt参数
+     * @param Jwt $Jwt
+     * @param $chkKey
+     * @param $input
+     * @return mixed
+     * @throws HttpParamException
+     */
+    function verify_jwt_params(Jwt $Jwt, $chkKey, $input) {
+
+        $jwtdata = $Jwt->getData();
 
         if ($chkKey) {
-            if (empty($jwt[$chkKey])) {
+            if (empty($jwtdata[$chkKey])) {
                 throw new HttpParamException('jwt Error', Code::CODE_UNAUTHORIZED);
             }
 
             // input中无此参数，或与jwt解密参数不符
-            if (empty($input[$chkKey]) || $input[$chkKey] != $jwt[$chkKey]) {
-                throw new HttpParamException("jwt的 $chkKey 不符:" . ($jwt[$chkKey] ?? ''), Code::CODE_PRECONDITION_FAILED);
+            if (empty($input[$chkKey]) || $input[$chkKey] != $jwtdata[$chkKey]) {
+                throw new HttpParamException("jwt的 $chkKey 不符:" . ($jwtdata[$chkKey] ?? ''), Code::CODE_PRECONDITION_FAILED);
             }
         }
 
-        return $jwt;
+        return $jwtdata;
     }
 }
 
