@@ -22,6 +22,11 @@ class Jwt extends JwtObject
      */
     protected $tobase64 = true;
 
+    public function __construct(array $data = [])
+    {
+        parent::__construct($data);
+    }
+
     public function setTobase64(bool $tobase64)
     {
         $this->tobase64 = $tobase64;
