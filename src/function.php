@@ -2,8 +2,8 @@
 
 use BasicHub\EsCore\Common\Classes\CtxManager;
 use BasicHub\EsCore\Common\Classes\HttpRequest;
-use BasicHub\EsCore\Common\Classes\LamJwt;
 use BasicHub\EsCore\Common\Classes\Mysqli;
+use BasicHub\EsCore\Common\Classes\Jwt;
 use BasicHub\EsCore\Common\CloudLib\Captcha\CaptchaInterface;
 use BasicHub\EsCore\Common\CloudLib\Cdn\CdnInterface;
 use BasicHub\EsCore\Common\CloudLib\Dns\DnsInterface;
@@ -474,7 +474,15 @@ if ( ! function_exists('get_jwt_token')) {
         if (is_null($expire)) {
             $expire = $config['expire'];
         }
-        return LamJwt::getToken($data, $config['key'], $expire);
+
+        $time = time();
+        $Jwt = new Jwt();
+        $Jwt->setSecretKey($config['key'])
+            ->setExp($time + $expire)
+            ->setIat($time)
+            ->setData($data);
+
+        return $Jwt->getToken();
     }
 }
 
@@ -491,6 +499,57 @@ if (!function_exists('get_admin_jwt_token')) {
             'id' => $Admin->getAttr('id'),
             'logflag' => $Admin->getAttr('extension')['logflag'] ?? 0,
         ], $expire);
+    }
+}
+
+if (!function_exists('verify_jwt_token')) {
+    /**
+     * 校验jwt
+     * @param string $token jwt token
+     * @param array $jwtcfg jwt配置
+     * @param bool $onlydata false-直接返回Jwt对象，true-返回jwt data
+     * @return Jwt
+     * @throws HttpParamException
+     * @throws \BasicHub\EsCore\Common\Exception\JwtException
+     */
+    function verify_jwt_token($token, $jwtcfg = []) {
+        if (empty($jwtcfg)) {
+            $jwtcfg = config('ENCRYPT');
+        }
+        if (empty($token)) {
+            throw new HttpParamException('Jwt token is Empty.', Code::CODE_BAD_REQUEST);
+        }
+
+        $Jwt = new Jwt();
+        return $Jwt->setSecretKey($jwtcfg['key'])->verifyToken($token);
+    }
+}
+
+if ( ! function_exists('verify_jwt_params')) {
+    /**
+     * 校验jwt参数
+     * @param Jwt $Jwt
+     * @param $chkKey
+     * @param $input
+     * @return mixed
+     * @throws HttpParamException
+     */
+    function verify_jwt_params(Jwt $Jwt, $chkKey, $input) {
+
+        $jwtdata = $Jwt->getData();
+
+        if ($chkKey) {
+            if (empty($jwtdata[$chkKey])) {
+                throw new HttpParamException('jwt Error', Code::CODE_UNAUTHORIZED);
+            }
+
+            // input中无此参数，或与jwt解密参数不符
+            if (empty($input[$chkKey]) || $input[$chkKey] != $jwtdata[$chkKey]) {
+                throw new HttpParamException("jwt的 $chkKey 不符:" . ($jwtdata[$chkKey] ?? ''), Code::CODE_PRECONDITION_FAILED);
+            }
+        }
+
+        return $jwtdata;
     }
 }
 
@@ -1671,43 +1730,6 @@ if (!function_exists('versions_compare')) {
         }
 
         return 0;
-    }
-}
-
-if (!function_exists('verify_jwt_token')) {
-    /**
-     * 校验jwt和参数
-     * @param string $token jwt token
-     * @param string $chkKey 需要校验的参数key
-     * @param array $input 请求参数
-     * @param array $jwtcfg jwt配置
-     * @return array
-     * @throws HttpParamException
-     * @throws \BasicHub\EsCore\Common\Exception\JwtException
-     */
-    function verify_jwt_token($token, $chkKey = '', $input = [], $jwtcfg = [], $onlydata = true) {
-        if (empty($jwtcfg)) {
-            $jwtcfg = config('ENCRYPT');
-        }
-        if (empty($token)) {
-            throw new HttpParamException('Jwt token is Empty.', Code::CODE_BAD_REQUEST);
-        }
-
-        // 验证JWT
-        $jwt = LamJwt::verifyToken($token, $jwtcfg['key'], $onlydata);
-
-        if ($chkKey) {
-            if (empty($jwt[$chkKey])) {
-                throw new HttpParamException('jwt Error', Code::CODE_UNAUTHORIZED);
-            }
-
-            // input中无此参数，或与jwt解密参数不符
-            if (empty($input[$chkKey]) || $input[$chkKey] != $jwt[$chkKey]) {
-                throw new HttpParamException("jwt的 $chkKey 不符:" . ($jwt[$chkKey] ?? ''), Code::CODE_PRECONDITION_FAILED);
-            }
-        }
-
-        return $jwt;
     }
 }
 

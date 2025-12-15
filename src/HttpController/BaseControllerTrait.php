@@ -160,7 +160,9 @@ trait BaseControllerTrait
         $jwtCfg = config('ENCRYPT');
         $token = $this->request()->getHeader($jwtCfg['jwtkey'])[0] ?? '';
 
-        return verify_jwt_token($token, $chkKey, $this->input, $jwtCfg);
+        $Jwt = verify_jwt_token($token, $jwtCfg);
+
+        return verify_jwt_params($Jwt, $chkKey, $this->input);
     }
 
     protected function httpTrackerStart()
