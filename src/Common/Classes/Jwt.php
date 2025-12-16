@@ -15,28 +15,14 @@ use EasySwoole\Jwt\JwtObject;
  */
 class Jwt extends JwtObject
 {
-    /**
-     * 是否转换base64编码
-     * 新程序可使用标准jwt格式字符串，老程序已经无法回头，必须向下兼容
-     * @var bool
-     */
-    protected $tobase64 = true;
-
     public function __construct(array $data = [])
     {
         parent::__construct($data);
     }
 
-    public function setTobase64(bool $tobase64)
-    {
-        $this->tobase64 = $tobase64;
-        return $this;
-    }
-
     public function getToken(): string
     {
-        $token = $this->__toString();
-        return $this->tobase64 ? base64_encode($token) : $token;
+        return $this->__toString();
     }
 
     /**
@@ -47,7 +33,9 @@ class Jwt extends JwtObject
     public function verifyToken($token): Jwt
     {
         try {
-            if ($this->tobase64) {
+
+            // 兼容早期非jwt标准格式 todo 后面可能删除此兼容代码 - 2025-12-16
+            if (count(explode('.', $token)) !== 3) {
                 $token = base64_decode($token);
             }
 
