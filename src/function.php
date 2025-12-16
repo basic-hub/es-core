@@ -477,6 +477,11 @@ if ( ! function_exists('get_jwt_token')) {
 
         $time = time();
         $Jwt = new Jwt();
+
+        // 区分签发主体
+        if (defined('CP')) {
+            $Jwt->setIss(CP);
+        }
         $Jwt->setSecretKey($config['key'])
             ->setExp($time + $expire)
             ->setIat($time)
@@ -522,6 +527,7 @@ if (!function_exists('verify_jwt_token')) {
 
         $Jwt = new Jwt();
         return $Jwt->setSecretKey($jwtcfg['key'])->verifyToken($token);
+        // todo 校验签发主体
     }
 }
 
