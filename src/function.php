@@ -482,12 +482,12 @@ if ( ! function_exists('get_jwt_token')) {
         if (defined('CP')) {
             $Jwt->setIss(CP);
         }
-        $Jwt->setSecretKey($config['key'])
+
+        return $Jwt->setSecretKey($config['key'])
             ->setExp($time + $expire)
             ->setIat($time)
-            ->setData($data);
-
-        return $Jwt->getToken();
+            ->setData($data)
+            ->getToken();
     }
 }
 
