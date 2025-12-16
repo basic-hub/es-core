@@ -8,6 +8,8 @@ use BasicHub\EsCore\Common\Languages\Dictionary;
 use EasySwoole\Jwt\Encryption;
 use EasySwoole\Jwt\Exception;
 use EasySwoole\Jwt\JwtObject;
+use EasySwoole\Jwt\Signature;
+use EasySwoole\Jwt\Jwt as EsJwt;
 
 /**
  * easyswoole/jwt组件封装不规范，在此重写
@@ -58,10 +60,10 @@ class Jwt extends JwtObject
     }
 
     /**
-     * @return self
+     * @return Jwt
      * @throws Exception
      */
-    public function decode(string $raw)
+    public function decode(string $raw): Jwt
     {
         if (strpos($raw, ' ')) {
             $prefix       = explode(' ', $raw);
@@ -110,5 +112,61 @@ class Jwt extends JwtObject
         return new static($jwtObjConfig);
     }
 
+    /**
+     * 重写父类方法，支持自定义header和payload，修复一些问题
+     * @return string
+     */
+    public function __toString()
+    {
+        $algMap = [
+            EsJwt::ALG_METHOD_HMACSHA256 => EsJwt::ALG_METHOD_HS256,
+            EsJwt::ALG_METHOD_AES => EsJwt::ALG_METHOD_AES,
+            EsJwt::ALG_METHOD_HS256 => EsJwt::ALG_METHOD_HS256,
+            EsJwt::ALG_METHOD_RS256 => EsJwt::ALG_METHOD_RS256,
+        ];
+
+        $alg = $this->getAlg();
+        $alg = $algMap[$alg] ?? $alg;
+
+        // 允许外层自定义header，此时还未经处理
+        $header = $this->getHeader() ?: [
+            'alg' => $alg,
+            'typ' => 'JWT'
+        ];
+        if (is_array($header)) {
+            $header = json_encode($header);
+        }
+        $this->header = Encryption::base64UrlEncode($header);
+
+        // 允许外层自定义payload，此时还未经处理
+        $payload = $this->getPayload() ?: [
+            'exp' => $this->getExp(),
+            'sub' => $this->getSub(),
+            'nbf' => $this->getNbf(),
+            'aud' => $this->getAud(),
+            'iat' => $this->getIat(),
+            'jti' => $this->getJti(),
+            'iss' => $this->getIss(),
+            'status' => $this->getStatus(),
+            'data' => $this->getData()
+        ];
+        if (is_array($payload)) {
+            $payload = json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        }
+        $this->payload = Encryption::base64UrlEncode($payload);
+
+        $this->signature = (new Signature([
+            'secretKey' => $this->getSecretKey(),
+            'header' => $this->header,
+            'payload' => $this->payload,
+            'alg' => $alg,
+        ]))->__toString();
+
+        if (empty($this->prefix)) {
+            return $this->header . '.' . $this->payload . '.' . $this->signature;
+        } else {
+            return $this->prefix . $this->header . '.' . $this->payload . '.' . $this->signature;
+        }
+    }
 }
 

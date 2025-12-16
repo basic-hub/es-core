@@ -512,7 +512,6 @@ if (!function_exists('verify_jwt_token')) {
      * 校验jwt
      * @param string $token jwt token
      * @param array $jwtcfg jwt配置
-     * @param bool $onlydata false-直接返回Jwt对象，true-返回jwt data
      * @return Jwt
      * @throws HttpParamException
      * @throws \BasicHub\EsCore\Common\Exception\JwtException
