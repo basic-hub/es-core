@@ -28,7 +28,10 @@ class Item extends SplBean
         if ( ! is_scalar($this->message)) {
             $this->message = json_encode($this->message, JSON_UNESCAPED_UNICODE);
         }
-        $this->message = str_replace(["\n", "\r"], '', $this->message);
+        // 支持原样输出\EasySwoole\Utility\ArrayToTextTable等结构
+        if ($this->category !== 'real') {
+            $this->message = str_replace(["\n", "\r"], '', $this->message);
+        }
 
         // 产生日志的时间
         $this->time = time();
