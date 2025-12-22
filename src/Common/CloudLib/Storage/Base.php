@@ -11,4 +11,10 @@ abstract class Base extends SplBean implements StorageInterface
         $arr = explode('\\', static::class);
         return end($arr);
     }
+
+    public function rename($formKey, $toKey, $options = [])
+    {
+        $this->copy($formKey, $toKey, $options);
+        $this->delete($formKey, $options);
+    }
 }

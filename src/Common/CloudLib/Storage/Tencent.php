@@ -49,26 +49,23 @@ class Tencent extends Base
         if ( ! is_file($file)) {
             throw new \Exception("file {$file} not exists");
         }
-        $stream = fopen($file, 'rb');
 
         try {
+            $fp = fopen($file, 'rb');
+
             $result = $this->client->putObject([
                 'Bucket' => $this->bucket,
                 'Key' => $key,
-                'Body' => $stream
+                'Body' => $fp
             ]);
 
-        } catch (ServiceResponseException $e) {
-            trace(sprintf('%s, %s', $e, $e->getCosErrorType()), 'error');
+            return $result['Location'];
         } catch (\Exception $e) {
-            trace($e->getMessage(), 'error');
+            trace(__METHOD__ . '上传失败' . $e->__toString(), 'error');
+            throw $e;
         } finally {
-            is_resource($stream) && fclose($stream);
+            is_resource($fp) && fclose($fp);
         }
-        if ( ! empty($e)) {
-            throw  $e;
-        }
-        return $result['Location'];
     }
 
     public function delete($key, $options = [])
@@ -88,17 +85,13 @@ class Tencent extends Base
     public function uploadPart($file, $key, $partSize = 10 * 1024 * 1024, $options = [])
     {
         try {
-            $body = fopen($file, 'rb');
-            $this->client->upload($this->bucket, $key, $body, ['PartSize' => $partSize] + $options);
-        } catch (ServiceResponseException $e) {
-            trace(sprintf('%s, %s', $e, $e->getCosErrorType()), 'error');
+            $fp = fopen($file, 'rb');
+            $this->client->upload($this->bucket, $key, $fp, ['PartSize' => $partSize] + $options);
         } catch (\Exception $e) {
-            trace($e->getMessage(), 'error');
+            trace(__METHOD__ . '上传失败' . $e->__toString(), 'error');
+            throw $e;
         } finally {
-            is_resource($body) && fclose($body);
-        }
-        if ( ! empty($e)) {
-            throw  $e;
+            is_resource($fp) && fclose($fp);
         }
     }
 
@@ -134,21 +127,6 @@ class Tencent extends Base
             trace($e->__toString(), 'error');
             throw $e;
         }
-    }
-
-    /**
-     * 重命名OSS对象
-     * @param $formKey
-     * @param $toKey
-     * @param $options
-     * @return void
-     * @throws \Exception
-     * @document https://cloud.tencent.com/document/product/436/64284
-     */
-    public function rename($formKey, $toKey, $options = [])
-    {
-        $this->copy($formKey, $toKey, $options);
-        $this->delete($formKey, $options);
     }
 
     /**

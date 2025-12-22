@@ -1031,14 +1031,14 @@ if ( ! function_exists('sign')) {
 
 if ( ! function_exists('redis_list_push')) {
     /**
-     * 入redis队列
+     * 入redis队列，左出右进
      * @param Redis $redis
      * @param string $key
      * @param mixed $data
-     * @param bool $left 是否lpush，默认为rpush
+     * @param bool $first 是否需要优先处理。 true-插队优先处理，false-正常入队列
      * @return false|int|Redis
      */
-    function redis_list_push(Redis $redis, string $key, $data, bool $left = false)
+    function redis_list_push(Redis $redis, string $key, $data, bool $first = false)
     {
         if ( ! is_scalar($data)) {
             $data = json_encode($data);
@@ -1056,7 +1056,7 @@ if ( ! function_exists('redis_list_push')) {
             $key .= ".$shardId";
         }
 
-        return $left ? $redis->lPush($key, $data) : $redis->rPush($key, $data);
+        return $first ? $redis->lPush($key, $data) : $redis->rPush($key, $data);
     }
 }
 

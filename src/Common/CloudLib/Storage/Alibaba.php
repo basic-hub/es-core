@@ -169,22 +169,6 @@ class Alibaba extends Base
     }
 
     /**
-     * 重命名OSS对象
-     * @param $formKey
-     * @param $toKey
-     * @param $options
-     * @return void
-     * @throws OssException
-     * @throws \EasySwoole\HttpClient\Exception\InvalidUrl
-     * @document https://help.aliyun.com/zh/oss/user-guide/rename-objects
-     */
-    public function rename($formKey, $toKey, $options = [])
-    {
-        $this->copy($formKey, $toKey, $options);
-        $this->delete($formKey, $options);
-    }
-
-    /**
      * 客户端直传对象存储,一般用于超超大文件
      * 1. RAM访问管理 -> 角色管理 -> 授权oss全读写权限 -> 复制ARN
      * 2. 对象存储 数据安全 -> 跨域设置： *    暴露header（ETag、x-oss-request-id、x-oss-etag） 勾选“返回 Vary: Origin”

@@ -51,6 +51,8 @@ trait BaseTrait
         $list[] = $queue;
         if ($shardNumber > 0) {
             // 分key数从1开始，例如配置3，则监听 name、name.1、name.2、name.3
+            // 普通模式切换为分片模式：直接生效，因为默认也会监听name队列。
+            // 分片模式切换为普通模式：切换后，只会监听name队列，对应的name.n队列里如果还有数据，需要运行 RPOPLPUSH 命令，将name.n队列数据移入name队列。
             for ($i = 1; $i <= $shardNumber; ++$i) {
                 $list[] = "$queue.$i";
             }
@@ -79,6 +81,7 @@ trait BaseTrait
             RedisPool::invoke(function (Redis $Redis) use ($queues) {
                 foreach ($queues as $queue) {
                     for ($i = 0; $i < $this->args['limit'] ?? 200; ++$i) {
+                        // 左出右进
                         $data = $Redis->lPop($queue);
                         if ( ! $data) {
                             break;

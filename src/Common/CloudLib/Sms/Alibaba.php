@@ -29,12 +29,7 @@ class Alibaba extends Base
 
     protected function getTemplateId()
     {
-        if (is_array($this->templateCode)) {
-            // key不存在则使用默认模板id
-            return $this->templateCode[$this->templateKey] ?? $this->templateCode['default'];
-        } else {
-            return $this->templateCode;
-        }
+        return $this->getTplId($this->templateCode);
     }
 
     /**
