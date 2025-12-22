@@ -43,4 +43,19 @@ abstract class Base extends SplBean implements SmsInterface
             return "+$code" . ltrim($value, '+');
         }, $numbers);
     }
+
+    /**
+     * 获取模板id
+     * @param string|array $tplConfig
+     * @return mixed
+     */
+    protected function getTplId($tplConfig)
+    {
+        if (is_array($tplConfig)) {
+            // key不存在则使用默认模板id
+            return $tplConfig[$this->templateKey] ?? $tplConfig['default'];
+        } else {
+            return $tplConfig;
+        }
+    }
 }

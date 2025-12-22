@@ -37,12 +37,7 @@ class Tencent extends Base
 
     protected function getTemplateId()
     {
-        if (is_array($this->templateId)) {
-            // key不存在则使用默认模板id
-            return $this->templateId[$this->templateKey] ?? $this->templateId['default'];
-        } else {
-            return $this->templateId;
-        }
+        return $this->getTplId($this->templateId);
     }
 
     /**
