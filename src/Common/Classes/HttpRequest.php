@@ -52,24 +52,34 @@ class HttpRequest
             if ( ! method_exists($this, $sendType)) {
                 throw new Error("未知的请求类型：$sendType");
             }
+
+            $End = http_tracker('http-request', [
+                'method' => $method,
+                'url' => $url,
+                'data' => $data,
+                'header' => $header,
+            ]);
             $response = $this->$sendType($url, $data, $method, $header, $option);
+
+            if ($response instanceof Response) {
+                $org = $response->getBody();
+                $code = $response->getStatusCode();
+            } else {
+                $org = $response['response'];
+                $code = $response['code'];
+            }
+
+            $End($org, $code);
         } catch (Exception $e) {
             $err = "{$cfg['keyword']}  请求失败！信息为：{$e->getMessage()} 传参为：" . json_encode(func_get_args());
             trace($err, $cfg['trace']['level'], $cfg['trace']['category']);
+            is_callable($End) && $End($err, $e->getCode());
             if ( ! empty($cfg['throw'])) throw $e;
         }
 
         // 直接返回响应对象(只针对协程有效)
         if ( ! $cfg['resultType']) {
             return $response;
-        }
-
-        if ($response instanceof Response) {
-            $org = $response->getBody();
-            $code = $response->getStatusCode();
-        } else {
-            $org = $response['response'];
-            $code = $response['code'];
         }
 
         switch ($cfg['resultType']) {
