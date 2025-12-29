@@ -83,7 +83,8 @@ class Alibaba extends Base
                 $error = new TeaError([], $error->getMessage(), $error->getCode(), $error);
             }
             is_callable($endFn) && $endFn($error->__toString(), $error->getCode());
-            trace($msg = "阿里云邮件发送失败: " . $error->__toString(), 'error');
+            $msg = "阿里云邮件发送失败: " . $error->__toString() . ", 收件地址：{$this->toAddress}";
+            trace($msg, 'error');
             if (!in_array($error->getCode(), [
                 'InvalidReceiverName.Malformed',
                 'InvalidMailAddress.NotFound',

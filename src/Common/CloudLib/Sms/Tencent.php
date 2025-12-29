@@ -90,7 +90,7 @@ class Tencent extends Base
             }
             return true;
         } catch (TencentCloudSDKException $e) {
-            $msg = '腾讯云短信发送失败2: ' . $e->__toString();
+            $msg = '腾讯云短信发送失败2: ' . $e->__toString() . ', 号码: ' . (is_array($this->phoneNumberSet) ? implode(',', $this->phoneNumberSet) : $this->phoneNumberSet);
             is_callable($endFn) && $endFn($msg, $e->getCode());
 
             trace($msg, 'error');

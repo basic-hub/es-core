@@ -87,8 +87,8 @@ class Alibaba extends Base
             }
 
             is_callable($endFn) && $endFn($error->__toString(), $error->getCode());
-
-            trace($msg = '阿里云短信发送失败: ' . $error->__toString(), 'error');
+            $msg = '阿里云短信发送失败: ' . $error->__toString() . ", 号码: {$this->phoneNumbers}";
+            trace($msg, 'error');
 
             if (!in_array($error->getCode(), [
                 'isv.MOBILE_NUMBER_ILLEGAL',

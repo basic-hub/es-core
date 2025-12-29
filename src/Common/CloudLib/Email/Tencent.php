@@ -77,12 +77,14 @@ class Tencent extends Base
 
         settype($to, 'array');
 
+        $destination = $to ?: $this->destination;
+
         try {
             $Request = new SendEmailRequest();
             $Request->fromJsonString(json_encode([
                 'FromEmailAddress' => $this->fromEmailAddress,
                 // 最多支持50人
-                'Destination' => $to ?: $this->destination,
+                'Destination' => $destination,
                 'Subject' => $this->subject,
                 'Template' => [
                     // 腾讯云的此参数要求为int
@@ -114,7 +116,7 @@ class Tencent extends Base
 
             return true;
         } catch (TencentCloudSDKException $e) {
-            $msg = "腾讯云邮件发送失败2: " . $e->__toString();
+            $msg = "腾讯云邮件发送失败2: " . $e->__toString() . ', 收件地址：' . (is_array($destination) ? implode(',', $destination) : $destination);
             is_callable($endFn) && $endFn($msg, $e->getCode());
 
             trace($msg, 'error');
@@ -126,6 +128,8 @@ class Tencent extends Base
                 'InvalidParameterValue.ReceiverEmailInvalid',
                 'MissingParameter.EmailsNecessary',
                 'FailedOperation.EmailAddrInBlacklist', // 关于黑名单的描述请参考下面文档，基本原因都是因为邮箱地址不存在
+                'FailedOperation.FrequencyLimit', // 触发频率控制，短时间内对同一地址发送过多邮件。
+                'FailedOperation.IncorrectEmail', // 邮箱地址错误。
             ])) {
                 notice($msg);
             }
