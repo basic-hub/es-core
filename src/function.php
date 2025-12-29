@@ -953,7 +953,7 @@ if ( ! function_exists('http_tracker')) {
             }
 
             $childPoint = $point->appendChild($name);
-            if ($parentId){
+            if ($parentId) {
                 // 设置父级id
                 $childPoint->setParentId($parentId);
             }

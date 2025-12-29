@@ -2,27 +2,35 @@
 
 namespace BasicHub\EsCore\HttpController\Api;
 
-use BasicHub\EsCore\Common\Openssl\RsaManager;
+use BasicHub\EsCore\HttpController\BaseControllerTrait;
 
+/**
+ * @mixin BaseControllerTrait
+ */
 trait BaseTrait
 {
-    protected $rsa = [];
-
     protected function onRequest(?string $action): ?bool
     {
-        return parent::onRequest($action)
-            && ($this->input['encry'] == 'md5' ? $this->_checkMd5Sign() : $this->_checkRsaSign());
+        $return = parent::onRequest($action);
+        if (!$return) {
+            return $return;
+        }
+
+        if ($this->input['encry'] == 'md5') {
+            return $this->_checkMd5Sign();
+        } else {
+            return $this->_checkRsaSign();
+        }
     }
 
     protected function _checkRsaSign()
     {
-        $secret = $this->input[config('RSA.key')];
-        if ( ! $secret) {
-            return false;
-        }
-        $data = RsaManager::getInstance()->privateDecrypt($secret);
-        $this->rsa = json_decode($data, true);
-        return is_array($this->rsa);
+        // 启用RSA加密
+        $this->rsacfg = ['open' => true] + config('RSA');
+        $this->decodeRsa();
+        // 请求参数二次处理
+        $this->requestParams();
+        return !empty($this->rsa);
     }
 
     protected function _checkMd5Sign()

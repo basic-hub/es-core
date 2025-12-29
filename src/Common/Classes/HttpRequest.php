@@ -74,7 +74,9 @@ class HttpRequest
             $err = "{$cfg['keyword']}  请求失败！信息为：{$e->getMessage()} 传参为：" . json_encode(func_get_args());
             trace($err, $cfg['trace']['level'], $cfg['trace']['category']);
             is_callable($End) && $End($err, $e->getCode());
-            if ( ! empty($cfg['throw'])) throw $e;
+            if ( ! empty($cfg['throw'])) {
+                throw $e;
+            }
         }
 
         // 直接返回响应对象(只针对协程有效)
@@ -105,7 +107,9 @@ class HttpRequest
             }
             $err = "{$cfg['keyword']} 响应失败！状态码为：$code,响应内容为：$org, 传参为：" . json_encode(func_get_args());
             trace($err, $cfg['trace']['level'], $cfg['trace']['category']);
-            if ( ! empty($cfg['throw'])) throw new Exception($org, $code);
+            if ( ! empty($cfg['throw'])) {
+                throw new Exception($org, $code);
+            }
         }
 
         return $res;
