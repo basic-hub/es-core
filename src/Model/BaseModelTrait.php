@@ -4,7 +4,6 @@ namespace BasicHub\EsCore\Model;
 
 use EasySwoole\ORM\AbstractModel;
 use EasySwoole\ORM\DbManager;
-use EasySwoole\RedisPool\RedisPool;
 
 /**
  * @mixin AbstractModel
@@ -190,16 +189,6 @@ trait BaseModelTrait
             $result[$item[$key]] = is_null($value) ? $item : $item[$value];
         }
         return $result;
-    }
-
-    /**
-     * 删除rediskey
-     * @param mixed ...$key
-     */
-    public function delRedisKey(...$key)
-    {
-        $redis = RedisPool::defer();
-        $redis->del($key);
     }
 
     // 开启事务
