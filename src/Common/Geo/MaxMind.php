@@ -72,7 +72,7 @@ class MaxMind extends Base
 
             $Reader->close();
             return [$country];
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             if ($Reader instanceof Reader) {
                 $Reader->close();
             }
@@ -90,7 +90,7 @@ class MaxMind extends Base
             $name = $Reader->asn($ip)->autonomousSystemOrganization;
             $Reader->close();
             return $name;
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             if ($Reader instanceof Reader) {
                 $Reader->close();
             }
@@ -119,7 +119,7 @@ class MaxMind extends Base
 
             $Reader->close();
             return explode('-', $str);
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             if ($Reader instanceof Reader) {
                 $Reader->close();
             }
