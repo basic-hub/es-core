@@ -27,23 +27,14 @@
     "easyswoole/words-match": "^1.1",
     "easyswoole/wechat": "^2.0",
     "easyswoole/http-client": "^1.5",
-    "alibabacloud/dm-20151123": "^1.1",
-    "tencentcloud/ses": "^3.0",
     "easyswoole/oss": "^1.1",
-    "alibabacloud/dysmsapi-20170525": "^2.0",
-    "tencentcloud/sms": "^3.0",
-    "tencentcloud/captcha": "^3.0",
-    "czdb/searcher": "^1.0",
     "ext-json": "*",
     "ext-iconv": "*",
     "ext-mbstring": "*",
     "ext-simplexml": "*",
     "ext-libxml": "*",
     "ext-curl": "*",
-    "tencentcloud/cdn": "^3.0",
-    "easyswoole/template": "^1.1",
-    "tencentcloud/sts": "^3.0",
-    "geoip2/geoip2": "~2.0"
+    "easyswoole/template": "^1.1"
   },
   "autoload": {
     "psr-4": {
