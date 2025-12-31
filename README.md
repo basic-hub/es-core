@@ -152,7 +152,7 @@ trait有哪些坑
     
     影响以下目录：
     1. Common/CloudLib
-    2. Geo
+    2. Common/Geo
 
     
     例如：项目A是用的腾讯云相关接口，那么阿里云、火山云等依赖是不需要引入的，因为真的有些依赖库是压缩后都有大几十MB的，而vendor与node_modules区别在于没有编译，5个G的node_modules编译后产物实际只有几MB，而vendor目录是会直接发布到生产环境服务器，这意味着每次CI/CD都带着一大堆用不上的代码，无法接受。
