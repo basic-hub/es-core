@@ -1,6 +1,6 @@
 <?php
 
-namespace BasicHub\EsCore\Common\Geo;
+namespace BasicHub\EsCore\Common\CloudLib\Geo;
 
 interface GeoInterface
 {
