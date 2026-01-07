@@ -183,14 +183,14 @@ if ( ! function_exists('model_media')) {
 if ( ! function_exists('config')) {
     /**
      * 获取和设置配置参数
-     * @param string|array $name 参数名
+     * @param string $name 参数名
      * @param mixed $value 参数值
      * @return mixed
      */
-    function config($name = '', $value = null)
+    function config($name, $value = null)
     {
         $Config = Config::getInstance();
-        if (is_null($value) && is_string($name)) {
+        if (is_null($value)) {
             return $Config->getConf($name);
         } else {
             return $Config->setConf($name, $value);
@@ -574,7 +574,8 @@ if ( ! function_exists('ip')) {
             }
         }
 
-        $ip = ($xForwardedFor = $Request->getHeaderLine('x-forwarded-for')) ? $xForwardedFor : $Request->getHeaderLine('x-real-ip');
+        $xForwardedFor = $Request->getHeaderLine('x-forwarded-for');
+        $ip = $xForwardedFor ?: $Request->getHeaderLine('x-real-ip');
 
         if (empty($ip)) {
             $servers = $Request->getServerParams();
@@ -918,7 +919,7 @@ if ( ! function_exists('http_tracker')) {
      */
     function http_tracker(string $pointName, array $data = [], $parentId = null)
     {
-        // 不开启
+        // 不开启,config进程级
         if (empty(config('HTTP_TRACKER.open'))) {
             return new \BasicHub\EsCore\HttpTracker\End();
         }
@@ -959,8 +960,8 @@ if ( ! function_exists('http_tracker')) {
             }
             $childPoint->setStartArg($data + ['server_name' => config('SERVNAME')]);
             return new \BasicHub\EsCore\HttpTracker\End($childPoint);
-        } catch (\Exception $e) {
-            trace("http_tracker name=$pointName Error: " . $e->getMessage(), 'error');
+        } catch (\Exception|\Throwable $e) {
+            trace("http_tracker name=$pointName; Error: " . $e->getMessage(), 'error');
             return new \BasicHub\EsCore\HttpTracker\End();
         }
     }
