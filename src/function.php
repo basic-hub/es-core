@@ -2,8 +2,8 @@
 
 use BasicHub\EsCore\Common\Classes\CtxManager;
 use BasicHub\EsCore\Common\Classes\HttpRequest;
-use BasicHub\EsCore\Common\Classes\Mysqli;
 use BasicHub\EsCore\Common\Classes\Jwt;
+use BasicHub\EsCore\Common\Classes\Mysqli;
 use BasicHub\EsCore\Common\CloudLib\Captcha\CaptchaInterface;
 use BasicHub\EsCore\Common\CloudLib\Cdn\CdnInterface;
 use BasicHub\EsCore\Common\CloudLib\Dns\DnsInterface;
@@ -745,55 +745,6 @@ if ( ! function_exists('array_to_std')) {
     }
 }
 
-if ( ! function_exists('geo')) {
-    /**
-     * 将IP解析为地区数据
-     * @param string $ip
-     * @param int|string $num
-     *                      all：返回整个ip解析地址，数组格式
-     *                      isp：返回包含网络供应商的数组
-     *                      class: 直接返回对象，复杂场景需要独立处理
-     *                      数字：返回ip解析地址中的指定索引成员
-     * @return string|array
-     */
-    function geo($ip = '', $num = 'all')
-    {
-        // 配置结构见env.php 的geo
-        $config = config('GEO') ?: [];
-        $driver = $config['driver'] ?? '';
-        if (empty($config) || empty($driver) || empty($config[$driver])) {
-            trace('geo函数 config empty', 'error');
-            return is_numeric($num) ? '' : [];
-        }
-
-        try {
-            $className = "\\BasicHub\\EsCore\\Common\\Geo\\" . ucfirst($driver);
-            if (!class_exists($className)) {
-                throw new \Exception("Class Not Found: $className");
-            }
-
-            /** @var \BasicHub\EsCore\Common\Geo\GeoInterface $class */
-            $class = new $className($config[$driver]);
-
-            switch (true) {
-                case $num === 'class':
-                    return $class;
-                case $num === 'isp':
-                    return $class->getIsp($ip);
-                case $num === 'all':
-                    return $class->getArea($ip);
-                default:
-                    return $class->getArea($ip)[$num];
-            }
-
-        } catch (\Exception $e) {
-            trace($e->__toString(), 'error');
-            return is_numeric($num) ? '' : [];
-        }
-    }
-}
-
-
 if ( ! function_exists('sysinfo')) {
     /**
      * 获取系统设置的动态配置
@@ -1456,6 +1407,42 @@ if ( ! function_exists('sms')) {
         return get_drivers(__FUNCTION__, strtoupper(__FUNCTION__), $config);
     }
 }
+
+if ( ! function_exists('geo')) {
+    /**
+     * 将IP解析为地区数据
+     * @param string $ip
+     * @param int|string $num
+     *                      all：返回整个ip解析地址，数组格式
+     *                      isp：返回包含网络供应商的数组
+     *                      class: 直接返回对象，复杂场景需要独立处理
+     *                      数字：返回ip解析地址中的指定索引成员
+     * @return string|array
+     */
+    function geo($ip = '', $num = 'all')
+    {
+        try {
+            /** @var \BasicHub\EsCore\Common\CloudLib\Geo\GeoInterface $geo */
+            $geo = get_drivers(__FUNCTION__, strtoupper(__FUNCTION__));
+
+            switch (true) {
+                case $num === 'class':
+                    return $geo;
+                case $num === 'isp':
+                    return $geo->getIsp($ip);
+                case $num === 'all':
+                    return $geo->getArea($ip);
+                default:
+                    return $geo->getArea($ip)[$num];
+            }
+
+        } catch (\Exception|\Throwable $e) {
+            trace($e->__toString(), 'error');
+            return is_numeric($num) ? '' : [];
+        }
+    }
+}
+
 
 /******************** 媒体或渠道常用函数的封装 *********************/
 
