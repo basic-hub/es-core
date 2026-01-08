@@ -949,7 +949,7 @@ if ( ! function_exists('unformat_keyval')) {
 }
 
 
-if ( ! function_exists('sign')) {
+if ( ! function_exists('self_sign')) {
     /**
      * 本站简单的签名与验签
      * @param string|array $data 要参与签名的数据
