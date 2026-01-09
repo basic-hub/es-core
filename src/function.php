@@ -1279,6 +1279,7 @@ if ( ! function_exists('request_lan_api')) {
 
         $cfg = array_merge($cfg, [
             'keyword' => $lan_key,
+            'retryTimes' => 3,
             'retryCallback' => function ($code, $res, $org) {
                 return ($res['code'] ?? 0) == 200;
             }

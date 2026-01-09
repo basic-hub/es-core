@@ -36,7 +36,7 @@ class HttpRequest
             'retryCallback' => function ($code = 200, $result = [], $org = '') {
                 return in_array($code, [200, 302, 303, 307]);
             },
-            'retryTimes' => 3,
+            'retryTimes' => 0,
             'curt' => 0,
             'keyword' => '', // 日志的特征关键字，方便查错
             'trace' => ['level' => 'error', 'category' => 'debug'],  // 日志参数
@@ -100,7 +100,7 @@ class HttpRequest
         }
 
         // 自动重试
-        if (is_callable($cfg['retryCallback']) && ! $cfg['retryCallback']($code, $res, $org)) {
+        if ($cfg['retryTimes'] > 0 && is_callable($cfg['retryCallback']) && ! $cfg['retryCallback']($code, $res, $org)) {
             if ($cfg['curt'] < $cfg['retryTimes']) {
                 Coroutine::sleep($cfg['seconds']);
                 return $this->request($type, $url, $data, $method, $header, ['curt' => ++$cfg['curt']] + $cfg, $option);
