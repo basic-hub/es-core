@@ -32,16 +32,26 @@ class HttpRequest
 
         // 默认配置
         $defaults = [
+            // 响应数据类型，空值则响应原始对象|数据
             'resultType' => 'json',
+            // 需要重试的次数，0-无需重试
+            'retryTimes' => 0,
+            // 判断是否需要重试的回调，返回true表示成功 无需重试，返回false表示失败 执行重试动作
             'retryCallback' => function ($code = 200, $result = [], $org = '') {
                 return in_array($code, [200, 302, 303, 307]);
             },
-            'retryTimes' => 0,
+            // 重试计数器，内部使用，外部请勿传递此参数
             'curt' => 0,
-            'keyword' => '', // 日志的特征关键字，方便查错
-            'trace' => ['level' => 'error', 'category' => 'debug'],  // 日志参数
-            'seconds' => 0.5, // 重试间隔时间
-            'throw' => true, // 是否抛出异常
+            // 日志关键字，用于在海量日志中快速定位
+            'keyword' => '',
+            // 错误日志的level和category
+            'trace' => ['level' => 'error', 'category' => 'debug'],
+            // 重试间隔时间
+            'seconds' => 0.5,
+            // 是否抛出异常
+            'throw' => true,
+            // 链路日志name
+            'htname' => 'http-request',
         ];
         $cfg = array_merge($defaults, $cfg);
 
@@ -53,7 +63,7 @@ class HttpRequest
                 throw new Error("未知的请求类型：$sendType");
             }
 
-            $End = http_tracker('http-request', [
+            $End = http_tracker($cfg['htname'], [
                 'method' => $method,
                 'url' => $url,
                 'data' => $data,
