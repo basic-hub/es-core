@@ -176,7 +176,7 @@ class TablePart extends SplBean
      * @param int $days 删除多少天前的分区
      * @return false|void
      */
-    public function delPart($tableName, $days)
+    public function delPartDay($tableName, $days)
     {
         // 是否需要限制最低保留天数？？并发单表日记录可能几个亿，底层暂不做限制
         // $days = $days < 5 ? 5 : $days;
@@ -185,12 +185,24 @@ class TablePart extends SplBean
 
         $parts = $this->queryRaw($sql)->getResultColumn('name');
 
-        if ($parts) {
-            $parts = implode(',', $parts);
-            $sql = "ALTER TABLE $tableName DROP PARTITION {$parts}";
-            $this->queryRaw($sql);
-            trace("$tableName 删除分区成功: $parts");
+        $this->delPart($tableName, $parts);
+    }
+
+    /**
+     * 删除指定分区
+     * @param string $tableName 数据表名
+     * @param array $partName 分区名
+     * @return void
+     */
+    public function delPart($tableName, $partName = [])
+    {
+        if (empty($partName)) {
+            return;
         }
+        $parts = implode(',', $partName);
+        $sql = "ALTER TABLE $tableName DROP PARTITION {$parts}";
+        $this->queryRaw($sql);
+        trace("$tableName 删除分区成功: $parts");
     }
 
     // 拆分分区，将一个分区拆分为多个子分区，仅支持 RANGE/LIST 分区
