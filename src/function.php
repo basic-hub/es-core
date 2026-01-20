@@ -210,7 +210,7 @@ if ( ! function_exists('trace')) {
     function trace($log = '', $level = 'info', $category = 'debug')
     {
         is_scalar($log) or $log = json_encode($log, JSON_UNESCAPED_UNICODE);
-        return Logger::getInstance()->$level($log, $category);
+        Logger::getInstance()->$level($log, $category);
     }
 }
 

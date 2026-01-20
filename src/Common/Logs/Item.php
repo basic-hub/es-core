@@ -8,6 +8,11 @@ use BasicHub\EsCore\Common\Classes\DateUtils;
 
 class Item extends SplBean
 {
+    /**
+     * 无需清除换行符的category，例如支持原样输出\EasySwoole\Utility\ArrayToTextTable等结构
+     */
+    const CATEGORY_REAL = 'real';
+
     public $level = '';
 
     public $category = '';
@@ -28,8 +33,8 @@ class Item extends SplBean
         if ( ! is_scalar($this->message)) {
             $this->message = json_encode($this->message, JSON_UNESCAPED_UNICODE);
         }
-        // 支持原样输出\EasySwoole\Utility\ArrayToTextTable等结构
-        if ($this->category !== 'real') {
+
+        if ($this->category !== self::CATEGORY_REAL) {
             $this->message = str_replace(["\n", "\r"], '', $this->message);
         }
 
