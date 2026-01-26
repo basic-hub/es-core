@@ -1422,24 +1422,32 @@ if ( ! function_exists('geo')) {
      */
     function geo($ip = '', $num = 'all')
     {
-        try {
-            /** @var \BasicHub\EsCore\Common\CloudLib\Geo\GeoInterface $geo */
-            $geo = get_drivers(__FUNCTION__, strtoupper(__FUNCTION__));
+        // 允许配置一个（string）或多个（array）
+        $drivers = config('GEO.driver') ?: [];
+        if (is_string($drivers)) {
+            $drivers = [$drivers];
+        }
 
-            switch (true) {
-                case $num === 'class':
-                    return $geo;
-                case $num === 'isp':
-                    return $geo->getIsp($ip);
-                case $num === 'all':
-                    return $geo->getArea($ip);
-                default:
-                    return $geo->getArea($ip)[$num];
+        foreach ($drivers as $driver) {
+            try {
+
+                /** @var \BasicHub\EsCore\Common\CloudLib\Geo\GeoInterface $geo */
+                $geo = get_drivers(__FUNCTION__, strtoupper(__FUNCTION__), ['driver' => $driver]);
+
+                switch (true) {
+                    case $num === 'class':
+                        return $geo;
+                    case $num === 'isp':
+                        return $geo->getIsp($ip);
+                    case $num === 'all':
+                        return $geo->getArea($ip);
+                    default:
+                        return $geo->getArea($ip)[$num];
+                }
+
+            } catch (\Exception|\Throwable $e) {
+                trace($e->__toString(), 'error');
             }
-
-        } catch (\Exception|\Throwable $e) {
-            trace($e->__toString(), 'error');
-            return is_numeric($num) ? '' : [];
         }
     }
 }
