@@ -1421,7 +1421,7 @@ if ( ! function_exists('geo')) {
      * @param string $default 如果解析失败，返回的默认值
      * @return string|array
      */
-    function geo($ip = '', $num = 'all', $detault = '')
+    function geo($ip = '', $num = 0, $detault = '')
     {
         // 允许配置一个（string）或多个（array）
         $drivers = config('GEO.driver') ?: [];
