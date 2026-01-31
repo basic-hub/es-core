@@ -2,9 +2,9 @@
 
 namespace BasicHub\EsCore;
 
+use BasicHub\EsCore\Consumer\Config as ConsumerConfig;
 use BasicHub\EsCore\Template\RenderEngine;
 use EasySwoole\Command\Color;
-use EasySwoole\Component\AtomicManager;
 use EasySwoole\EasySwoole\Command\Utility;
 use EasySwoole\EasySwoole\ServerManager;
 use EasySwoole\EasySwoole\Swoole\EventRegister;
@@ -145,43 +145,56 @@ class EventMainServerCreate extends SplBean
             return;
         }
 
+        foreach ($jobs as $Config) {
+            if ( ! $Config instanceof ConsumerConfig) {
+                throw new \Exception('consumerJobs Items not instanceof ConsumerConfig');
+            }
+
+            $childrens = $Config->getChildren();
+
+            if (empty($childrens)) {
+                $childrens = [$Config];
+            }
+            foreach ($childrens as $children) {
+                $this->addConsumer($children);
+            }
+        }
+    }
+
+    protected function addConsumer(ConsumerConfig $config)
+    {
+        $server = $config->getServerNumber();
+        if ($server && defined('SERVNUM') && ! in_array(SERVNUM, $server)) {
+            return;
+        }
+
+        $className = $config->getClassName();
+        if (empty($className) || ! class_exists($className)) {
+            return;
+        }
+
         // 进程分组
         $group = config('SERVER_NAME') . '.my';
 
-        foreach ($jobs as $value) {
-            // 要执行的服务器 []代表不限制
-            $server = $value['server'] ?? [];
-            if ($server && defined('SERVNUM') && ! in_array(SERVNUM, (array)$server)) {
-                continue;
-            }
+        $clusterShardNumber = $config->getClusterShardNumber();
+        if ($clusterShardNumber > 0) {
+            // 将每个key的分片数存储至Config，在push队列时需要用到
+            config(ConsumerConfig::CSHARD__PREFIX . $config->getQueueName(), $clusterShardNumber);
+        }
 
-            $class = $value['class'];
-            if (empty($class) || ! class_exists($class)) {
-                continue;
-            }
-            $psnum = intval($value['psnum'] ?? 1);
-            $proCfg = [];
-            if (isset($value['process_config']) && is_array($value['process_config'])) {
-                $proCfg = $value['process_config'];
-                unset($value['process_config']);
-            }
+        $proName = $config->getProName();
+        $proNum = $config->getProNum();
+        $swProConfig = $config->getSwProConfig();
 
-            // 如果Redis池配置为数组，则遍历所有Redis
-            $pool = $value['pool'] ?? 'default';
-            $pools = is_array($pool) ? $pool : [$pool];
-
-            foreach ($pools as $pool) {
-                for ($i = 0; $i < $psnum; ++$i) {
-                    $cfg = array_merge([
-                        'processName' => "$group.$pool.$value[name].$i",
-                        'processGroup' => $group,
-                        'arg' => ['pool' => $pool] + $value,
-                        'enableCoroutine' => true,
-                    ], $proCfg);
-                    $processConfig = new \EasySwoole\Component\Process\Config($cfg);
-                    \EasySwoole\Component\Process\Manager::getInstance()->addProcess(new $class($processConfig));
-                }
-            }
+        for ($i = 0; $i < $proNum; ++$i) {
+            $cfg = array_merge([
+                'processName' => "$group.$proName.$i",
+                'processGroup' => $group,
+                'arg' => $config,
+                'enableCoroutine' => true,
+            ], $swProConfig);
+            $processConfig = new \EasySwoole\Component\Process\Config($cfg);
+            \EasySwoole\Component\Process\Manager::getInstance()->addProcess(new $className($processConfig));
         }
     }
 
