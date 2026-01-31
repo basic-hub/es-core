@@ -13,22 +13,6 @@ use BasicHub\EsCore\EventMainServerCreate;
  */
 trait BaseTrait
 {
-    /**
-     * 传递的参数
-     * @var array[
-     * 'name' => 'login',                             // 进程名
-     * 'class' => \App\Consumer\Login::class,         // 运行类
-     * 'psnum' => 1,                                  // 进程数, 默认1个
-     * 'queue' => 'queue_login',                  // 监听的redis队列名
-     * 'tick' => 1000,                                // 多久运行一次，单位毫秒, 默认1000毫秒
-     * 'limit' => 200,                                // 单次出队列的阈值, 默认200
-     * 'pool' => 'default'                            // redis连接池名称
-     * 'json' => false                                // 是否需要json_decode
-     * ],
-     *
-     */
-    protected $args = [];
-
     protected function onException(\Throwable $throwable, ...$args)
     {
         // 消费的consume是运行在回调内的，在consume发生的异常基本走不到这里
@@ -43,11 +27,77 @@ trait BaseTrait
      */
     abstract protected function consume($data = [], Redis $redis = null);
 
-    public function getListenQueues()
+    /**
+     * EasySwoole自定义进程入口
+     * @return void|bool
+     */
+    public function run($arg)
+    {
+        $Config = $this->getArg();
+        if ( ! $Config instanceof Config) {
+            trace("非法进程参数:" . __METHOD__ . '; args=' . var_export($Config, true), 'error');
+            return;
+        }
+
+        if (config('PROCESS_INFO.isopen')) {
+            EventMainServerCreate::listenProcessInfo();
+        }
+
+        // 多定时器处理
+        /** @var Config $childrens */
+        $childrens = $Config->getChildren();
+
+        if (empty($childrens)) {
+            $childrens = [$Config];
+        }
+        foreach ($childrens as $children) {
+            $this->startTick($children);
+        }
+    }
+
+    protected function startTick($config)
+    {
+        if ( ! $config instanceof Config) {
+            trace("非法进程参数:" . __METHOD__ . '; config=' . var_export($config, true), 'error');
+            return;
+        }
+
+        // 分片处理
+        $queues = $this->getListenQueues($config);
+
+        // 每个定时器监听一个队列，同队列的不同子队列共用同一定时器:
+        // 示例：quque_aa 与 queue_bb 不同定时器;  quque_aa 与 quque_aa.1、quque_aa.2 同定时器
+        $this->addTick($config->getTick(), function () use ($queues, $config) {
+
+            RedisPool::invoke(function (Redis $Redis) use ($queues, $config) {
+                $limit = $config->getLimit();
+                foreach ($queues as $queue) {
+                    for ($i = 0; $i < $limit; ++$i) {
+                        // 左出右进
+                        $data = $Redis->lPop($queue);
+                        if ( ! $data) {
+                            break;
+                        }
+                        try {
+                            if ($config->getToJson()) {
+                                $data = json_decode($data, true);
+                            }
+                            $this->consume($data, $Redis);
+                        } catch (\Exception|\Throwable $throwable) {
+                            Trigger::getInstance()->throwable($throwable);
+                        }
+                    }
+                }
+            }, $config->getPoolName());
+
+        });
+    }
+
+    protected function getListenQueues(Config $config)
     {
         // 在集群模式中，将队列数据均匀分布在不同分片的槽位中
-        $shardNumber = config('QUEUE.clusterShardNumber');
-        $queue = $this->args['queue'];
+        $shardNumber = $config->getClusterShardNumber();
+        $queue = $config->getQueueName();
         $list[] = $queue;
         if ($shardNumber > 0) {
             // 分key数从1开始，例如配置3，则监听 name、name.1、name.2、name.3
@@ -59,44 +109,5 @@ trait BaseTrait
         }
 
         return $list;
-    }
-
-    /**
-     * EasySwoole自定义进程入口
-     * @return void|bool
-     */
-    public function run($arg)
-    {
-        $this->args = $this->getArg();
-
-        if (config('PROCESS_INFO.isopen')) {
-            EventMainServerCreate::listenProcessInfo();
-        }
-
-        // 分片处理
-        $queues = $this->getListenQueues();
-
-        $this->addTick($this->args['tick'] ?? 1000, function () use ($queues) {
-
-            RedisPool::invoke(function (Redis $Redis) use ($queues) {
-                foreach ($queues as $queue) {
-                    for ($i = 0; $i < $this->args['limit'] ?? 200; ++$i) {
-                        // 左出右进
-                        $data = $Redis->lPop($queue);
-                        if ( ! $data) {
-                            break;
-                        }
-                        try {
-                            if ( ! empty($this->args['json'])) {
-                                $data = json_decode($data, true);
-                            }
-                            $this->consume($data, $Redis);
-                        } catch (\Exception|\Throwable $throwable) {
-                            Trigger::getInstance()->throwable($throwable);
-                        }
-                    }
-                }
-            }, $this->args['pool'] ?? 'default');
-        });
     }
 }

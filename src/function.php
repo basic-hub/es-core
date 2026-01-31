@@ -14,6 +14,7 @@ use BasicHub\EsCore\Common\Exception\HttpParamException;
 use BasicHub\EsCore\Common\Http\Code;
 use BasicHub\EsCore\Common\Openssl\RsaManager;
 use BasicHub\EsCore\Common\OrmCache\Strings;
+use BasicHub\EsCore\Consumer\Config as ConsumerConfig;
 use BasicHub\EsCore\HttpTracker\HTManager;
 use BasicHub\EsCore\Notify\DingTalk\Message\Markdown;
 use BasicHub\EsCore\Notify\DingTalk\Message\Text;
@@ -996,7 +997,7 @@ if ( ! function_exists('redis_list_push')) {
             $data = json_encode($data);
         }
 
-        $shardNumber = config('QUEUE.clusterShardNumber');
+        $shardNumber = config(ConsumerConfig::CSHARD__PREFIX . $key) ?: 0;
 
         if ($shardNumber > 0) {
 

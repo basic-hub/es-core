@@ -463,6 +463,10 @@ trait BaseControllerTrait
                         if ($redis->exists($key)) {
                             $redis->incr($key);
                         }
+                        // 防止极端情况下，没有设置key的有效期
+                        if ($redis->ttl($key) === -1) {
+                            $redis->expire($key, $lv['interval']);
+                        }
                     }
                 }
             }
