@@ -25,7 +25,7 @@ trait BaseTrait
      * @param Redis|null $redis redis连接
      * @return mixed
      */
-    abstract protected function consume($data = [], Redis $redis = null);
+    abstract protected function consume($data = [], Redis $redis, Config $config);
 
     /**
      * EasySwoole自定义进程入口
@@ -82,7 +82,8 @@ trait BaseTrait
                             if ($config->getToJson()) {
                                 $data = json_decode($data, true);
                             }
-                            $this->consume($data, $Redis);
+                            // 多任务在同一进程时可按Config分发到不同方法处理（业务层处理）
+                            $this->consume($data, $Redis, $config);
                         } catch (\Exception|\Throwable $throwable) {
                             Trigger::getInstance()->throwable($throwable);
                         }

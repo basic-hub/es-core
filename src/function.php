@@ -986,7 +986,7 @@ if ( ! function_exists('redis_list_push')) {
     /**
      * 入redis队列，左出右进
      * @param Redis $redis
-     * @param string $key
+     * @param string $key key值请不要动态拼接（注意！特别是不允许外部参数参与到key值的拼接，否则会被恶意攻击导致key值数量不可控）
      * @param mixed $data
      * @param bool $first 是否需要优先处理。 true-插队优先处理，false-正常入队列
      * @param int $shardNumber 集群Key分片数
