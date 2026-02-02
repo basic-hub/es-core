@@ -6,7 +6,7 @@ use EasySwoole\Redis\Redis;
 
 trait HttpTrackerTrait
 {
-    protected function consume($data = [], Redis $redis = null)
+    protected function consume($data = [], Redis $redis, Config $config)
     {
         try {
 

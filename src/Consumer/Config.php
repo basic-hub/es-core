@@ -6,6 +6,9 @@ use EasySwoole\Spl\SplBean;
 
 /**
  * 自定义消费进程配置
+ * 1. 处理超高并发：可设置多个进程监听一个队列，且同队列可设置多分片，避免集群单片内存上限。
+ * 2. 处理超低并发，节省进程资源开销： 可将多队列任务通过children属性放置在同一个进程中处理，节省资源。
+ * 3. 合并Class逻辑： 可多任务共用Class，通过Config自定分发
  */
 class Config extends SplBean
 {
@@ -84,7 +87,7 @@ class Config extends SplBean
     protected $toJson = false;
 
     /**
-     * 允许自嵌套一层，表示需要在一个进程内开启多个任务监听不同队列
+     * 允许自嵌套一层，表示需要在一个进程内开启多个任务监听不同队列，只需要非进程级参数
      * @var array
      */
     protected $children = [];
