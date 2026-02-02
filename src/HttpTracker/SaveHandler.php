@@ -32,7 +32,7 @@ class SaveHandler implements SaveHandlerInterface
                     foreach ($array as $value) {
                         // data > 协程级公共参数 > 全局公共参数
                         $data = array_merge($this->config->getSaveGlobalArg(), $globalArg ?: [], $value);
-                        redis_list_push($redis, $this->config->getSaveQueueName(), $data);
+                        redis_list_push($redis, $this->config->getSaveQueueName(), $data, false, $this->config->getClusterShardNumber());
                     }
                 }, $this->config->getSaveRedisName());
             } catch (\Exception|\Throwable $e) {

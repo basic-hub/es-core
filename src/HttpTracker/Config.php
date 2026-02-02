@@ -32,6 +32,8 @@ class Config extends SplBean
 
     protected $saveQueueName = 'Report:Origin-HttpTracker';
 
+    protected $clusterShardNumber = 0;
+
     public function getSaveHandlerClassName()
     {
         return $this->saveHandlerClassName;
@@ -55,5 +57,10 @@ class Config extends SplBean
     public function getSaveQueueName()
     {
         return $this->saveQueueName;
+    }
+
+    public function getClusterShardNumber()
+    {
+        return $this->clusterShardNumber;
     }
 }
