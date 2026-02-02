@@ -997,7 +997,7 @@ if ( ! function_exists('redis_list_push')) {
             $data = json_encode($data);
         }
 
-        $shardNumber = config(ConsumerConfig::CSHARD__PREFIX . $key) ?: 0;
+        $shardNumber = config("CLUSTER_SHARD.log.$key") ?: 0;
 
         if ($shardNumber > 0) {
 

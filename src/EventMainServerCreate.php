@@ -141,60 +141,42 @@ class EventMainServerCreate extends SplBean
     protected function registerConsumer()
     {
         $jobs = $this->consumerJobs;
-        if ( ! is_array($jobs)) {
+        if (!is_array($jobs)) {
             return;
         }
 
-        foreach ($jobs as $Config) {
-            if ( ! $Config instanceof ConsumerConfig) {
+        foreach ($jobs as $config) {
+            if ( ! $config instanceof ConsumerConfig) {
                 throw new \Exception('consumerJobs Items not instanceof ConsumerConfig');
             }
 
-            $childrens = $Config->getChildren();
-
-            if (empty($childrens)) {
-                $childrens = [$Config];
+            $server = $config->getServerNumber();
+            if ($server && defined('SERVNUM') && ! in_array(SERVNUM, $server)) {
+                return;
             }
-            foreach ($childrens as $children) {
-                $this->addConsumer($children);
+
+            $className = $config->getClassName();
+            if (empty($className) || ! class_exists($className)) {
+                return;
             }
-        }
-    }
 
-    protected function addConsumer(ConsumerConfig $config)
-    {
-        $server = $config->getServerNumber();
-        if ($server && defined('SERVNUM') && ! in_array(SERVNUM, $server)) {
-            return;
-        }
+            // 进程分组
+            $group = config('SERVER_NAME') . '.my';
 
-        $className = $config->getClassName();
-        if (empty($className) || ! class_exists($className)) {
-            return;
-        }
+            $proName = $config->getProName();
+            $proNum = $config->getProNum();
+            $swProConfig = $config->getSwProConfig();
 
-        // 进程分组
-        $group = config('SERVER_NAME') . '.my';
-
-        $clusterShardNumber = $config->getClusterShardNumber();
-        if ($clusterShardNumber > 0) {
-            // 将每个key的分片数存储至Config，在push队列时需要用到
-            config(ConsumerConfig::CSHARD__PREFIX . $config->getQueueName(), $clusterShardNumber);
-        }
-
-        $proName = $config->getProName();
-        $proNum = $config->getProNum();
-        $swProConfig = $config->getSwProConfig();
-
-        for ($i = 0; $i < $proNum; ++$i) {
-            $cfg = array_merge([
-                'processName' => "$group.$proName.$i",
-                'processGroup' => $group,
-                'arg' => $config,
-                'enableCoroutine' => true,
-            ], $swProConfig);
-            $processConfig = new \EasySwoole\Component\Process\Config($cfg);
-            \EasySwoole\Component\Process\Manager::getInstance()->addProcess(new $className($processConfig));
+            for ($i = 0; $i < $proNum; ++$i) {
+                $cfg = array_merge([
+                    'processName' => "$group.$proName.$i",
+                    'processGroup' => $group,
+                    'arg' => $config,
+                    'enableCoroutine' => true,
+                ], $swProConfig);
+                $processConfig = new \EasySwoole\Component\Process\Config($cfg);
+                \EasySwoole\Component\Process\Manager::getInstance()->addProcess(new $className($processConfig));
+            }
         }
     }
 
@@ -205,9 +187,9 @@ class EventMainServerCreate extends SplBean
         // 本地开发环境可固定开启
         if ( ! is_env('dev')) {
             return;
-        }
+    }
 
-        $onChange = is_callable($this->hotReloadFunc['on_change'])
+    $onChange = is_callable($this->hotReloadFunc['on_change'])
             ? $this->hotReloadFunc['on_change']
             : function (array $list, \EasySwoole\FileWatcher\WatchRule $rule) {
                 echo PHP_EOL . PHP_EOL . Color::warning(' Worker进程重启，检测到以下文件变更: ') . PHP_EOL;

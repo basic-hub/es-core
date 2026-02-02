@@ -10,11 +10,6 @@ use EasySwoole\Spl\SplBean;
 class Config extends SplBean
 {
     /**
-     * 每个key的分片数需要存储在config中的前缀
-     */
-    const CSHARD__PREFIX = '__CSHARD__PREFIX__';
-
-    /**
      * 进程名（简短标识符）
      * @var string
      */
@@ -31,6 +26,20 @@ class Config extends SplBean
      * @var int
      */
     protected $proNum = 1;
+
+    /**
+     * 运行在哪些服务器上，服务器编号数组
+     * @var array
+     */
+    protected $serverNumber = [];
+
+    /**
+     * 覆盖运行的进程的启动参数，参数值见：\EasySwoole\Component\Process\Config
+     * @var array
+     */
+    protected $swProConfig = [];
+
+    /********************* 以上为进程级参数，在进程启动前就会使用 **********************/
 
     /**
      * 多久运行一次，单位毫秒
@@ -58,12 +67,6 @@ class Config extends SplBean
     protected $poolName = 'default';
 
     /**
-     * 运行在哪些服务器上，服务器编号数组
-     * @var array
-     */
-    protected $serverNumber = [];
-
-    /**
      * 非集群模式下不要开此参数，无意义。
      * 在集群模式中，将队列数据均匀分布在不同分片的槽位中。
      *      分key数从1开始，例如配置3，则监听 name、name.1、name.2、name.3
@@ -79,12 +82,6 @@ class Config extends SplBean
      * @var bool
      */
     protected $toJson = false;
-
-    /**
-     * 覆盖运行的进程的启动参数，参数值见：\EasySwoole\Component\Process\Config
-     * @var array
-     */
-    protected $swProConfig = [];
 
     /**
      * 允许自嵌套一层，表示需要在一个进程内开启多个任务监听不同队列
