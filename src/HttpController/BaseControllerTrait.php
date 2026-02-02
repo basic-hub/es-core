@@ -179,6 +179,7 @@ trait BaseControllerTrait
         $HTConfig = new HTConfig([
             'saveRedisName' => $htConfig['pool_name'],
             'saveQueueName' => $htConfig['queue_name'],
+            'clusterShardNumber' => $htConfig['clusterShardNumber'] ?? 0,
         ]);
         // 根节点名称
         $rootName = get_mode('all');
