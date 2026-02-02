@@ -189,6 +189,14 @@ return [
             ]
         ],
     ],
+    // 集群队列分片数，不配置表示队列不分片，key与QUEUE保持一致
+    'CLUSTER_SHARD' => [
+        'log' => [
+            'origin' => [
+                'xxx' => 0,
+            ]
+        ],
+    ],
 
     // 后台项目，与客户端交互的字段名
     'fetchSetting' => [
