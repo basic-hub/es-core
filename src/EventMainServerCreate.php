@@ -157,7 +157,7 @@ class EventMainServerCreate extends SplBean
 
             $server = $config->getServerNumber();
             if ($server && defined('SERVNUM') && ! in_array(SERVNUM, $server)) {
-                return;
+                continue;
             }
 
             // 进程分组
