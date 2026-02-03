@@ -22,10 +22,11 @@ trait BaseTrait
     /**
      * 消费单条数据，由子类继承实现
      * @param string|array $data 每一条队列数据
-     * @param Redis|null $redis redis连接
+     * @param Redis $redis redis连接
+     * @param Config $config 任务配置（注意区分进程参数与任务参数。且同进程多任务场景下，两种参数获取方式不同）
      * @return mixed
      */
-    abstract protected function consume($data = [], Redis $redis, Config $config);
+    abstract protected function consume($data, Redis $redis, Config $config);
 
     /**
      * EasySwoole自定义进程入口

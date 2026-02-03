@@ -54,7 +54,7 @@ class Config extends SplBean
      * 单次出队列的数量
      * @var int
      */
-    protected $limit = 500;
+    protected $limit = 1000;
 
     /**
      * 监听队列名称
