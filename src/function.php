@@ -913,7 +913,7 @@ if ( ! function_exists('http_tracker')) {
             $childPoint->setStartArg($data + ['server_name' => config('SERVNAME')]);
             return new \BasicHub\EsCore\HttpTracker\End($childPoint);
         } catch (\Exception|\Throwable $e) {
-            trace("http_tracker name=$pointName; Error: " . $e->getMessage(), 'error');
+            trace("http_tracker name=$pointName; Error: " . $e->__toString(), 'error');
             return new \BasicHub\EsCore\HttpTracker\End();
         }
     }

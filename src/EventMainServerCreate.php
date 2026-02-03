@@ -150,13 +150,13 @@ class EventMainServerCreate extends SplBean
                 throw new \Exception('consumerJobs Items not instanceof ConsumerConfig');
             }
 
-            $server = $config->getServerNumber();
-            if ($server && defined('SERVNUM') && ! in_array(SERVNUM, $server)) {
-                return;
-            }
-
             $className = $config->getClassName();
             if (empty($className) || ! class_exists($className)) {
+                throw new \Exception('consumerJobs Items ClassName not found');
+            }
+
+            $server = $config->getServerNumber();
+            if ($server && defined('SERVNUM') && ! in_array(SERVNUM, $server)) {
                 return;
             }
 

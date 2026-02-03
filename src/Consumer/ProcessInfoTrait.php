@@ -7,7 +7,7 @@ use EasySwoole\Redis\Redis;
 
 trait ProcessInfoTrait
 {
-    protected function consume($data = [], Redis $redis, Config $config)
+    protected function consume($data, Redis $redis, Config $config)
     {
         $data = json_decode($data, true);
         if ( ! $data) {
