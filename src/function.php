@@ -1030,11 +1030,12 @@ if (!function_exists('notice_alarm_times')) {
 
             $fn = function (Redis $redis) use ($content, $times, $warname) {
                 $Ymd = date('Ymd');
+                $time = time();
                 $md5 = md5($content);
                 $redisKey = "alarm_times_{$Ymd}_{$md5}";
 
                 // 按自然日,缓存到今天结束
-                $expire = strtotime('tomorrow') - time();
+                $expire = strtotime('tomorrow') - $time;
 
                 if ($redis->exists($redisKey)) {
 
@@ -1049,7 +1050,7 @@ if (!function_exists('notice_alarm_times')) {
                     }
                     $redis->incr($redisKey);
                 } else {
-                    $redis->setEx($redisKey, $expire, 1);
+                    $redis->setEx($redisKey, $expire, $time);
                     notice($content, null, $warname);
                 }
             };
