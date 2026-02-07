@@ -17,7 +17,7 @@ abstract class Base extends SplBean implements GeoInterface
         '孟加拉国' => '孟加拉',
         '象牙海岸' => '科特迪瓦',
         '前南马其顿' => '北马其顿',
-        '扎伊尔' => '刚果共和国',
+        '扎伊尔' => '刚果民主共和国',
     ];
 
     /**
