@@ -72,6 +72,7 @@ trait BaseTrait
 
             RedisPool::invoke(function (Redis $Redis) use ($queues, $config) {
                 $limit = $config->getLimit();
+                $toJson = $config->getToJson();
                 foreach ($queues as $queue) {
                     for ($i = 0; $i < $limit; ++$i) {
                         // 左出右进
@@ -80,7 +81,7 @@ trait BaseTrait
                             break;
                         }
                         try {
-                            if ($config->getToJson()) {
+                            if ($toJson) {
                                 $data = json_decode($data, true);
                             }
                             // 多任务在同一进程时可按Config分发到不同方法处理（业务层处理）

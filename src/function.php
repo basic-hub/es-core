@@ -1419,10 +1419,10 @@ if ( ! function_exists('geo')) {
      *                      isp：返回包含网络供应商的数组
      *                      class: 直接返回对象，复杂场景需要独立处理
      *                      数字：返回ip解析地址中的指定索引成员
-     * @param string $default 如果解析失败，返回的默认值
+     * @param array $config 额外配置项
      * @return string|array
      */
-    function geo($ip = '', $num = 0, $detault = '')
+    function geo($ip = '', $num = 0, $config = [])
     {
         // 允许配置一个（string）或多个（array）
         $drivers = config('GEO.driver') ?: [];
@@ -1434,7 +1434,7 @@ if ( ! function_exists('geo')) {
             try {
 
                 /** @var \BasicHub\EsCore\Common\CloudLib\Geo\GeoInterface $geo */
-                $geo = get_drivers(__FUNCTION__, strtoupper(__FUNCTION__), ['driver' => $driver]);
+                $geo = get_drivers(__FUNCTION__, strtoupper(__FUNCTION__), ['driver' => $driver] + $config);
 
                 switch (true) {
                     case $num === 'class':
@@ -1451,7 +1451,6 @@ if ( ! function_exists('geo')) {
                 trace($e->__toString(), 'error');
             }
         }
-        return $detault;
     }
 }
 
