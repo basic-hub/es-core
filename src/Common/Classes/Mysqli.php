@@ -185,6 +185,18 @@ class Mysqli extends MysqliClient
         return [$dbTimeZone, $PhpTimeZone];
     }
 
+    /**
+     * 查看全部表名
+     * @param string $where 可选条件，例如：and table_name like '%active%'
+     * @return array
+     */
+    public function showTables($where = '')
+    {
+        $Builder = new QueryBuilder();
+        $Builder->raw("SELECT table_name FROM information_schema.tables WHERE table_schema = schema() {$where}");
+        return $this->query($Builder)->getResultColumn('table_name') ?: [];
+    }
+
     public function startTransaction()
     {
         $Builder = new QueryBuilder();
