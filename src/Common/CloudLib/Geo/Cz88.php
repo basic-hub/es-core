@@ -36,8 +36,6 @@ class Cz88 extends Base
      */
     protected $query_type = DbSearcher::QUERY_TYPE_BTREE;
 
-    protected $area_map = [];
-
     // 有-标识，模糊匹配
     protected function convAreaMap($name)
     {

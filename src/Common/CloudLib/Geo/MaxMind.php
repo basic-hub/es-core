@@ -32,8 +32,6 @@ class MaxMind extends Base
      */
     protected $locales = 'zh-CN';
 
-    protected $area_map = [];
-
     protected function convAreaMap($name)
     {
         $maps = array_merge([

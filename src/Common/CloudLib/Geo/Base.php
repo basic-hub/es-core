@@ -7,6 +7,20 @@ use EasySwoole\Spl\SplBean;
 abstract class Base extends SplBean implements GeoInterface
 {
     /**
+     * 多云商混用时，差异化处理
+     * @var string[]
+     */
+    protected $area_map = [
+        '多米尼加共和国' => '多米尼加',
+        '波斯尼亚和黑塞哥维那' => '波黑',
+        '俄罗斯联邦' => '俄罗斯',
+        '孟加拉国' => '孟加拉',
+        '象牙海岸' => '科特迪瓦',
+        '前南马其顿' => '北马其顿',
+        '扎伊尔' => '刚果共和国',
+    ];
+
+    /**
      * 判断IP是否为局域网/IANA保留/非公网IP
      * @param string $ip 待检测IP地址（IPv4/IPv6）
      * @return bool true=非公网IP，false=公网IP
