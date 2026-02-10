@@ -197,6 +197,22 @@ class Mysqli extends MysqliClient
         return $this->query($Builder)->getResultColumn('table_name') ?: [];
     }
 
+    /**
+     * 查看数据表空间占用情况。
+     *     data_free：碎片空间
+     *     data_length：数据空间
+     *     index_length：索引空间
+     *     shard_rate：碎片率（浮点型百分比：碎片空间 / 碎片空间 + 数据空间 + 索引空间 * 100）
+     * @param string $where
+     * @return array
+     */
+    public function getTableLength($where = '')
+    {
+        $Builder = new QueryBuilder();
+        $Builder->raw("SELECT table_name,data_free,data_length,index_length,data_free / (data_length + index_length + data_free) * 100 AS shard_rate FROM information_schema.tables WHERE table_schema = schema() {$where}");
+        return $this->query($Builder);
+    }
+
     public function startTransaction()
     {
         $Builder = new QueryBuilder();
