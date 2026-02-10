@@ -1779,3 +1779,21 @@ if (!function_exists('get_ctx_request')) {
         return CtxManager::getInstance()->getRequest();
     }
 }
+
+if (!function_exists('debug_runtime')) {
+    /**
+     * 程序运行时间定位
+     * @param string $eventName 事件名称，用来在海量日志中快速定位日志
+     * @param string $logLevel 日志级别
+     * @return Closure
+     */
+    function debug_runtime($eventName, $logLevel = 'info')
+    {
+        $startMc = round(microtime(true) * 1000);
+
+        return function ($msg) use ($startMc, $eventName, $logLevel) {
+            $currMc = round(microtime(true) * 1000) - $startMc;
+            trace("[$eventName]{$msg} 累计耗时{$currMc}ms", $logLevel);
+        };
+    }
+}
