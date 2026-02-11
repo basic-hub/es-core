@@ -162,14 +162,10 @@ trait有哪些坑
 ## TODO
 
 - [x] 创建定时任务Crontab和消费任务Consumer，src/Common/Classes/Crontab移动至src/Crontab目录
-- [ ] 自定义Log处理器改为onLog + Event方式
-- [ ] 重写Tree
 - [x] 重写ShardTable类，已重写为TablePart类
 - [x] WebSocket相关类，事件、解析、Caller、连接符管理等
 - [x] Crontab支持database、file、http等方式获取
 - [x] es-orm-cache 组件封装，替换原有的cacheinfo系列方法
-- [ ] WebSocket实现导出全部，永不超时，进度实时可见，随时取消
-- [ ] 定义模型Class映射
 - [x] 重写verify_token为面向对象风格，验证与生成token解耦
 - [x] CloudLib相关Composer依赖由业务层项目安装，移除本仓库所有相关依赖
 
@@ -181,6 +177,16 @@ trait有哪些坑
 ## 感谢
 
 [<img src="https://resources.jetbrains.com/storage/products/company/brand/logos/jetbrains.png" alt="JetBrains Logo (Main) logo." height="50" />](https://www.jetbrains.com/)
+
+## 贡献
+
+<a href="https://openomy.com/basic-hub/es-core" target="_blank" style="display: block; width: 100%;margin-bottom: 1rem;" align="center">
+  <img src="https://openomy.com/svg?repo=basic-hub/es-core&chart=bubble&latestMonth=12" target="_blank" alt="Contribution Leaderboard" style="display: block; width: 100%;" />
+</a>
+
+<a href="https://github.com/basic-hub/es-core/graphs/contributors">
+  <img alt="Contributors" src="https://contrib.rocks/image?repo=basic-hub/es-core" />
+</a>
 
 ## Star History
 
