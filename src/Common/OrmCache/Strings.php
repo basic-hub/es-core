@@ -30,7 +30,7 @@ trait Strings
      * 是否要生成防穿透标识
      * @var string
      */
-    public $penetrate = true;
+    protected $penetrate = true;
 
     /**
      * 防穿透标识
@@ -244,7 +244,7 @@ trait Strings
             $data = $redis->get($key);
 
             // 防穿透标识
-            if ($data === $this->penetrationSb) {
+            if ($this->penetrate && $data === $this->penetrationSb) {
                 return false;
             }
 
