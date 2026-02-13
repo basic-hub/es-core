@@ -108,7 +108,9 @@ return [
         // 如果是后台项目，token有效期小于此值会通过websocket自动续期
         'refresh_time' => 86400 * 2,
         // 如果是后台项目，新的token生成后通过此Task通知客户端，程序内容是websocket服务器通知指定的管理员执行更新token的动作
-        'refresh_task' => \App\Task\RefreshToken::class
+        'refresh_task' => \App\Task\RefreshToken::class,
+        // base64格式的aes密钥
+        'aes_secret' => ''
     ],
 
     // 当前服务器标识

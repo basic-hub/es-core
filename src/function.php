@@ -1797,3 +1797,35 @@ if (!function_exists('debug_runtime')) {
         };
     }
 }
+
+if (!function_exists('aes_encrypt')) {
+    /**
+     * AES加密
+     * @param string $data
+     * @param string $secret 密钥，base64_decode格式
+     * @return string
+     */
+    function aes_encrypt(string $data, $secret = '')
+    {
+        $secret = $secret ?: config('ENCRYPT.aes_secret');
+
+        $Aes = new \BasicHub\EsCore\Common\Openssl\Aes(['secret' => $secret]);
+        return $Aes->encrypt($data);
+    }
+}
+
+if (!function_exists('aes_decrypt')) {
+    /**
+     * AES解密
+     * @param string $decrypt
+     * @param string $secret 密钥，base64_decode格式
+     * @return string
+     */
+    function aes_decrypt(string $decrypt, $secret = '')
+    {
+        $secret = $secret ?: config('ENCRYPT.aes_secret');
+
+        $Aes = new \BasicHub\EsCore\Common\Openssl\Aes(['secret' => $secret]);
+        return $Aes->decrypt($decrypt);
+    }
+}
