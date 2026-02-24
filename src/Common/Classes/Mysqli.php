@@ -209,7 +209,7 @@ class Mysqli extends MysqliClient
     public function getTableLength($where = '')
     {
         $Builder = new QueryBuilder();
-        $Builder->raw("SELECT table_name,data_free,data_length,index_length,data_free / (data_length + index_length + data_free) * 100 AS shard_rate FROM information_schema.tables WHERE table_schema = schema() {$where}");
+        $Builder->raw("SELECT table_name AS table_name,data_free AS data_free,data_length AS data_length,index_length AS index_length,data_free / (data_length + index_length + data_free) * 100 AS shard_rate FROM information_schema.tables WHERE table_schema = schema() {$where}");
         return $this->query($Builder);
     }
 

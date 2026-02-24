@@ -105,10 +105,26 @@ trait Strings
     protected $lazy = true;
 
     /**
-     * todo 延迟双删
+     * 延迟双删开关
+     * 方案1：定时器实现，高并发场景下，可能短时间内创建大量定时器任务，导致内存溢出和阻塞eventLoop定时器调度风险。
+     * 代码实现：
+     * protected function delayDelete($id)
+     * {
+     *      Timer::getInstance()->after($this->delayTime, function () use ($id) {
+     *          $this->cacheDel($id, false);
+     *      });
+     * }
+     * 方案2：zSet实现延时任务，需独立监听redis队列。不考虑，组件不应该限制/强制业务层进程启动
+     * 鉴于目前并没有强制需求，暂不实现延迟双删
      * @var bool
      */
     protected $delay = false;
+
+    /**
+     * 延迟双删时间（毫秒），建议根据业务QPS调整，默认500ms
+     * @var int
+     */
+    protected $delayTime = 500;
 
     public function getCacheKey($id)
     {
