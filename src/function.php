@@ -1829,3 +1829,24 @@ if (!function_exists('aes_decrypt')) {
         return $Aes->decrypt($decrypt);
     }
 }
+
+if (!function_exists('cfgfrom_arrays')) {
+    /**
+     * 从多个数组中找key的值
+     * @param string $key a.b.c 支持无限级 和 *
+     * @param ...$arrays 可变参数，多个数组，越靠前优先级越高
+     * @return mixed
+     */
+    function cfgfrom_arrays($key = '', ...$arrays)
+    {
+        foreach ($arrays as $array) {
+            $Spl = new SplArray($array);
+            $val = $Spl->get($key);
+            // 允许0值
+            if ($val || is_numeric($val)) {
+                return $val;
+            }
+        }
+        return null;
+    }
+}
