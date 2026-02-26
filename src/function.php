@@ -1448,7 +1448,7 @@ if ( ! function_exists('geo')) {
                 }
 
             } catch (\Exception|\Throwable $e) {
-                trace($e->__toString(), 'error');
+                trace($e->__toString(), 'info', 'geo');
             }
         }
     }
