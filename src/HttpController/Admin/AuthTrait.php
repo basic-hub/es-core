@@ -440,9 +440,10 @@ trait AuthTrait
             }
         }
 
+        // 当前模型的Client，重要，如果是注入连接，可能时区已被设置
+        $connect = $this->Model->getQueryConnection();
         // fetch模式+固定内存导出
-        $connectName = $this->Model->getConnectionName();
-        $Mysql = new Mysqli($connectName);
+        $Mysql = $connect instanceof Mysqli ? $connect : (new Mysqli($connect));
         $Builder = new QueryBuilder();
 
         // 处理where,此处where仅支持array与funciton，方法内请勿直接调用$this->Model->where()
