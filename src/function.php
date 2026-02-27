@@ -1702,13 +1702,13 @@ if (!function_exists('versions_compare')) {
      */
     function versions_compare($version1, $version2)
     {
-        $v1 = explode('.', $version1);
-        $v2 = explode('.', $version2);
-
         if (substr_count($version1, '.') != substr_count($version2, '.')) {
             // 版本号规则不一致
             return false;
         }
+
+        $v1 = explode('.', $version1);
+        $v2 = explode('.', $version2);
 
         if ($v1[0] < $v2[0]) {
             return -1;
@@ -1837,7 +1837,7 @@ if (!function_exists('cfgfrom_arrays')) {
      * @param ...$arrays 可变参数，多个数组，越靠前优先级越高
      * @return mixed
      */
-    function cfgfrom_arrays($key = '', ...$arrays)
+    function cfgfrom_arrays($key, ...$arrays)
     {
         foreach ($arrays as $array) {
             $Spl = new SplArray($array);

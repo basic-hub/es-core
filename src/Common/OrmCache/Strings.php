@@ -21,12 +21,6 @@ trait Strings
     protected $expire = 7 * 86400;
 
     /**
-     * 防雪崩偏移, s
-     * @var float|int
-     */
-    protected $expireOffset = 12 * 3600;
-
-    /**
      * 是否要生成防穿透标识
      * @var string
      */
@@ -232,8 +226,11 @@ trait Strings
 
             $bloom && $this->bloom && $this->bloomDel();
 
+            // 防雪崩偏移,偏移量为有效期的1/20
+            $offset = intval($this->expire / 20);
+
             mt_srand();
-            $expire = mt_rand($this->expire - $this->expireOffset, $this->expire + $this->expireOffset);
+            $expire = mt_rand($this->expire - $offset, $this->expire + $offset);
             return $redis->setEx($key, $expire, $data);
         }, $this->redisPoolName);
     }
