@@ -603,9 +603,28 @@ if ( ! function_exists('ip')) {
 
 
 if ( ! function_exists('lang')) {
+    /**
+     * 多语言
+     * @param string $const Dictionary 定义的常量值
+     * @return mixed
+     * @throws \EasySwoole\I18N\Exception\Exception
+     */
     function lang($const = '')
     {
         return I18N::getInstance()->translate($const);
+    }
+}
+
+if ( ! function_exists('langsf')) {
+    /**
+     * 多语言模板，支持 %s 等占位符解析
+     * @param string $const Dictionary 定义的常量值
+     * @param ...$data  占位符的值
+     * @return string
+     */
+    function langsf($const = '', ...$data)
+    {
+        return sprintf(lang($const), ...$data);
     }
 }
 
