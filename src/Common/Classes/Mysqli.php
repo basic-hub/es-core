@@ -11,6 +11,7 @@ use EasySwoole\ORM\AbstractModel;
 use EasySwoole\ORM\Db\Cursor;
 use EasySwoole\ORM\Db\MysqliClient;
 use EasySwoole\ORM\Db\Result;
+use EasySwoole\Utility\Str;
 
 class Mysqli extends MysqliClient
 {
@@ -127,10 +128,11 @@ class Mysqli extends MysqliClient
     /**
      * @param QueryBuilder $Builder
      * @param string | AbstractModel $modelName AbstractModel子类，否则为数组
+     * @param array $vars 设置session级的数据库变量
      * @return \Generator
      * @throws \Throwable
      */
-    public function fetch(QueryBuilder $Builder, $modelName = '')
+    public function fetch(QueryBuilder $Builder, $modelName = '', $vars = [])
     {
         // 如果之前非fetch模式，使用新配置重新创建链接
         if ( ! $this->config->isFetchMode()) {
@@ -139,8 +141,24 @@ class Mysqli extends MysqliClient
         }
 
         $this->connect();
+
+        // 由于上方可能已经将连接close，导致session级变量失效，需重新设置
+        if ($vars) {
+            foreach ($vars as $varname => $val) {
+                $name = 'set' . Str::studly($varname);
+                if (method_exists($this, $name)) {
+                    $this->$name($val);
+                } else {
+                    $this->rawQuery("set $varname = '{$val}'");
+                }
+            }
+        }
+
         /** @var Cursor $Cursor */
         $Cursor = $this->query($Builder, false)->getResult();
+
+        // fetch模式无日志，手动写入日志
+        trace('[fetch]' . $Builder->getLastQuery(), 'info', 'sql');
 
         $Cursor->setReturnAsArray(true);
 
