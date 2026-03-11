@@ -465,16 +465,12 @@ if ( ! function_exists('get_jwt_token')) {
     /**
      * 生成jwt token
      * @param array $data
-     * @param string|null $expire 有效期（秒）
+     * @param array $cfg
      * @return string
      */
-    function get_jwt_token(array $data, $expire = null)
+    function get_jwt_token(array $data, array $cfg = [])
     {
-        $config = config('ENCRYPT');
-
-        if (is_null($expire)) {
-            $expire = $config['expire'];
-        }
+        $config = array_merge(config('ENCRYPT') ?: [], $cfg);
 
         $time = time();
         $Jwt = new Jwt();
@@ -485,7 +481,7 @@ if ( ! function_exists('get_jwt_token')) {
         }
 
         return $Jwt->setSecretKey($config['key'])
-            ->setExp($time + $expire)
+            ->setExp($time + $config['expire'])
             ->setIat($time)
             ->setData($data)
             ->getToken();
@@ -504,7 +500,7 @@ if (!function_exists('get_admin_jwt_token')) {
         return get_jwt_token([
             'id' => $Admin->getAttr('id'),
             'logflag' => $Admin->getAttr('extension')['logflag'] ?? 0,
-        ], $expire);
+        ], ['expire' => $expire]);
     }
 }
 
@@ -512,21 +508,20 @@ if (!function_exists('verify_jwt_token')) {
     /**
      * 校验jwt
      * @param string $token jwt token
-     * @param array $jwtcfg jwt配置
+     * @param array $cfg jwt配置
      * @return Jwt
      * @throws HttpParamException
      * @throws \BasicHub\EsCore\Common\Exception\JwtException
      */
-    function verify_jwt_token($token, $jwtcfg = []) {
-        if (empty($jwtcfg)) {
-            $jwtcfg = config('ENCRYPT');
-        }
+    function verify_jwt_token($token, array $cfg = []) {
+        $config = array_merge(config('ENCRYPT') ?: [], $cfg);
+
         if (empty($token)) {
             throw new HttpParamException('Jwt token is Empty.', Code::CODE_BAD_REQUEST);
         }
 
         $Jwt = new Jwt();
-        return $Jwt->setSecretKey($jwtcfg['key'])->verifyToken($token);
+        return $Jwt->setSecretKey($config['key'])->verifyToken($token);
         // todo 校验签发主体
     }
 }
