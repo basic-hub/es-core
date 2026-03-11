@@ -157,10 +157,9 @@ trait BaseControllerTrait
      */
     protected function checkJwtToken($chkKey = '')
     {
-        $jwtCfg = config('ENCRYPT');
-        $token = $this->request()->getHeader($jwtCfg['jwtkey'])[0] ?? '';
+        $token = $this->request()->getHeader(config('ENCRYPT.jwtkey'))[0] ?? '';
 
-        $Jwt = verify_jwt_token($token, $jwtCfg);
+        $Jwt = verify_jwt_token($token);
 
         return verify_jwt_params($Jwt, $chkKey, $this->input);
     }
