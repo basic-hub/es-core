@@ -492,15 +492,15 @@ if (!function_exists('get_admin_jwt_token')) {
     /**
      * 获取后台登录token,如果规则不一致，请在项目内重写，或直接使用 get_jwt_token
      * @param AbstractModel $admin
-     * @param int $expire
+     * @param array $cfg
      * @return string
      */
-    function get_admin_jwt_token(AbstractModel $Admin, $expire = null)
+    function get_admin_jwt_token(AbstractModel $Admin, array $cfg = [])
     {
         return get_jwt_token([
             'id' => $Admin->getAttr('id'),
             'logflag' => $Admin->getAttr('extension')['logflag'] ?? 0,
-        ], ['expire' => $expire]);
+        ], $cfg);
     }
 }
 
