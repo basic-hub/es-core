@@ -14,7 +14,7 @@ class Card extends Base
                         'tag' => 'div',
                         'text' => [
                             'tag' => 'lark_md',
-                            'content' => $this->inner ? $this->getServerText($this->content) : $this->content,
+                            'content' => $this->inner ? ($this->content . $this->getServerText()) : $this->content,
                         ],
                     ],
                     [
@@ -24,7 +24,7 @@ class Card extends Base
                                 'tag' => 'button',
                                 'text' => [
                                     'tag' => 'lark_md',
-                                    'content' => $this->inner ? $this->getServerText($this->content) : $this->content,
+                                    'content' => $this->inner ? ($this->content . $this->getServerText()) : $this->content,
                                 ],
                                 'url' => 'https://www.baidu.com',
                                 'type' => 'default',

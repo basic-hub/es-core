@@ -18,17 +18,17 @@ class Textarea extends Base
             }
             $content[] = [
                 'tag' => 'text',
-                'text' => $this->getServerText(''),
+                'text' => $this->getServerText(),
             ];
         }else{
             $content = [
                 [
                     'tag' => 'text',
-                    'text' => $this->inner ? $this->getServerText($this->content) : $this->content,
+                    'text' => $this->inner ? ($this->content . $this->getServerText()) : $this->content,
                 ],
             ];
         }
-        
+
         $data = [
             'msg_type' => 'post',
             'content' => [
@@ -42,7 +42,7 @@ class Textarea extends Base
                 ],
             ],
         ];
-        $at = $this->getAtArray();
+        $at = $this->getAtTpl();
         $data['content']['post']['zh_cn']['content'][0]  = array_merge($data['content']['post']['zh_cn']['content'][0], $at);
         return $data;
     }

@@ -9,7 +9,7 @@ class Text extends Base
         return [
             'msg_type' => 'text',
             'content' => [
-                'text' => $this->inner ? $this->getAtText($this->getServerText($this->content)) : $this->content,
+                'text' => $this->inner ? ($this->content . $this->getServerText() . $this->getAtText()) : $this->content,
             ],
         ];
     }
