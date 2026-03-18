@@ -46,6 +46,20 @@ class DateUtils
     }
 
     /**
+     * 将指定时区的格式化时间转换为 UTC 时间戳
+     *
+     * @param string $datetime  格式化时间，如 2026-03-18 16:06:52
+     * @param string $timezone  时区标识，如 Asia/Shanghai、America/Bogota
+     * @return int              UTC 时间戳
+     */
+    public static function datetimeToTimestamp(string $datetime, string $timezone): int
+    {
+        $tz = new \DateTimeZone($timezone);
+        $dt = new \DateTime($datetime, $tz);
+        return $dt->getTimestamp();
+    }
+
+    /**
      * 将ymd 转换为客户端展示的Y-m-d格式，如果在客户端转换，会误杀合计行
      */
     public static function ymdToClientFormat(string $ymd): string
