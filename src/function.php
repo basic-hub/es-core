@@ -265,7 +265,7 @@ if ( ! function_exists('array_merge_multi')) {
                 } elseif (isset($result[$key]) && is_array($result[$key]) && is_array($value)) {
                     // 关联键且两者都是数组：递归合并
                     $result[$key] = array_merge_multi($result[$key], $value);
-                }  else {
+                } else {
                     // 关联键：后者覆盖前者
                     $result[$key] = $value;
                 }
