@@ -1034,6 +1034,58 @@ if ( ! function_exists('redis_list_push')) {
     }
 }
 
+if (!function_exists('redis_list_push_mul')) {
+    /**
+     * redis_list_push的批量写入版本，减少io次数，data元素数量最好可控
+     * @param Redis $redis
+     * @param string $key
+     * @param bool $first
+     * @param int $shardNumber
+     * @param ...$data
+     * @return void
+     */
+    function redis_list_push_mul(Redis $redis, string $key, bool $first = false, int $shardNumber = 0, ...$data) {
+        $items = array_filter(is_array($data) ? $data : [$data]);
+        if (empty($items)) {
+            return;
+        }
+
+        $groups = [];
+        foreach ($items as $item) {
+
+            if ( ! is_scalar($item)) {
+                $item = json_encode($item);
+            }
+
+            if (is_numeric($shardNumber) && $shardNumber > 0) {
+                // 对data哈希得到分片ID，均匀分布
+                $shardId = crc32($item) % $shardNumber;
+                // 分片id从1开始
+                $shardId++;
+                $shardKey = "{$key}.{$shardId}";
+            } else {
+                $shardKey = $key;
+            }
+            $groups[$shardKey][] = $item;
+        }
+
+        $success = 0;
+        // 每个分片key分批推送
+        foreach ($groups as $shardKey => $vals) {
+
+            // 根据总字节数计算每批次发送多少，每次发送不超过50KB
+            $chunkSize = ceil(strlen(implode('', $vals)) / (50 * 1024));
+            $chunkSize <= 0 && $chunkSize = 1;
+
+            foreach (array_chunk($vals, $chunkSize) as $chunk) {
+                $status = $first ? $redis->lPush($shardKey, ...$chunk) : $redis->rPush($shardKey, ...$chunk);
+                $status && $success += count($chunk);
+            }
+        }
+        return $success;
+    }
+}
+
 if (!function_exists('notice_alarm_times')) {
     /**
      * 基于redis计数器报警，相同的内容超过x次就不报了
