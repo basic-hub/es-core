@@ -32,12 +32,13 @@ abstract class Base extends SplBean implements GeoInterface
             // === IPv4 非公网段 ===
             '0.0.0.0/8',          // 本网络地址
             '10.0.0.0/8',         // RFC1918私有IP
+            '100.64.0.0/10',      // RFC6598 CGNAT共享地址空间（运营商级NAT，GeoLite2不覆盖）
             '127.0.0.0/8',        // 回环地址
             '169.254.0.0/16',     // 链路本地地址（APIPA）
             '172.16.0.0/12',      // RFC1918私有IP
             '192.0.0.0/24',       // IETF协议分配保留
             '192.0.2.0/24',       // TEST-NET-1（文档示例IP）
-            '192.88.99.0/24',     // 6to4中继地址
+            '192.88.99.0/24',     // 6to4中继地址（RFC7526已废弃，地址段仍保留不路由）
             '192.168.0.0/16',     // RFC1918私有IP
             '198.18.0.0/15',      // 网络基准测试地址
             '198.51.100.0/24',    // TEST-NET-2（文档示例IP）
@@ -51,7 +52,8 @@ abstract class Base extends SplBean implements GeoInterface
             '::ffff:0:0/96',      // IPv4映射地址
             '100::/64',           // 丢弃前缀地址
             '2001::/32',          // TEREDO隧道地址
-            '2001:10::/28',       // ORCHIDv2地址
+            '2001:10::/28',       // ORCHIDv1地址（RFC4843，已废弃）
+            '2001:20::/28',       // ORCHIDv2地址（RFC7343）
             '2001:db8::/32',      // 文档示例IP
             '2002::/16',          // 6to4隧道地址
             'fc00::/7',           // ULA私有地址
@@ -76,6 +78,11 @@ abstract class Base extends SplBean implements GeoInterface
             $networkBinary = inet_pton($network);
             if ($networkBinary === false) {
                 continue; // 无效网段跳过
+            }
+
+            // 地址族不匹配（IPv4 vs IPv6）直接跳过，避免跨族字节误匹配
+            if (strlen($ipBinary) !== strlen($networkBinary)) {
+                continue;
             }
 
             $maskInt = (int)$mask;

@@ -80,6 +80,10 @@ class MaxMind extends Base
 
     public function getIsp($ip)
     {
+        if ($this->isNonPublicIp($ip)) {
+            return null;
+        }
+
         try {
             $Reader = new Reader($this->db_file_asn, [$this->locales]);
 
