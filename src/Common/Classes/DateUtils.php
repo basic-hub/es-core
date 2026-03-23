@@ -24,9 +24,9 @@ class DateUtils
 
     /**
      * 当前系统时区与指定时区之间的差值,单位秒
-     * @param string $tzs Asia/Shanghai
+     * @param string $inia Asia/Shanghai
      */
-    public static function timeZoneOffsetSec(string $tzs)
+    public static function timeZoneOffsetSec(string $inia)
     {
         $date = date(self::FULL);
         // 当前系统运行的时区
@@ -34,15 +34,15 @@ class DateUtils
         $currTimeZone = new \DateTimeZone($currentRunTimeZone);
         $currentOffset = $currTimeZone->getOffset(new \DateTime($date));
 
-        $toTimeZone = new \DateTimeZone($tzs);
+        $toTimeZone = new \DateTimeZone($inia);
         $toOffset = $toTimeZone->getOffset(new \DateTime($date));
 
         return $currentOffset - $toOffset;
     }
 
-    public static function getTimeZoneStamp(int $time, $tzs): int
+    public static function getTimeZoneStamp(int $time, $inia): int
     {
-        return $time - self::timeZoneOffsetSec($tzs);
+        return $time - self::timeZoneOffsetSec($inia);
     }
 
     /**
@@ -57,6 +57,28 @@ class DateUtils
         $tz = new \DateTimeZone($timezone);
         $dt = new \DateTime($datetime, $tz);
         return $dt->getTimestamp();
+    }
+
+    /**
+     * 将两个时间戳转固定时区格式化，然后比较天数（按自然日）
+     * @param int $time1
+     * @param int $time2
+     * @param string $inia Asia/Shanghai
+     * @return false|int
+     * @throws \Exception
+     */
+    public static function formatDiffTimestamp(int $time1, int $time2, $inia = 'PRC') {
+        $date1 = date(self::FULL, self::getTimeZoneStamp($time1, $inia));
+        $date2 = date(self::FULL, self::getTimeZoneStamp($time2, $inia));
+        $dt1 = new \DateTime($date1);
+        $dt2 = new \DateTime($date2);
+
+        // 只比较日期
+        $dt1->setTime(0, 0);
+        $dt2->setTime(0, 0);
+
+        $diff = $dt1->diff($dt2);
+        return $diff->days;
     }
 
     /**

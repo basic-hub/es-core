@@ -417,60 +417,8 @@ trait BaseControllerTrait
      */
     protected function requestLimit(Redis $redis, string $cfgKey, $input = [], $isWhite = false)
     {
-        // 配置参考
-        /*'REQUEST_LIMIT' => [
-            'user_reg' => [
-                'ip' => [
-                    'interval' => 86400,
-                    'times' => 5,
-                    'limit_msg' => '此ip注册数已达上限',
-                    'limit_code' => 422
-                ],
-                'devid' => [
-                    'interval' => 86400,
-                    'times' => 3,
-                    'limit_msg' => '此设备注册数已达上限',
-                    'limit_code' => 423
-                ],
-            ],
-        ];*/
-        $input = $input ?: $this->input;
-        $config = config("REQUEST_LIMIT.$cfgKey");
-        if ($config) {
-            foreach ($config as $lk => $lv) {
-                if (!isset($input[$lk])) {
-                    continue;
-                }
-                $lkey = "request_limit_{$cfgKey}_{$lk}_$input[$lk]";
-                if ($redis->exists($lkey)) {
-                    // 请求开始时还未自增
-                    if (!$isWhite && $redis->get($lkey) >= $lv['times']) {
-                        throw new HttpParamException($lv['limit_msg'], $lv['limit_code']);
-                    }
-                } else {
-                    $redis->setEx($lkey, $lv['interval'], 0);
-                }
-            }
-        }
-
-        // 计数自增
-        return function () use ($config, $input, $redis, $cfgKey) {
-            if ($config) {
-                foreach ($config as $lk => $lv) {
-                    if (isset($input[$lk])) {
-                        $key = "request_limit_{$cfgKey}_{$lk}_$input[$lk]";
-                        // 防止时间设置过短，key已过期则不理，下次重新开始计数
-                        if ($redis->exists($key)) {
-                            $redis->incr($key);
-                        }
-                        // 防止极端情况下，没有设置key的有效期
-                        if ($redis->ttl($key) === -1) {
-                            $redis->expire($key, $lv['interval']);
-                        }
-                    }
-                }
-            }
-        };
+        // 2026/03/26 改为函数封装，因为不一定在控制器内
+        return request_limit($redis, $cfgKey, $input, $isWhite);
     }
 
     /**
@@ -483,48 +431,7 @@ trait BaseControllerTrait
      */
     protected function requestLock(Redis $redis, string $cfgKey, array $input = [])
     {
-        // 配置参考
-        /*'REQUEST_LOCK' => [
-            'create_order' => [
-                'uid' => [
-                    'required' => true,
-                    'interval' => 3,
-                    'limit_msg' => '操作过于频繁，请稍后再试',
-                    'limit_code' => 422,
-                ],
-            ],
-        ],*/
-        $input = $input ?: $this->input;
-        $config = config("REQUEST_LOCK.$cfgKey");
-        if (empty($config)) {
-            return;
-        }
-
-        $time = time();
-        foreach ($config as $lk => $lv) {
-            if (!isset($input[$lk]) || $input[$lk] === '') {
-                if ($lv['required']) {
-                    // 必传
-                    throw new HttpParamException(lang(Dictionary::PARAMS_ERROR), $lv['limit_code']);
-                } else {
-                    // 可选
-                    continue;
-                }
-            }
-            $lkey = "request_lock_{$cfgKey}_{$lk}_$input[$lk]";
-
-            // PS：有玩家key一直没被删除，增加时间校验机制，超时则删key重新抢锁
-            $last = $redis->get($lkey);
-            if ($last && is_numeric($last) && $time - $last > $lv['interval']) {
-                $redis->del($lkey);
-            }
-
-            $isLock = $redis->setNx($lkey, $time);
-            if (!$isLock) {
-                throw new HttpParamException($lv['limit_msg'], $lv['limit_code']);
-            }
-            // 设置有效期
-            $redis->expire($lkey, $lv['interval']);
-        }
+        // 2026/03/26 改为函数封装，因为不一定在控制器内
+        return request_lock($redis, $cfgKey, $input);
     }
 }
