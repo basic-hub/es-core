@@ -92,12 +92,12 @@ trait HttpTrackerTrait
             $body,
             strtolower($request['method']),
             $headers,
-            ['resultType' => null],
             [
-                'client_set' => [
+                'resultType' => null,
+                'clientSet' => [
                     'followLocation' => 0 // 禁止重定向
                 ]
-            ]
+            ],
         );
     }
 }
