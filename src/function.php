@@ -1,7 +1,6 @@
 <?php
 
 use BasicHub\EsCore\Common\Classes\CtxManager;
-use BasicHub\EsCore\Common\Classes\HttpRequest;
 use BasicHub\EsCore\Common\Classes\Jwt;
 use BasicHub\EsCore\Common\Classes\Mysqli;
 use BasicHub\EsCore\Common\CloudLib\Captcha\CaptchaInterface;
@@ -1657,37 +1656,45 @@ if ( ! function_exists('get_channel_class')) {
 
 if ( ! function_exists('hcurl')) {
     /**
-     * 基于HttpClient封装的公共函数
-     * @param string|array $url string时为要请求的完整网址和路径；数组时为便捷传参方式
-     * @param array|string $data 请求参数，xml提交为string
-     * @param string $method 提交方式：get|post|xml|json|put|delete|head|options|trace|patch
-     * @param array $header 请求头
-     * @param array $cfg 配置  resultType,retryCallback,retryTimes
-     * @param array $option HttpClient的其它属性
-     * @throws Exception|Error
+     * 助手函数，基于HttpClient封装的公共函数（协程非阻塞客户端）
+     * @param string $url
+     * @param mixed $data
+     * @param string $method get|post|put|delete|patch|head|options|xml|json|download
+     * @param array $header
+     * @param array $property 其他自定义属性
+     * @return array|mixed|string|null
+     * @throws Exception
      */
-    function hcurl($url = '', $data = [], $method = 'post', $header = [], $cfg = [], $option = [])
+    function hcurl($url = '', $data = [], $method = 'post', $header = [], array $property = [])
     {
-        $HttpRequest = new HttpRequest();
-        return $HttpRequest->request('hCurl', $url, $data, $method, $header, $cfg, $option);
+        $HCurl = new \BasicHub\EsCore\Common\Http\HCurl([
+            'url' => $url,
+            'method' => $method,
+            'headers' => $header,
+        ] + $property);
+        return $HCurl->request($data);
     }
 }
 
 if ( ! function_exists('curl')) {
     /**
-     * 基于curl封装的公共函数
-     * @param string|array $url string时为要请求的完整网址和路径；数组时为便捷传参方式
-     * @param array|string $data 请求参数，xml提交为string
-     * @param string $method 提交方式：get|post|xml|json|put|delete|head|options|trace|patch
-     * @param array $header 请求头
-     * @param array $cfg 配置  resultType,retryCallback,retryTimes
-     * @param array $option curl的其它属性
-     * @throws Exception|Error
+     * 助手函数，基于curl封装的公共函数（阻塞）
+     * @param string $url
+     * @param mixed $data
+     * @param string $method get|post|put|delete|patch|head|options|xml|json|download
+     * @param array $header
+     * @param array $property
+     * @return array|mixed|string|null
+     * @throws Exception
      */
-    function curl($url = '', $data = [], $method = 'post', $header = [], $cfg = [], $option = [])
+    function curl($url = '', $data = [], $method = 'post', $header = [], array $property = [])
     {
-        $HttpRequest = new HttpRequest();
-        return $HttpRequest->request('curl', $url, $data, $method, $header, $cfg, $option);
+        $Curl = new \BasicHub\EsCore\Common\Http\Curl([
+                'url' => $url,
+                'method' => $method,
+                'headers' => $header,
+            ] + $property);
+        return $Curl->request($data);
     }
 }
 
@@ -2048,5 +2055,24 @@ if (!function_exists('request_lock')) {
             $redis->expire($lkey, $lv['interval']);
         }
     }
+}
 
+if (!function_exists('build_consumer_config')) {
+    /**
+     * 将消费者配置数组批量转换为 Config 对象
+     * @param array $consumers 消费者配置数组
+     * @param array $defaults  其他默认配置
+     * @return ConsumerConfig[]
+     */
+    function build_consumer_config(array $consumers, array $defaults = []): array
+    {
+        return array_map(function (array $item) use ($defaults) {
+            if (!empty($item['children']) && is_array($item['children'])) {
+                $item['children'] = array_map(function (array $child) use ($defaults) {
+                    return $child instanceof ConsumerConfig ? $child : new ConsumerConfig($child + $defaults);
+                }, $item['children']);
+            }
+            return $item instanceof ConsumerConfig ? $item : new ConsumerConfig($item + $defaults);
+        }, $consumers);
+    }
 }
