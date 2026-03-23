@@ -1964,7 +1964,7 @@ if (!function_exists('request_limit')) {
                 $lkey = "request_limit_{$cfgKey}_{$lk}_$input[$lk]";
                 if ($redis->exists($lkey)) {
                     // 请求开始时还未自增
-                    if (!$isWhite && $redis->get($lkey) >= $lv['times']) {
+                    if (!$isWhite && $redis->get($lkey) > $lv['times']) {
                         throw new HttpParamException($lv['limit_msg'], $lv['limit_code']);
                     }
                 } else {
