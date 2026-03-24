@@ -418,7 +418,7 @@ trait BaseControllerTrait
     protected function requestLimit(Redis $redis, string $cfgKey, $input = [], $isWhite = false)
     {
         // 2026/03/26 改为函数封装，因为不一定在控制器内
-        return request_limit($redis, $cfgKey, $input, $isWhite);
+        return request_limit($redis, $cfgKey, $input ?: $this->input, $isWhite);
     }
 
     /**
@@ -432,6 +432,6 @@ trait BaseControllerTrait
     protected function requestLock(Redis $redis, string $cfgKey, array $input = [])
     {
         // 2026/03/26 改为函数封装，因为不一定在控制器内
-        return request_lock($redis, $cfgKey, $input);
+        return request_lock($redis, $cfgKey, $input ?: $this->input);
     }
 }

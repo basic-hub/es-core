@@ -76,6 +76,7 @@ class CreateSubTable implements TaskInterface
         $name = parse_name(end($arr));
         $fullName = "{$name}_{$id}";
 
+        $connectionName = '';
         try {
             /** @var AbstractModel $model */
             $model = new $className([], $fullName, $id);

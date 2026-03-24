@@ -56,6 +56,11 @@ trait BaseModelTrait
         return parse_name($name);
     }
 
+    /**
+     * schemaInfo() 本身有静态缓存，首次调用查一次 DB，后续都走内存。getPkFiledName() 是在已缓存的 Table 对象上遍历内存，没有额外 DB 开销，性能可以接受。
+     * @return array|mixed|null
+     * @throws \EasySwoole\ORM\Exception\Exception
+     */
     public function getPk()
     {
         return $this->schemaInfo()->getPkFiledName();
