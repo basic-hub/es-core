@@ -160,11 +160,14 @@ trait Strings
     }
 
     /**
-     * 从 $data 中提取主键值，单主键返回标量，联合主键返回数组
+     * 从 $data 中提取主键值，单主键返回标量，联合主键返回数组，无主键或字段缺失返回 null
      */
     protected function _getPkValue(array $data)
     {
         $pk = $this->getPk();
+        if ($pk === null) {
+            return null;
+        }
         if (is_array($pk)) {
             $pkValue = [];
             foreach ($pk as $field) {
@@ -185,16 +188,16 @@ trait Strings
      */
     public function cacheSet($id, $data = [])
     {
+        // $id 是条件数组（非主键数组）时，额外用主键缓存一份，原key存指针
+        // 提到 invoke 外部避免连接池嵌套
+        $pkValue = is_array($id) && is_array($data) ? $this->_getPkValue($data) : null;
+        if ($pkValue !== null && $id !== $pkValue) {
+            $this->cacheSet($pkValue, $data);
+            $data = $this->primarySb . json_encode($pkValue, JSON_UNESCAPED_UNICODE);
+        }
+
         return RedisPool::invoke(function (Redis $redis) use ($id, $data) {
             $key = $this->getCacheKey($id);
-
-            if (is_array($id) && is_array($data)) {
-                $pkValue = $this->_getPkValue($data);
-                if ($pkValue !== null) {
-                    $this->cacheSet($pkValue, $data);
-                    $data = $this->primarySb . json_encode($pkValue, JSON_UNESCAPED_UNICODE);
-                }
-            }
 
             is_array($data) && $data = json_encode($data, JSON_UNESCAPED_UNICODE);
 
@@ -209,34 +212,45 @@ trait Strings
 
     public function cacheGet($id, $mergeExt = null)
     {
-        return RedisPool::invoke(function (Redis $redis) use ($id, $mergeExt) {
-            $key = $this->getCacheKey($id);
-            $data = $redis->get($key);
-
-            // 防穿透标识
-            if ($this->penetrate && $data === $this->penetrationSb) {
-                return false;
-            }
-
-            // 存储的是主键指针，则使用主键再次获取
-            if (is_string($data) && strpos($data, $this->primarySb) === 0) {
-                $pkValue = json_decode(substr($data, strlen($this->primarySb)), true);
-                $data = $this->cacheGet($pkValue);
-            }
-
-            // 没有数据，从数据表获取
-            if (is_null($data) || $data === false) {
-                $data = $this->_getByUnique($id);
-                if ( ! $data && $this->penetrate) {
-                    $data = $this->penetrationSb;
-                }
-                $data && $this->cacheSet($id, $data);
-            }
-
-            is_string($data) && $data = json_decode_ext($data);
-            (is_null($mergeExt) ? $this->mergeExt : $mergeExt) && $data = $this->_mergeExt($data);
-            return $data === $this->penetrationSb ? false : $data;
+        // 指针解析提到 invoke 外部，避免连接池嵌套
+        $rawData = RedisPool::invoke(function (Redis $redis) use ($id) {
+            return $redis->get($this->getCacheKey($id));
         }, $this->redisPoolName);
+
+        if ($this->penetrate && $rawData === $this->penetrationSb) {
+            return false;
+        }
+
+        // 存储的是主键指针，解析出真实主键后重新走完整 cacheGet 流程
+        if (is_string($rawData) && strpos($rawData, $this->primarySb) === 0) {
+            $pkValue = json_decode(substr($rawData, strlen($this->primarySb)), true);
+            if ($pkValue !== null) {
+                return $this->cacheGet($pkValue, $mergeExt);
+            }
+            // 指针损坏，删除脏数据，后续走 DB 重建
+            $this->cacheDel($id);
+            $rawData = null;
+        }
+
+        $data = $rawData;
+
+        // 没有数据，从数据表获取
+        if (is_null($data) || $data === false) {
+            $data = $this->_getByUnique($id);
+            if ( ! $data && $this->penetrate) {
+                $data = $this->penetrationSb;
+            }
+            $data && $this->cacheSet($id, $data);
+        }
+
+        if (is_string($data)) {
+            $data = json_decode_ext($data);
+        }
+        $isMerge = is_null($mergeExt) ? $this->mergeExt : $mergeExt;
+        if ($isMerge) {
+            $data = $this->_mergeExt($data);
+        }
+        return $data === $this->penetrationSb ? false : $data;
     }
 
     public function cacheDel($id)
@@ -256,12 +270,14 @@ trait Strings
         $pkValue = $this->_getPkValue($data);
 
         // 单主键新增时可能没有id，尝试从lastInsertId补充
-        if ($pkValue === null && ! is_array($this->getPk())) {
-            $insertId = $this->lastQueryResult()->getLastInsertId();
-            if ($insertId) {
-                $pk = $this->getPk();
-                $data[$pk] = $insertId;
-                $pkValue = $insertId;
+        if ($pkValue === null) {
+            $pk = $this->getPk();
+            if ( ! is_array($pk) && $pk !== null) {
+                $insertId = $this->lastQueryResult()->getLastInsertId();
+                if ($insertId) {
+                    $data[$pk] = $insertId;
+                    $pkValue = $insertId;
+                }
             }
         }
 
