@@ -251,7 +251,7 @@ class Curl extends Base
 
         // --- 请求头 ---
         if ($headers) {
-            $headerArray = array_map(fn($k, $v) => "$k: $v", array_keys($headers), array_values($headers));
+            $headerArray = array_map(function($k, $v) { return "$k: $v"; }, array_keys($headers), array_values($headers));
             curl_setopt($ch, CURLOPT_HTTPHEADER, $headerArray);
         }
 
