@@ -4,12 +4,10 @@
 namespace BasicHub\EsCore\Crontab;
 
 use Cron\CronExpression;
-use EasySwoole\Component\AtomicManager;
 use EasySwoole\EasySwoole\Crontab\AbstractCronTask;
 use EasySwoole\EasySwoole\Task\TaskManager;
 use EasySwoole\EasySwoole\Trigger;
 use EasySwoole\Task\AbstractInterface\TaskInterface;
-use EasySwoole\Utility\File;
 use BasicHub\EsCore\Crontab\Driver\Interfaces;
 use BasicHub\EsCore\Crontab\Driver\Mysql;
 use BasicHub\EsCore\Task\Crontab as CrontabTemplate;
@@ -157,8 +155,28 @@ class Crontab extends AbstractCronTask
 
     protected function backupFile($filename, $data = [])
     {
+        /*
+         *    mkdir(): File exists 问题出在并发竞态上：
+
+              协程A: is_dir() → false（目录不存在）
+              协程B: is_dir() → false（目录不存在）
+              协程A: mkdir()  → 成功
+              协程B: mkdir()  → 失败！File exists
+
+              两个协程同时通过了 is_dir 检查，然后都去执行 mkdir，第二个就报错了。
+
+              而 createDirectory 里虽然有 try/catch，但它 catch 的是 \Throwable，mkdir(): File exists 是一个 PHP Warning，不是异常，所以 catch 捕获不到，Warning 会被上层的错误处理器（EasySwoole 的 Trigger）记录为错误。
+
+              真正的修复应该是：忽略这个 Warning，或者在 mkdir 后再做一次 is_dir 兜底判断。最简单的方案是用 @mkdir 抑制 Warning，但那是在 createDirectory 里改。
+
+              在当前代码层面，最直接的修复是：
+              @mkdir 抑制 Warning，并发时多个协程同时 mkdir 只有一个成功，其余静默失败。之后再用 is_dir 确认目录确实存在才写文件，这样无论哪个协程"赢得"了 mkdir，后续写文件都能正常执行。
+        */
         $dir = dirname($filename);
-        if (File::createDirectory($dir)) {
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0755, true);
+        }
+        if (is_dir($dir)) {
             $fp = fopen($filename, 'w+');
             fwrite($fp, json_encode($data, JSON_UNESCAPED_UNICODE));
             fclose($fp);
