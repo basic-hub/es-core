@@ -2,13 +2,44 @@
 
 namespace BasicHub\EsCore\Common\OrmCache;
 
+use BasicHub\EsCore\Model\BaseModelTrait;
 use EasySwoole\ORM\AbstractModel;
 use EasySwoole\Redis\Redis;
 use EasySwoole\RedisPool\RedisPool;
 
 /**
  * 字符串缓存，适用于单行缓存
+ *
+ * 2026-03-24 移除bloom逻辑：
+ * ┌────────────────────────────┬──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+ * │            问题            │                                                         说明                                                          │
+ * ├────────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+ * │ 不是真正的 Bloom Filter     │ Redis Set 是精确集合，Bloom Filter 是概率结构（允许误判）。叫法错误会误导维护者                                             │
+ * ├────────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+ * │ 内存随数据量线性增长         │ Set 每个元素存完整值，百万行表就是百万个 string，内存开销大，注释里也写了"大表谨慎开启"                                        │
+ * ├────────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+ * │ 数据变更时整个集合删除重建    │ cacheDel / _after_cache 里直接 bloomDel()，下次查询再全量重建，重建期间所有请求都穿透到 DB                                  │
+ * ├────────────────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+ * │ 解决的问题已有更简单的方案    │ 它的目的是防缓存穿透（查不存在的 id），但代码里已经有 penetrate 防穿透标识（空结果也缓存 PENETRATION），两套机制重叠            │
+ * └────────────────────────────┴──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+ * penetrate 已经够用：
+ * 当前代码查不到数据时会缓存 PENETRATION 字符串，下次同一个 id 查询直接返回 false，不走 DB。这已经完整解决了缓存穿透问题。
+ *
+ * bloom 集合额外解决的场景是：从未被查询过的不存在 id，在第一次查询时拦截，避免打到 DB。但这个收益要对比成本：
+ * - 集合本身需要全量加载一次 DB 数据
+ * - 数据变更就要重建
+ * - 重建期间反而有击穿风险
+ *
+ * 只有在**恶意刷不存在 id（爬虫/攻击）**的场景下，bloom 才有明显价值，因为 penetrate 对每个不同的 id 都要先打一次 DB 才能缓存空值。
+ *
+ * 建议：
+ *
+ * 1. 普通业务：直接移除 bloom，penetrate 已经足够
+ * 2. 有恶意请求风险：在网关/业务层做 id 合法性校验（如 id 必须是正整数且在合理范围内），比维护一个全量集合更轻量
+ * 3. 真的需要 bloom：使用 Redis 官方的 RedisBloom 模块（BF.ADD / BF.EXISTS），它是真正的概率结构，内存固定，不随数据量线性增长，且支持原子操作
+ *
  * @mixin AbstractModel
+ * @mixin BaseModelTrait
  */
 trait Strings
 {
@@ -31,30 +62,6 @@ trait Strings
      * @var string
      */
     private $penetrationSb = 'PENETRATION';
-
-    /**
-     * 布隆过滤，true-开启，对于大表谨慎开启！！
-     * @var bool
-     */
-    protected $bloom = false;
-
-    /**
-     * 布隆过滤，集合key
-     * @var string
-     */
-    protected $bloomKey = 'bloom-%s';
-
-    /**
-     * 布隆过滤，集合缓存字段
-     * @var string
-     */
-    protected $bloomField = 'id';
-
-    /**
-     * 布隆过滤，集合缓存条件
-     * @var array
-     */
-    protected $bloomWhere = [];
 
     /**
      * 连接池
@@ -143,20 +150,6 @@ trait Strings
         return $data ? $data->toArray() : [];
     }
 
-    protected function _getBloomData()
-    {
-        if ($this->bloomWhere) {
-            $this->where($this->bloomWhere);
-        }
-        return $this->column($this->bloomField);
-    }
-
-    protected function _getBloomKey()
-    {
-        $tableName = $this->getTableName();
-        return sprintf($this->bloomKey, $tableName);
-    }
-
     protected function _mergeExt($data)
     {
         if (isset($data['extension']) && is_array($data['extension'])) {
@@ -166,65 +159,44 @@ trait Strings
         return $data;
     }
 
-    protected function _getPk()
+    /**
+     * 从 $data 中提取主键值，单主键返回标量，联合主键返回数组
+     */
+    protected function _getPkValue(array $data)
     {
-        $pk = $this->schemaInfo()->getPkFiledName();
-        // todo 联合主键，暂主观认为第一个字段为唯一标识，后续得补充条件
-        is_array($pk) && $pk = $pk[0];
-        return $pk;
-    }
-
-    public function bloomSet()
-    {
-        RedisPool::invoke(function (Redis $redis) {
-            $rows = $this->_getBloomData();
-            $rows = ($rows && is_array($rows)) ? $rows : [];
-            $key = $this->_getBloomKey();
-            $redis->sAdd($key, ...$rows);
-        }, $this->redisPoolName);
-    }
-
-    public function bloomDel()
-    {
-        return RedisPool::invoke(function (Redis $redis) {
-            $key = $this->_getBloomKey();
-            return $redis->del($key);
-        }, $this->redisPoolName);
-    }
-
-    public function bloomIsMember($value)
-    {
-        return RedisPool::invoke(function (Redis $redis) use ($value) {
-            $key = $this->_getBloomKey();
-            if ( ! $redis->exists($key)) {
-                $this->bloomSet();
+        $pk = $this->getPk();
+        if (is_array($pk)) {
+            $pkValue = [];
+            foreach ($pk as $field) {
+                if ( ! isset($data[$field])) {
+                    return null;
+                }
+                $pkValue[$field] = $data[$field];
             }
-            return $redis->sIsMember($key, $value);
-        }, $this->redisPoolName);
+            return $pkValue;
+        }
+        return $data[$pk] ?? null;
     }
 
     /**
      * @param string|array $id 主键值 | ['key' => 'value']
      * @param array $data
-     * @param bool $bloom 删集合
      * @return mixed|null
      */
-    public function cacheSet($id, $data = [], $bloom = false)
+    public function cacheSet($id, $data = [])
     {
-        return RedisPool::invoke(function (Redis $redis) use ($id, $data, $bloom) {
+        return RedisPool::invoke(function (Redis $redis) use ($id, $data) {
             $key = $this->getCacheKey($id);
 
-            if (is_array($id)) {
-                $pk = $this->_getPk();
-                if (is_array($data) && isset($data[$pk])) {
-                    $this->cacheSet($data[$pk], $data);
-                    $data = $this->primarySb . $data[$pk];
+            if (is_array($id) && is_array($data)) {
+                $pkValue = $this->_getPkValue($data);
+                if ($pkValue !== null) {
+                    $this->cacheSet($pkValue, $data);
+                    $data = $this->primarySb . json_encode($pkValue, JSON_UNESCAPED_UNICODE);
                 }
             }
 
             is_array($data) && $data = json_encode($data, JSON_UNESCAPED_UNICODE);
-
-            $bloom && $this->bloom && $this->bloomDel();
 
             // 防雪崩偏移,偏移量为有效期的1/20
             $offset = intval($this->expire / 20);
@@ -238,21 +210,6 @@ trait Strings
     public function cacheGet($id, $mergeExt = null)
     {
         return RedisPool::invoke(function (Redis $redis) use ($id, $mergeExt) {
-
-            if ($this->bloom) {
-                $bloomKey = $id;
-                if (is_array($bloomKey)) {
-                    if (empty($bloomKey[$this->bloomField])) {
-                        return false;
-                    }
-                    $bloomKey = $bloomKey[$this->bloomField];
-                }
-                $isMember = $this->bloomIsMember($bloomKey);
-                if ( ! $isMember) {
-                    return false;
-                }
-            }
-
             $key = $this->getCacheKey($id);
             $data = $redis->get($key);
 
@@ -261,14 +218,12 @@ trait Strings
                 return false;
             }
 
-            // 存储的是主键,则使用主键再次获取
+            // 存储的是主键指针，则使用主键再次获取
             if (is_string($data) && strpos($data, $this->primarySb) === 0) {
-                // 再次获取时无需校验了
-                $bloom = $this->bloom;
-                $this->bloom = false;
-                $data = $this->cacheGet(explode(':', $data)[1]);
-                $this->bloom = $bloom;
+                $pkValue = json_decode(substr($data, strlen($this->primarySb)), true);
+                $data = $this->cacheGet($pkValue);
             }
+
             // 没有数据，从数据表获取
             if (is_null($data) || $data === false) {
                 $data = $this->_getByUnique($id);
@@ -288,11 +243,7 @@ trait Strings
     {
         return RedisPool::invoke(function (Redis $redis) use ($id) {
             $key = $this->getCacheKey($id);
-            $status = $redis->del($key);
-
-            $this->bloom && $this->bloomDel();
-
-            return $status;
+            return $redis->del($key);
         }, $this->redisPoolName);
     }
 
@@ -302,20 +253,20 @@ trait Strings
     protected function _after_cache()
     {
         $data = $this->toArray();
-        $pk = $this->_getPk();
+        $pkValue = $this->_getPkValue($data);
 
-        // 新增时没有id
-        if ( ! isset($data[$pk])) {
+        // 单主键新增时可能没有id，尝试从lastInsertId补充
+        if ($pkValue === null && ! is_array($this->getPk())) {
             $insertId = $this->lastQueryResult()->getLastInsertId();
-            $insertId && $data[$pk] = $insertId;
+            if ($insertId) {
+                $pk = $this->getPk();
+                $data[$pk] = $insertId;
+                $pkValue = $insertId;
+            }
         }
 
-        if (isset($data[$pk])) {
-            $this->lazy ? $this->cacheDel($data[$pk]) : $this->cacheSet($data[$pk], $data);
-        }
-        if ($this->bloom) {
-            $this->bloomDel();
-            ! $this->lazy && $this->bloomSet();
+        if ($pkValue !== null) {
+            $this->lazy ? $this->cacheDel($pkValue) : $this->cacheSet($pkValue, $data);
         }
     }
 }
