@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:www.easyswoole.com)",
+      "Bash(xargs grep:*)"
+    ]
+  }
+}
