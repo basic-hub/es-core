@@ -15,7 +15,6 @@ class Tree extends SplBean
 
     /**
      * 根元素id
-     * todo 支持所有节点，和一些相关方法
      * @var int
      */
     protected $rootId = 0;
@@ -57,6 +56,7 @@ class Tree extends SplBean
         unset($this->data);
 
         $this->filters();
+        $this->filterByRoot();
         $this->toRouter();
     }
 
@@ -74,16 +74,19 @@ class Tree extends SplBean
      */
     protected function getParents(array $ids = [])
     {
-        $idArray = $ids;
-        foreach ($ids as $id) {
+        $result = [];
+        $queue = $ids;
+        while ($queue) {
+            $id = array_shift($queue);
+            if (isset($result[$id])) {
+                continue;
+            }
+            $result[$id] = $id;
             if (isset($this->parent[$id])) {
-                $pids = $this->getParents([$this->parent[$id]]);
-                if (is_array($pids)) {
-                    $idArray = array_merge($idArray, $pids);
-                }
+                $queue[] = $this->parent[$id];
             }
         }
-        return array_unique($idArray);
+        return array_values($result);
     }
 
     /**
@@ -92,17 +95,43 @@ class Tree extends SplBean
      */
     protected function filters()
     {
-        if ( ! is_null($this->filterIds)) {
-
-            if (is_numeric($this->filterIds)) {
-                $this->filterIds = [$this->filterIds];
+        if (is_null($this->filterIds)) {
+            return;
+        }
+        if (is_numeric($this->filterIds)) {
+            $this->filterIds = [$this->filterIds];
+        }
+        $allow = array_flip($this->getParents($this->filterIds));
+        foreach ($this->origin as $key => $value) {
+            if ( ! isset($allow[$key])) {
+                unset($this->origin[$key]);
             }
+        }
+    }
 
-            $allow = $this->getParents($this->filterIds);
-            foreach ($this->origin as $key => $value) {
-                if ( ! in_array($key, $allow)) {
-                    unset($this->origin[$key]);
+    /**
+     * 根据rootId裁剪树，只保留rootId子树内的节点
+     * @return void
+     */
+    protected function filterByRoot()
+    {
+        if ($this->rootId == 0 || ! isset($this->children[$this->rootId])) {
+            return;
+        }
+        $keep = [];
+        $queue = array_values($this->children[$this->rootId]);
+        while ($queue) {
+            $id = array_shift($queue);
+            $keep[$id] = true;
+            if (isset($this->children[$id])) {
+                foreach ($this->children[$id] as $cid) {
+                    $queue[] = $cid;
                 }
+            }
+        }
+        foreach ($this->origin as $key => $value) {
+            if ( ! isset($keep[$key])) {
+                unset($this->origin[$key]);
             }
         }
     }
@@ -113,22 +142,36 @@ class Tree extends SplBean
      */
     public function treeData()
     {
-        $tree = $this->origin;
+        // 拓扑排序：保证父节点先于子节点处理
+        $inDegree = array_fill_keys(array_keys($this->origin), 0);
         foreach ($this->origin as $id => $value) {
-            if ($value[$this->pidKey] == $this->rootId) {
-                continue;
+            $pid = $value[$this->pidKey];
+            if ($pid != $this->rootId && isset($inDegree[$pid])) {
+                $inDegree[$id]++;
             }
-
-            // children也是索引数组
-            $len = count($tree[$value[$this->pidKey]][$this->childKey] ?? []);
-            $tree[$value[$this->pidKey]][$this->childKey][$len] = $tree[$id];
-            $tree[$id] = &$tree[$value[$this->pidKey]][$this->childKey][$len];
+        }
+        $queue = array_keys(array_filter($inDegree, fn($d) => $d === 0));
+        $sorted = [];
+        while ($queue) {
+            $id = array_shift($queue);
+            $sorted[] = $id;
+            foreach ($this->children[$id] ?? [] as $cid) {
+                if (isset($inDegree[$cid]) && --$inDegree[$cid] === 0) {
+                    $queue[] = $cid;
+                }
+            }
         }
 
-        foreach ($tree as $item) {
-            if (isset($item[$this->pidKey]) && $item[$this->pidKey] == $this->rootId) {
-                $this->tree[] = $item;
+        $tree = $this->origin;
+        foreach ($sorted as $id) {
+            $pid = $tree[$id][$this->pidKey];
+            if ($pid == $this->rootId) {
+                $this->tree[] = &$tree[$id];
+                continue;
             }
+            $len = count($tree[$pid][$this->childKey] ?? []);
+            $tree[$pid][$this->childKey][$len] = $tree[$id];
+            $tree[$id] = &$tree[$pid][$this->childKey][$len];
         }
 
         return $this->tree;
@@ -146,6 +189,9 @@ class Tree extends SplBean
         if ( ! $this->isRouter) {
             return;
         }
+        $validate = new \EasySwoole\Validate\Validate();
+        $validate->addColumn('path')->url();
+        $validate->addColumn('isext')->differentWithColumn(1);
         foreach ($this->origin as &$value) {
             // 构造树形结构必须的几个key
             $row = [
@@ -167,9 +213,6 @@ class Tree extends SplBean
                 'hideBreadcrumb' => $value['breadcrumb'] != 1
             ];
             // 外部链接, isext=1为外链，=0为frameSrc
-            $validate = new \EasySwoole\Validate\Validate();
-            $validate->addColumn('path')->url();
-            $validate->addColumn('isext')->differentWithColumn(1);
             $isFrame = $validate->validate($value);
             if ($isFrame) {
                 $meta['frameSrc'] = $value['path'];
@@ -201,17 +244,18 @@ class Tree extends SplBean
     /**
      * 指定id的完整path路径，有序
      * @param int $id
-     * @param int $i
+     * @param string $column
      * @return array
      */
-    protected function getFullPath($id, $column = '', $i = 0)
+    protected function getFullPath($id, $column = '')
     {
         $path = [];
-        if (isset($this->origin[$id][$column])) {
-            $path[$i] = $this->origin[$id][$column];
-            if (isset($this->parent[$id])) {
-                $array = $this->getFullPath($this->parent[$id], $column, ++$i);
-                $path = array_merge($path, $array);
+        $current = $id;
+        while (isset($this->origin[$current][$column])) {
+            $path[] = $this->origin[$current][$column];
+            $current = $this->parent[$current] ?? null;
+            if ($current === null) {
+                break;
             }
         }
         return $path;

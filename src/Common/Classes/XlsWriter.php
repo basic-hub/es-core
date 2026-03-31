@@ -30,6 +30,16 @@ class XlsWriter
     protected $setType = [];
 
     /**
+     * 新版本的constMemory方法增加了第三个参数用来兼容WPS，在这之前，如果传递3个参数会报错
+     * 自动生成属性，存储constMemory方法参数数量
+     * @var int
+     */
+    protected $constMemoryArgc = 0;
+
+    /** @var string 导出文件后缀，支持 .xlsx | .csv */
+    protected $exportSuffix = '.xlsx';
+
+    /**
      * @var array [
      *          'path' => 文件存放路径
      *          'thHeight' => 表头行高
@@ -52,6 +62,7 @@ class XlsWriter
 
         $this->setConfig(['path' => $path]);
         $this->excel = new Excel($this->getConfig());
+        $this->constMemoryArgc = count((new \ReflectionMethod($this->excel, 'constMemory'))->getParameters());
     }
 
     public function setConfig($config = [])
@@ -193,8 +204,9 @@ class XlsWriter
      */
     public function ouputFileByCursor(string $file, array $header, $data, $rowCall = null, $limit = 1000)
     {
-        $suffix = '.xlsx';
-        if (substr($file, -5) !== $suffix) {
+        $isCsv = $this->exportSuffix === '.csv';
+        $suffix = $isCsv ? '.csv' : '.xlsx';
+        if (substr($file, -strlen($suffix)) !== $suffix) {
             $file .= $suffix;
         }
 
@@ -208,54 +220,65 @@ class XlsWriter
             $thType[$k] = $v[1] ?? '';
         }
 
-        // 新版本的constMemory增加了第三个参数用来兼容WPS，在这之前，如果传递3个参数会报错
-        $Ref = new \ReflectionClass(get_class($this->excel));
-        $RefMethod = $Ref->getMethod('constMemory');
-        $cmy = count($RefMethod->getParameters()) < 3 ? [$file] : [$file, null, false];
-        $fileObject = $this->excel->constMemory(...$cmy);
+        $cmy = $this->constMemoryArgc < 3 ? [$file] : [$file, null, false];
+        $obj = $this->excel->constMemory(...$cmy);
+        $excel = ($isCsv ? $obj : $this->setThStyle($obj))->header($thValue);
 
-        $excel = $this->setThStyle($fileObject)->header($thValue);
-
-        $doInsert = function (array $outputs) use ($rowCall, $excel, $thKeys, $thType) {
-            if ( ! is_null($rowCall)) {
-                $outputs = call_user_func($rowCall, $outputs);
-            }
-            $newarr = [];
-            // 过滤掉不在表头的字段
-            foreach ($outputs as $key => &$value) {
+        $buildRows = function (array $outputs) use ($thKeys, $thType): array {
+            $rows = [];
+            foreach ($outputs as $value) {
                 $row = [];
-                // 因为data只能是索引数组，所以这里按顺序十分重要
                 foreach ($thKeys as $col) {
-                    $colval = $value[$col] ?? '';
-                    // excel最多处理15位数字，超过此长度时，第16位及之后会被自动补0（例如输入911717296328700928会显示为911717296328700000）
-                    $row[] = (isset($thType[$col]) && $thType[$col] === 'n' && strlen(strval($colval)) <= 15) ? floatval($colval) : $colval;
-                }
 
-                $row && $newarr[] = $row;
-                unset($outputs[$key]);
+                    if (isset($value[$col])) {
+                        $colval = $value[$col];
+                    } elseif (strpos($col, '.') !== false) {
+                        // 支持a.b.c语法
+                        $colval = array_reduce(explode('.', $col), function ($carry, $key) {
+                            return is_array($carry) || $carry instanceof AbstractModel ? ($carry[$key] ?? '') : '';
+                        }, $value);
+                    } else {
+                        $colval = '';
+                    }
+
+                    // excel最多处理15位数字，超过此长度时，第16位及之后会被自动补0（例如输入911717296328700928会显示为911717296328700000）
+                    $row[] = (isset($thType[$col]) && $thType[$col] === 'n' && strlen((string)$colval) <= 15)
+                        ? floatval($colval)
+                        : $colval;
+                }
+                if ($row) {
+                    $rows[] = $row;
+                }
             }
-            // todo 兼容客户端a.b.c写法
-            $excel->data($newarr);
+            return $rows;
+        };
+
+        $flush = function (array $batch) use ($excel, $rowCall, $buildRows) {
+            if ($rowCall !== null) {
+                $batch = call_user_func($rowCall, $batch);
+            }
+            $rows = $buildRows($batch);
+            if ($rows) {
+                $excel->data($rows);
+            }
         };
 
         if (is_array($data)) {
-            $doInsert($data);
-        }
-        elseif ($data instanceof \Generator) {
-            $insert = [];
+            $flush($data);
+        } elseif ($data instanceof \Generator) {
+            $batch = [];
             foreach ($data as $item) {
-                $insert[] = $item;
-                // 每千行落盘
-                if (count($insert) >= $limit) {
-                    $doInsert($insert);
-                    $insert = [];
+                $batch[] = $item;
+                if (count($batch) >= $limit) {
+                    $flush($batch);
+                    $batch = [];
                 }
             }
-            // 余数落盘
-            if ($insert) {
-                $doInsert($insert);
+            if ($batch) {
+                $flush($batch);
             }
         }
+
         $excel->output();
     }
 
@@ -306,5 +329,5 @@ class XlsWriter
         return $excel;
     }
 
-    // ... 增加csv支持
 }
+
