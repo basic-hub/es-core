@@ -207,48 +207,47 @@ class HCurl extends Base
             $client->getClient()->setData($this->setData);
         }
 
-        // --- 方法映射 ---
-        $calls = [
-            'get' => function ($data) use ($client) {
-                $data && $client->setQuery($data);
-                return $client->get();
-            },
-            'post' => function ($data) use ($client) {
-                return $client->post($data);
-            },
-            'put' => function ($data) use ($client) {
-                return $client->put($data);
-            },
-            'delete' => function ($data) use ($client) {
-                return $client->delete($data);
-            },
-            'patch' => function ($data) use ($client) {
-                return $client->patch($data);
-            },
-            'head' => function ($data) use ($client) {
-                return $client->head();
-            },
-            'options' => function ($data) use ($client) {
-                return $client->options();
-            },
-            'xml' => function ($data) use ($client) {
-                return $client->postXml($data);
-            },
-            'json' => function ($data) use ($client) {
-                $payload = is_array($data) ? json_encode($data, JSON_UNESCAPED_UNICODE) : $data;
-                return $client->postJson($payload);
-            },
-            'download' => function ($data) use ($client) {
-                return $client->download($this->url, $this->downloadOffset, HttpClient::METHOD_GET, $data);
-            },
-        ];
-
         $method = $this->method;
-        $func = $calls[$method] ?? $method;
+        switch ($method) {
+            case 'get':
+                $data && $client->setQuery($data);
+                $response = $client->get();
+                break;
+            case 'post':
+                $response = $client->post($data);
+                break;
+            case 'put':
+                $response = $client->put($data);
+                break;
+            case 'delete':
+                $data && $client->setQuery($data);
+                $response = $client->delete();
+                break;
+            case 'patch':
+                $response = $client->patch($data);
+                break;
+            case 'head':
+                $response = $client->head();
+                break;
+            case 'options':
+                $response = $client->options();
+                break;
+            case 'xml':
+                $response = $client->postXml($data);
+                break;
+            case 'json':
+                $payload = is_array($data) ? json_encode($data, JSON_UNESCAPED_UNICODE) : $data;
+                $response = $client->postJson($payload);
+                break;
+            case 'download':
+                $response = $client->download($this->url, $this->downloadOffset, HttpClient::METHOD_GET, $data);
+                break;
+            default:
+                $response = $client->$method($data);
+                break;
+        }
 
         /** @var \EasySwoole\HttpClient\Bean\Response $response */
-        $response = is_string($func) ? $client->$func($data) : $func($data);
-
         return [$response->getStatusCode(), $response->getBody(), $response];
     }
 }
