@@ -55,7 +55,7 @@ abstract class Base extends SplBean implements HttpInterface
      *   'json'  - json_decode 为数组（默认）
      *   'xml'   - 解析为数组
      *   'body'  - 返回原始字符串
-     *   ''|null - 直接返回原始字符串（不解析）
+     *   ''|null - 直接返回原始对象（仅协程客户端）
      * @var string|null
      */
     protected $resultType = 'json';
@@ -136,7 +136,7 @@ abstract class Base extends SplBean implements HttpInterface
      *
      * @param  array|string $data   请求数据，GET 时会拼到 URL 上，xml 时传字符串
      * @param  array        $option 保留参数，暂未使用（配置请通过属性设置）
-     * @return mixed
+     * @return mixed|\EasySwoole\HttpClient\Bean\Response
      * @throws \Exception|\Error
      */
     public function request($data = [])
@@ -155,10 +155,6 @@ abstract class Base extends SplBean implements HttpInterface
      */
     private function doRequest($data)
     {
-        $code = 0;
-        $org  = '';
-        $End  = null;
-
         try {
             $End = http_tracker($this->htname, [
                 'method'  => strtoupper($this->method),
@@ -167,7 +163,10 @@ abstract class Base extends SplBean implements HttpInterface
                 'headers' => $this->headers,
             ]);
 
-            [$code, $org] = $this->send($data);
+            $sendResult = $this->send($data);
+            $code = $sendResult[0];
+            $org  = $sendResult[1];
+            $rawObject = $sendResult[2] ?? null;
 
             $End($org, $code);
         } catch (\Exception $e) {
@@ -181,9 +180,9 @@ abstract class Base extends SplBean implements HttpInterface
             return null;
         }
 
-        // resultType 为空时直接返回原始字符串
+        // resultType 为空时直接返回原始对象（如有）或原始字符串
         if (!$this->resultType) {
-            return $org;
+            return $rawObject ?? $org;
         }
 
         $res  = $this->decodeRes($org);

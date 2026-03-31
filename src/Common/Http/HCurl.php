@@ -249,6 +249,6 @@ class HCurl extends Base
         /** @var \EasySwoole\HttpClient\Bean\Response $response */
         $response = is_string($func) ? $client->$func($data) : $func($data);
 
-        return [$response->getStatusCode(), $response->getBody()];
+        return [$response->getStatusCode(), $response->getBody(), $response];
     }
 }
