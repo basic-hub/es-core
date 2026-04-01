@@ -23,40 +23,44 @@ class DateUtils
     }
 
     /**
-     * 当前系统时区与指定时区之间的差值,单位秒
-     * @param string $inia Asia/Shanghai
+     * 将指定时区的格式化时间转换为时间戳
+     * @param string $datetime  格式化时间，如 2026-03-18 16:06:52
+     * @param string $inia  时区标识，如 Asia/Shanghai、America/Bogota
+     * @return int              UTC 时间戳
      */
-    public static function timeZoneOffsetSec(string $inia)
+    public static function datetimeToTimestamp(string $datetime, string $inia): int
     {
-        $date = date(self::FULL);
-        // 当前系统运行的时区
-        $currentRunTimeZone = date_default_timezone_get();
-        $currTimeZone = new \DateTimeZone($currentRunTimeZone);
-        $currentOffset = $currTimeZone->getOffset(new \DateTime($date));
-
-        $toTimeZone = new \DateTimeZone($inia);
-        $toOffset = $toTimeZone->getOffset(new \DateTime($date));
-
-        return $currentOffset - $toOffset;
-    }
-
-    public static function getTimeZoneStamp(int $time, $inia): int
-    {
-        return $time - self::timeZoneOffsetSec($inia);
+        return (new \DateTime($datetime, new \DateTimeZone($inia)))->getTimestamp();
     }
 
     /**
-     * 将指定时区的格式化时间转换为 UTC 时间戳
-     *
-     * @param string $datetime  格式化时间，如 2026-03-18 16:06:52
-     * @param string $timezone  时区标识，如 Asia/Shanghai、America/Bogota
-     * @return int              UTC 时间戳
+     * 将时间戳转换为指定时区的格式化时间
+     * @param int $timestamp    UTC 时间戳
+     * @param string $inia      时区标识，如 Asia/Shanghai、America/Bogota、PRC
+     * @param string $format
+     * @return string
      */
-    public static function datetimeToTimestamp(string $datetime, string $timezone): int
+    public static function timestampToDatetime(int $timestamp, $inia = 'PRC', $format = self::FULL): string
     {
-        $tz = new \DateTimeZone($timezone);
-        $dt = new \DateTime($datetime, $tz);
-        return $dt->getTimestamp();
+        return (new \DateTime('@' . $timestamp))
+            ->setTimezone(new \DateTimeZone($inia))
+            ->format($format);
+    }
+
+    /**
+     * 判断当前 PHP 运行时区是否与指定时区一致
+     * @param string $inia 支持：Asia/Shanghai、+8:00、+08:00、8、-5 等
+     * @return bool
+     */
+    public static function isInTimeZone(string $inia): bool
+    {
+        if (preg_match('/^([+-]?\d{1,2})(?::(\d{2}))?$/', trim($inia), $m)) {
+            $sign   = ($m[1][0] === '-') ? -1 : 1;
+            $target = $sign * (abs((int)$m[1]) * 3600 + ((int)($m[2] ?? 0)) * 60);
+        } else {
+            $target = (new \DateTimeZone($inia))->getOffset(new \DateTime('now', new \DateTimeZone('UTC')));
+        }
+        return (int)date('Z') === $target;
     }
 
     /**
@@ -64,21 +68,14 @@ class DateUtils
      * @param int $time1
      * @param int $time2
      * @param string $inia Asia/Shanghai
-     * @return false|int
-     * @throws \Exception
+     * @return int
      */
-    public static function formatDiffTimestamp(int $time1, int $time2, $inia = 'PRC') {
-        $date1 = date(self::FULL, self::getTimeZoneStamp($time1, $inia));
-        $date2 = date(self::FULL, self::getTimeZoneStamp($time2, $inia));
-        $dt1 = new \DateTime($date1);
-        $dt2 = new \DateTime($date2);
-
-        // 只比较日期
-        $dt1->setTime(0, 0);
-        $dt2->setTime(0, 0);
-
-        $diff = $dt1->diff($dt2);
-        return $diff->days;
+    public static function formatDiffTimestamp(int $time1, int $time2, $inia = 'PRC'): int
+    {
+        $tz = new \DateTimeZone($inia);
+        $dt1 = (new \DateTime('@' . $time1))->setTimezone($tz)->setTime(0, 0);
+        $dt2 = (new \DateTime('@' . $time2))->setTimezone($tz)->setTime(0, 0);
+        return $dt1->diff($dt2)->days;
     }
 
     /**
