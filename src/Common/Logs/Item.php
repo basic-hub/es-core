@@ -42,9 +42,8 @@ class Item extends SplBean
         $this->time = time();
         $this->date = date(DateUtils::FULL, $this->time);
         // 不在东8区，则记录东8区时间
-        $tznInt = intval(substr((int)date('O'), 0, -2));
-        if ($tznInt !== 8) {
-            $this->date .= ', +8区: ' . date(DateUtils::FULL, DateUtils::getTimeZoneStamp($this->time, 'PRC'));
+        if ( ! DateUtils::isInTimeZone(8)) {
+            $this->date .= ', +8区: ' . DateUtils::timestampToDatetime($this->time);
         }
     }
 
