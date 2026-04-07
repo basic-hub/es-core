@@ -2041,18 +2041,16 @@ if (!function_exists('request_lock')) {
             }
             $lkey = "request_lock_{$cfgKey}_{$lk}_$input[$lk]";
 
-            // PS：有玩家key一直没被删除，增加时间校验机制，超时则删key重新抢锁
-            $last = $redis->get($lkey);
-            if ($last && is_numeric($last) && $time - $last > $lv['interval']) {
-                $redis->del($lkey);
-            }
-
-            $isLock = $redis->setNx($lkey, $time);
+            // 使用 SET NX EX 原子操作，避免 setNx+expire 两步之间进程崩溃导致永久key
+            $isLock = $redis->set($lkey, $time, ['NX', 'EX' => $lv['interval']]);
             if (!$isLock) {
+                // 已存在锁：检查是否超时（兜底处理旧数据或TTL丢失的永久key）
+                if ($redis->ttl($lkey) === -1) {
+                    // 永久key，强制修复TTL
+                    $redis->expire($lkey, $lv['interval']);
+                }
                 throw new HttpParamException($lv['limit_msg'], $lv['limit_code']);
             }
-            // 设置有效期
-            $redis->expire($lkey, $lv['interval']);
         }
     }
 }
