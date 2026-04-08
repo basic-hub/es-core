@@ -2021,6 +2021,14 @@ if (!function_exists('request_lock')) {
                     'limit_msg' => '操作过于频繁，请稍后再试',
                     'limit_code' => 422,
                 ],
+                // 支持多key加锁
+                'username_type' => [
+                    'keys' => ['username', 'type'],
+                    'required' => true,
+                    'interval' => 3,
+                    'limit_msg' => '操作过于频繁，请稍后再试',
+                    'limit_code' => 422,
+                ],
             ],
         ],*/
         $config = config("REQUEST_LOCK.$cfgKey");
@@ -2030,18 +2038,23 @@ if (!function_exists('request_lock')) {
 
         $time = time();
         foreach ($config as $lk => $lv) {
-            if (!isset($input[$lk]) || $input[$lk] === '') {
-                if ($lv['required']) {
-                    // 必传
-                    throw new HttpParamException(lang(Dictionary::PARAMS_ERROR), $lv['limit_code']);
-                } else {
-                    // 可选
-                    continue;
+            // 支持单个key（字符串）或多个key组合（数组）
+            $keys = isset($lv['keys']) ? (array)$lv['keys'] : [$lk];
+            $parts = [];
+            foreach ($keys as $k) {
+                if (!isset($input[$k]) || $input[$k] === '') {
+                    if ($lv['required']) {
+                        throw new HttpParamException(lang(Dictionary::PARAMS_ERROR), $lv['limit_code']);
+                    } else {
+                        continue 2;
+                    }
                 }
+                $parts[] = $input[$k];
             }
-            $lkey = "request_lock_{$cfgKey}_{$lk}_$input[$lk]";
+            $lkey = "request_lock_{$cfgKey}_{$lk}_" . implode('_', $parts);
 
             // 使用 SET NX EX 原子操作，避免 setNx+expire 两步之间进程崩溃导致永久key
+            // https://redis.io/docs/latest/commands/set/
             $isLock = $redis->set($lkey, $time, ['NX', 'EX' => $lv['interval']]);
             if (!$isLock) {
                 // 已存在锁：检查是否超时（兜底处理旧数据或TTL丢失的永久key）
