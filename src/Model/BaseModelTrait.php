@@ -127,11 +127,6 @@ trait BaseModelTrait
         return $model;
     }
 
-    public function scopeIndex()
-    {
-        return $this;
-    }
-
     public function setOrder(array $order = [])
     {
         $sort = $this->sort;

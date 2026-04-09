@@ -169,6 +169,25 @@ trait有哪些坑
 - [x] 重写verify_token为面向对象风格，验证与生成token解耦
 - [x] CloudLib相关Composer依赖由业务层项目安装，移除本仓库所有相关依赖
 
+## 常用命令
+
+查看进程信息
+>php easyswoole process show -d
+
+杀死指定进程
+>php easyswoole process kill --pid=PID
+
+杀死指定进程组
+>php easyswoole process kill --group=GROUP_NAME
+
+杀死所有进程
+>php easyswoole process killAll
+
+强制杀死进程：带上 -f 参数
+
+查看Task进程状态
+>php easyswoole task status
+
 ## 其他
 
 - [trait冲突解决](https://www.php.net/manual/zh/language.oop5.traits.php)
