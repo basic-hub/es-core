@@ -17,7 +17,13 @@ return [
         // 单独记录的日志级别 level
         'apart_level' => ['error'],
         // 单独记录的日志类型 category
-        'apart_category' => ['sql', 'pay', 'cksql', 'media', 'channel'],
+        'apart_category' => [
+            'sql', // mysql执行sql日志
+            'pay', // 支付日志
+            'cksql', // clickhouse执行sql日志
+            'media', // 广告媒体日志
+            'channel', // 渠道日志
+        ],
     ],
 
     'SERVER_NAME' => (is_env('test') ? 'test-' : '') . 'ES-Core',
