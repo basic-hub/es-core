@@ -3,11 +3,15 @@
 
 namespace BasicHub\EsCore\Common\Classes;
 
-
+/**
+ * @document timezones list  https://www.php.net/manual/zh/timezones.php
+ */
 class DateUtils
 {
     const YMD = 'ymd';
     const FULL = 'Y-m-d H:i:s';
+    const FULL_START = 'Y-m-d 00:00:00';
+    const FULL_END = 'Y-m-d 23:59:59';
     const YmdHis = 'YmdHis';
     const FMT_1 = 'Y-m-d';
 
