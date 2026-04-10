@@ -230,7 +230,7 @@ class HCurl extends Base
                 $response = $client->head();
                 break;
             case 'options':
-                $response = $client->options();
+                $response = $client->options($data);
                 break;
             case 'xml':
                 $response = $client->postXml($data);

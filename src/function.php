@@ -247,20 +247,45 @@ if ( ! function_exists('parse_name')) {
     }
 }
 
+if ( ! function_exists('array_is_list')) {
+    /**
+     * php>=8自动使用内置函数，对于低于php8的环境，兼容这里实现，实际代码同 \Symfony\Polyfill\Php81\Php81::array_is_list();
+     * 判断数组是否为索引数组
+     * @param array $array
+     * @return bool
+     */
+    function array_is_list(array $array): bool {
+        if ([] === $array || $array === array_values($array)) {
+            return true;
+        }
+
+        $nextKey = -1;
+
+        foreach ($array as $k => $v) {
+            if ($k !== ++$nextKey) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+}
+
 if ( ! function_exists('array_merge_multi')) {
     /**
      * 多维数组合并（支持多数组）
-     * 如果是索引数组，则会整体被覆盖，一定是覆盖不能追加。
+     * 如果是索引数组，则会整体被覆盖，索引数组应被视为一个整体，一定是覆盖不能是追加或者替换指定索引，这两种都不对。
      * @return array
      */
     function array_merge_multi(...$args)
     {
         $array = [];
         foreach ($args as $arg) {
-            if (is_array($arg)) {
-                foreach ($arg as $k => $v) {
-                    $array[$k] = is_array($v) ? array_merge_multi($array[$k] ?? [], $v) : $v;
-                }
+            if ( ! is_array($arg)) {
+                continue;
+            }
+            foreach ($arg as $k => $v) {
+                $array[$k] = (is_array($v) && !array_is_list($v)) ? array_merge_multi($array[$k] ?? [], $v) : $v;
             }
         }
         return $array;
