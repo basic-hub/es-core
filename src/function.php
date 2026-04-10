@@ -1033,7 +1033,14 @@ if ( ! function_exists('redis_list_push')) {
     function redis_list_push(Redis $redis, string $key, $data, bool $first = false, $shardNumber = 0)
     {
         if ( ! is_scalar($data)) {
+            // JSON_INVALID_UTF8_SUBSTITUTE 会把无法编码的字节替换为 Unicode 替换字符 \uFFFD（即 ?），保证 json_encode 不返回 false，Redis 写入正常。如果更倾向于直接丢弃这些字符，可以换成 JSON_INVALID_UTF8_IGNORE
             $data = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+        }
+
+        if (empty($data)) {
+            trace($msg = "Redis队列数据异常：key=$key , data=" . var_export($data, true), 'error');
+            notice_alarm_times($msg, $redis);
+            return false;
         }
 
         if (is_numeric($shardNumber) && $shardNumber > 0) {
