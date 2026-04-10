@@ -1033,7 +1033,7 @@ if ( ! function_exists('redis_list_push')) {
     function redis_list_push(Redis $redis, string $key, $data, bool $first = false, $shardNumber = 0)
     {
         if ( ! is_scalar($data)) {
-            $data = json_encode($data);
+            $data = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
         }
 
         if (is_numeric($shardNumber) && $shardNumber > 0) {
@@ -1070,7 +1070,7 @@ if (!function_exists('redis_list_push_mul')) {
         foreach ($items as $item) {
 
             if ( ! is_scalar($item)) {
-                $item = json_encode($item);
+                $item = json_encode($item, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
             }
 
             if (is_numeric($shardNumber) && $shardNumber > 0) {
