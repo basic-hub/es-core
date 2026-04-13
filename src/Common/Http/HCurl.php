@@ -55,9 +55,16 @@ class HCurl extends Base
      *   connect_timeout   float  连接超时（秒）
      *   ssl_verify_peer   bool   是否验证证书
      *   ssl_cafile        string CA 证书路径
+     *
+     * keepAlive全局开启隐患：
+     *   1. 连接泄漏。EasySwoole 的 HttpClient 是基于 Swoole 协程客户端封装的，keepAlive 模式下连接不会自动归还连接池，如果你每次都 new 一个客户端对象，连接会随对象销毁而关闭，keepAlive 实际上没有意义，反而让服务端保持了一个半开连接直到超时。
+     *   2. 服务端连接数耗尽。如果并发量大，大量连接被保持而不释放，目标服务的连接数会快速耗尽，尤其是调用外部第三方服务时（对方有连接数限制）。
+     *   3. 连接状态不一致。长连接在空闲一段时间后可能被服务端或中间网络设备（LB、防火墙）单方面断开，客户端不知情继续复用会导致请求失败。需要处理 broken pipe 类错误并重试。
+     *   4. Swoole 协程上下文问题。在 EasySwoole 中，每个请求跑在独立协程里，如果 HttpClient 对象没有被复用（只是开了 keepAlive 但每次 new），连接无法真正被复用，白白增加了服务端的连接保持压力。
+     *
      * @var array
      */
-    protected $clientSet = ['keepAlive' => true];
+    protected $clientSet = [];
 
     /**
      * 连接超时时间（秒），0 不限制
@@ -137,7 +144,7 @@ class HCurl extends Base
 
         // --- 客户端基础设置 ---
         $settings = $this->clientSet;
-        $settings['keepAlive'] = $settings['keepAlive'] ?? true;
+        // $settings['keepAlive'] = $settings['keepAlive'] ?? true;
         if ($this->connectTimeout > 0) {
             $settings['connect_timeout'] = $this->connectTimeout;
         }
@@ -152,7 +159,7 @@ class HCurl extends Base
         }
 
         // --- SSL ---
-        if (stripos($this->url, 'https://') !== false) {
+        if (stripos($this->url, 'https://') === 0) {
             $client->setEnableSSL();
         }
 
