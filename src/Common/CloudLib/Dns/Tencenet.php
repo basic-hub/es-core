@@ -10,6 +10,8 @@ use TencentCloud\Dnspod\V20210323\Models\CreateRecordRequest;
 use TencentCloud\Dnspod\V20210323\Models\CreateRecordResponse;
 use TencentCloud\Dnspod\V20210323\Models\DescribeRecordListRequest;
 use TencentCloud\Dnspod\V20210323\Models\DescribeRecordListResponse;
+use TencentCloud\Dnspod\V20210323\Models\DeleteRecordRequest;
+use TencentCloud\Dnspod\V20210323\Models\DeleteRecordResponse;
 use TencentCloud\Dnspod\V20210323\Models\ModifyRecordRequest;
 use TencentCloud\Dnspod\V20210323\Models\ModifyRecordResponse;
 use TencentCloud\Dnspod\V20210323\Models\RecordListItem;
@@ -116,6 +118,20 @@ class Tencenet extends Base
 
     public function delete(array $array)
     {
-        // TODO: Implement delete() method.
+        $params = $this->filter($array, ['RecordId']);
+
+        $cred = new Credential($this->SecretId, $this->SecretKey);
+        $httpProfile = new HttpProfile();
+        $httpProfile->setEndpoint($this->endpoint);
+
+        $clientProfile = new ClientProfile();
+        $clientProfile->setHttpProfile($httpProfile);
+        $client = new DnspodClient($cred, "", $clientProfile);
+
+        $req = new DeleteRecordRequest();
+        $req->fromJsonString(json_encode(['Domain' => $this->domain, 'RecordId' => $params['RecordId']]));
+
+        $resp = $client->DeleteRecord($req);
+        return $resp->RequestId;
     }
 }
