@@ -554,23 +554,29 @@ if ( ! function_exists('verify_jwt_params')) {
     /**
      * 校验jwt参数
      * @param Jwt $Jwt
-     * @param $chkKey
-     * @param $input
-     * @return mixed
+     * @param array|string $chkKey 需要校验的参数key，支持多key校验
+     * @param array $input
+     * @return array
      * @throws HttpParamException
      */
     function verify_jwt_params(Jwt $Jwt, $chkKey, $input) {
 
         $jwtdata = $Jwt->getData();
 
-        if ($chkKey) {
-            if (empty($jwtdata[$chkKey])) {
+        // 无需校验
+        if (empty($chkKey)) {
+            return $jwtdata;
+        }
+
+        $chkKey = is_array($chkKey) ? $chkKey : [$chkKey];
+        foreach ($chkKey as $name) {
+            if (empty($jwtdata[$name])) {
                 throw new HttpParamException('jwt Error', Code::CODE_UNAUTHORIZED);
             }
 
             // input中无此参数，或与jwt解密参数不符
-            if (empty($input[$chkKey]) || $input[$chkKey] != $jwtdata[$chkKey]) {
-                throw new HttpParamException("jwt的 $chkKey 不符:" . ($jwtdata[$chkKey] ?? ''), Code::CODE_PRECONDITION_FAILED);
+            if (empty($input[$name]) || $input[$name] != $jwtdata[$name]) {
+                throw new HttpParamException("jwt的 $name 不符:" . ($jwtdata[$name] ?? ''), Code::CODE_PRECONDITION_FAILED);
             }
         }
 

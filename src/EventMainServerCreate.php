@@ -14,6 +14,7 @@ use EasySwoole\RedisPool\RedisPool;
 use EasySwoole\Socket\AbstractInterface\ParserInterface;
 use EasySwoole\Spl\SplBean;
 use EasySwoole\Template\Render;
+use EasySwoole\Utility\Str;
 use EasySwoole\WordsMatch\WMServer;
 use BasicHub\EsCore\Notify\EsNotify;
 
@@ -187,9 +188,9 @@ class EventMainServerCreate extends SplBean
         // 本地开发环境可固定开启
         if ( ! is_env('dev')) {
             return;
-    }
+        }
 
-    $onChange = is_callable($this->hotReloadFunc['on_change'])
+        $onChange = is_callable($this->hotReloadFunc['on_change'])
             ? $this->hotReloadFunc['on_change']
             : function (array $list, \EasySwoole\FileWatcher\WatchRule $rule) {
                 echo PHP_EOL . PHP_EOL . Color::warning(' Worker进程重启，检测到以下文件变更: ') . PHP_EOL;
@@ -368,12 +369,18 @@ class EventMainServerCreate extends SplBean
         if ( ! $cfg = config('WORDS_MATCH')) {
             return;
         }
+        if ( ! is_array($cfg)) {
+            return;
+        }
+
         // 配置 words-match
         $wdConfig = new \EasySwoole\WordsMatch\Config();
-        $wdConfig->setDict($cfg['file']); // 配置 词库地址
-        $wdConfig->setMaxMEM($cfg['mem'] ?? '512M'); // 配置 每个进程最大占用内存(M)，默认为 512 M
-        $wdConfig->setTimeout($cfg['timeout'] ?? 3.0); // 配置 内容检测超时时间。默认为 3.0 s
-        $wdConfig->setWorkerNum($cfg['num'] ?? 6); // 配置 进程数
+        foreach ($cfg as $name => $val) {
+            $method = 'set' . Str::studly($name);
+            if (method_exists($wdConfig, $method)) {
+                $wdConfig->$method($val);
+            }
+        }
 
         // 注册服务
         WMServer::getInstance($wdConfig)->attachServer(ServerManager::getInstance()->getSwooleServer());

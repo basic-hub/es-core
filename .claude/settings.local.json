@@ -3,7 +3,9 @@
     "allow": [
       "WebSearch",
       "WebFetch(domain:www.easyswoole.com)",
-      "Bash(xargs grep:*)"
+      "Bash(xargs grep:*)",
+      "WebFetch(domain:docs.anthropic.com)",
+      "WebFetch(domain:lanyiapi.com)"
     ]
   }
 }
