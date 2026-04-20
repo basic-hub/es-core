@@ -134,7 +134,7 @@ class TablePart extends SplBean
 
     /**
      * 执行创建分区
-     * @param string $pattern 正则表达式
+     * @param string|array $pattern 正则表达式 || 表名数组
      * @param string $fieldName 分区字段名
      * @param array $listdate 分组key=>value,对应分区的descr和value
      * @return void
@@ -147,7 +147,9 @@ class TablePart extends SplBean
 
         $tableList = $this->showTables();
         foreach ($tableList as $tableName) {
-            if (!preg_match($pattern, $tableName)) {
+            $isMatchExp = is_string($pattern) && preg_match($pattern, $tableName);
+            $isMatchArr = is_array($pattern) && in_array($tableName, $pattern);
+            if (!$isMatchExp && !$isMatchArr) {
                 continue;
             }
             // 符合规则的数据表，对于已有分区则添加，无分区则执行初始化
@@ -306,7 +308,7 @@ class TablePart extends SplBean
 
     /**
      * 按日创建分区
-     * @param string $pattern 匹配数据表的正则表达式，示例值：/(active_\d+)|(login_\d+)|(reg_\d+)/i
+     * @param string|array $pattern 正则表达式 || 表名数组，示例值：/(^active_\d+)|(^login_\d+)|(^reg_\d+)/i
      * @param string $fieldName 分区字段
      * @param string $startDate 开始时间,格式20251024
      * @param string $endDate 结束时间,格式20251024
@@ -324,7 +326,7 @@ class TablePart extends SplBean
 
     /**
      * 按月创建分区
-     * @param string $pattern 匹配数据表的正则表达式，示例值：/(active_\d+)|(login_\d+)|(reg_\d+)/i
+     * @param string|array $pattern 正则表达式 || 表名数组，示例值：/(^active_\d+)|(^login_\d+)|(^reg_\d+)/i
      * @param string $fieldName 分区字段
      * @param string $startDate 开始时间,格式20251024
      * @param string $endDate 结束时间,格式20251024
@@ -342,7 +344,7 @@ class TablePart extends SplBean
 
     /**
      * 按季度创建分区
-     * @param string $pattern 匹配数据表的正则表达式，示例值：/(active_\d+)|(login_\d+)|(reg_\d+)/i
+     * @param string|array $pattern 正则表达式 || 表名数组，示例值：/(^active_\d+)|(^login_\d+)|(^reg_\d+)/i
      * @param string $fieldName 分区字段
      * @param string $startDate 开始时间,格式20251024
      * @param string $endDate 结束时间,格式20251024
@@ -360,7 +362,7 @@ class TablePart extends SplBean
 
     /**
      * 按年创建分区
-     * @param string $pattern 匹配数据表的正则表达式，示例值：/(active_\d+)|(login_\d+)|(reg_\d+)/i
+     * @param string|array $pattern 正则表达式 || 表名数组，示例值：/(^active_\d+)|(^login_\d+)|(^reg_\d+)/i
      * @param string $fieldName 分区字段
      * @param string $startDate 开始时间,格式20251024
      * @param string $endDate 结束时间,格式20251024
