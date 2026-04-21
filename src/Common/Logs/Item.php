@@ -49,7 +49,7 @@ class Item extends SplBean
 
     public function getWriteStr()
     {
-        return "[cid={$this->cid}][{$this->date}][{$this->category}][{$this->level}]{$this->message}";
+        return "[cid={$this->cid}][{$this->date}][{$this->category}][{$this->level}]{$this->message}\n";
     }
 
     public function __get($name)
