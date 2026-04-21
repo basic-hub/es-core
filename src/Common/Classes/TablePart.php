@@ -437,7 +437,8 @@ class TablePart extends SplBean
             }
 
             EsNotify::getInstance()->doesOne($driver, $Message);
-            trace("$title, 服务器：$servname, 数据库: {$this->dbName}, 数据表：" . json_encode($warTables), 'error');
+            trace($msg = "$title, 服务器：$servname, 数据库: {$this->dbName}, 数据表：" . json_encode($warTables), 'error');
+            wechat_warning($msg);
         }
         return $warTables;
     }
