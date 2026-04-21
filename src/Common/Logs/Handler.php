@@ -37,7 +37,7 @@ class Handler implements LoggerInterface
             'category' => $category
         ]);
         $str = $Item->getWriteStr();
-        fwrite(STDOUT, "$str\n");
+        fwrite(STDOUT, "$str");
     }
 
     public function save(Item $Item)
@@ -57,8 +57,14 @@ class Handler implements LoggerInterface
         }
 
         $d = date('d');
+        $filename = "$dir/{$d}{$name}.log";
         $str = $Item->getWriteStr();
-        file_put_contents("$dir/{$d}{$name}.log", "$str\n", FILE_APPEND | LOCK_EX);
+
+        if (\Swoole\Coroutine::getCid() > 0) {
+            \Swoole\Coroutine\System::writeFile($filename, $str, FILE_APPEND | LOCK_EX);
+        } else {
+            file_put_contents($filename, $str, FILE_APPEND | LOCK_EX);
+        }
     }
 
     private function levelMap(int $level)
