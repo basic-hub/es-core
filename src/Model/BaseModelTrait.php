@@ -195,10 +195,11 @@ trait BaseModelTrait
      * 将数据表不存在的字段都存入指定key
      * @param array $input
      * @param string $columnName
+     * @param bool $assign
      * @return $this
      * @throws \EasySwoole\ORM\Exception\Exception
      */
-    public function dataExtension($input = [], $columnName = 'extension')
+    public function dataExtension($input = [], $columnName = 'extension', $assign = true)
     {
         $columns = array_keys($this->schemaInfo()->getColumns());
 
@@ -214,7 +215,7 @@ trait BaseModelTrait
                 $data[$columnName] = array_merge($data[$columnName] ?? [], $input[$columnName] ?? [], [$key => $value]);
             }
         }
-        // $this->data($data);
+        $assign && $this->data($data);
         return $this;
     }
 
