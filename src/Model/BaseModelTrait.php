@@ -191,6 +191,33 @@ trait BaseModelTrait
         return $result;
     }
 
+    /**
+     * 将数据表不存在的字段都存入指定key
+     * @param array $input
+     * @param string $columnName
+     * @return $this
+     * @throws \EasySwoole\ORM\Exception\Exception
+     */
+    public function dataExtension($input = [], $columnName = 'extension')
+    {
+        $columns = array_keys($this->schemaInfo()->getColumns());
+
+        $data = [$columnName => $input[$columnName] ?? []];
+        foreach ($input as $key => $value)
+        {
+            if ($key === $columnName) {
+                continue;
+            }
+            if (in_array($key, $columns)) {
+                $data[$key] = $value;
+            } else {
+                $data[$columnName] = array_merge($data[$columnName] ?? [], $input[$columnName] ?? [], [$key => $value]);
+            }
+        }
+        // $this->data($data);
+        return $this;
+    }
+
     // 开启事务
     public function startTrans()
     {
