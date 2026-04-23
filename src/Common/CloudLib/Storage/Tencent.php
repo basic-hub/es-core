@@ -44,6 +44,42 @@ class Tencent extends Base
         return $this;
     }
 
+    /**
+     * @document https://help.aliyun.com/zh/oss/user-guide/simple-upload?spm=a2c4g.11186623.help-menu-31815.d_0_3_1_0.7a7f7dc03EDW0R&scm=20140722.H_31848._.OR_help-T_cn~zh-V_1#8f0b0bfe23baf
+     * @param string $key
+     * @return string
+     */
+    protected function getObjectKet($key)
+    {
+        // 编码长度最大为850个字节
+        $len = strlen($key);
+        if ($len > 850) {
+            throw new \Exception("Tencent OSS key length too long: $len");
+        }
+        // 不允许以正斜线/或者反斜线\开头
+        $key = ltrim($key, '/');
+
+        $notUse = [
+            // 不允许携带以下字符串：%0a、%0d
+            '%0a',
+            '%0d',
+            // 对象键中不支持 ASCII 控制字符中的字符上(↑)，字符下(↓)，字符右(→)，字符左(←)，分别对应 CAN(24)，EM(25)，SUB(26)，ESC(27)。
+            '\x18',
+            '\x19',
+            '\x1A',
+            '\x1B',
+        ];
+
+        foreach ($notUse as $item) {
+            if (strpos($key, $item) !== false) {
+                throw new \Exception("Tencent The key does not comply with the rules: $key");
+            }
+        }
+
+        return $key;
+    }
+
+
     public function upload($file, $key, $options = [])
     {
         if ( ! is_file($file)) {
@@ -51,6 +87,7 @@ class Tencent extends Base
         }
 
         try {
+            $key = $this->getObjectKet($key);
             $fp = fopen($file, 'rb');
 
             $result = $this->client->putObject([
@@ -71,6 +108,7 @@ class Tencent extends Base
     public function delete($key, $options = [])
     {
         try {
+            $key = $this->getObjectKet($key);
             $result = $this->client->deleteObject([
                 'Bucket' => $this->bucket,
                 'Key' => ltrim($key, '/'),
@@ -85,6 +123,7 @@ class Tencent extends Base
     public function uploadPart($file, $key, $partSize = 10 * 1024 * 1024, $options = [])
     {
         try {
+            $key = $this->getObjectKet($key);
             $fp = fopen($file, 'rb');
             $this->client->upload($this->bucket, $key, $fp, ['PartSize' => $partSize] + $options);
         } catch (\Exception $e) {
@@ -98,6 +137,7 @@ class Tencent extends Base
     function doesObjectExist($key, $options = [])
     {
         try {
+            $key = $this->getObjectKet($key);
             return $this->client->doesObjectExist($this->bucket, ltrim($key, '/'));
         } catch (\Exception $e) {
             trace($e->getMessage(), 'error');
@@ -117,7 +157,10 @@ class Tencent extends Base
     public function copy($formKey, $toKey, $options = [])
     {
         try {
-            $copySource = [$this->bucket, 'cos', $this->region, 'myqcloud.com/' . ltrim($formKey, '/')];
+            $formKey = $this->getObjectKet($formKey);
+            $toKey = $this->getObjectKet($toKey);
+
+            $copySource = [$this->bucket, 'cos', $this->region, 'myqcloud.com/' . $formKey];
             $this->client->copyObject([
                 'Bucket' => $this->bucket,
                 'Key' => $toKey,

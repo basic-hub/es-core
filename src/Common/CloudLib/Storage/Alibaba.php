@@ -48,9 +48,30 @@ class Alibaba extends Base
         }
     }
 
+    /**
+     * @document https://help.aliyun.com/zh/oss/user-guide/simple-upload?spm=a2c4g.11186623.help-menu-31815.d_0_3_1_0.7a7f7dc03EDW0R&scm=20140722.H_31848._.OR_help-T_cn~zh-V_1#8f0b0bfe23baf
+     * @param string $key
+     * @return string
+     */
+    protected function getObjectKet($key)
+    {
+        // 长度必须在1~254字符之间。
+        $len = strlen($key);
+        if ($len < 1 || $len > 254) {
+            throw new \Exception("Alibaba OSS key length too long: $len");
+        }
+        // 不允许出现名为 .. 的目录
+        // 不允许以正斜线（/）或反斜线（\）开头。
+        $key = ltrim($key, '/');
+        // 不允许出现连续的正斜线（/）
+        $key = str_replace('//', '/', $key);
+        return $key;
+    }
+
     public function doesObjectExist($key, $options = [])
     {
         try {
+            $key = $this->getObjectKet($key);
             return $this->client->doesObjectExist($this->bucket, $key, $options);
         } catch (OssException $e) {
             trace($e->__toString(), 'error');
@@ -61,6 +82,7 @@ class Alibaba extends Base
     public function upload($file, $key, $options = [])
     {
         try {
+            $key = $this->getObjectKet($key);
             $this->client->uploadFile($this->bucket, $key, $file);
         } catch (OssException $e) {
             trace($e->__toString(), 'error');
@@ -71,6 +93,7 @@ class Alibaba extends Base
     public function delete($key, $options = [])
     {
         try {
+            $key = $this->getObjectKet($key);
             $this->client->deleteObject($this->bucket, $key, $options);
         } catch (OssException $e) {
             trace($e->__toString(), 'error');
@@ -85,6 +108,7 @@ class Alibaba extends Base
     {
         // 初始化一个分块上传事件, 也就是初始化上传Multipart, 获取upload id
         try {
+            $key = $this->getObjectKet($key);
             $upload_id = $this->client->initiateMultipartUpload($this->bucket, $key);
         } catch (OssException $e) {
             trace("OSS分片上传初始化失败: " . $e->__toString(), 'error');
@@ -160,6 +184,9 @@ class Alibaba extends Base
     public function copy($formKey, $toKey, $options = [])
     {
         try {
+            $formKey = $this->getObjectKet($formKey);
+            $toKey = $this->getObjectKet($toKey);
+
             $this->client->copyObject($this->bucket, $formKey, $this->bucket, $toKey, $options);
         }
         catch (\Exception $e) {
