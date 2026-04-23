@@ -12,8 +12,20 @@ abstract class Base extends SplBean implements StorageInterface
         return end($arr);
     }
 
+    /**
+     * @param string $key
+     * @return string
+     */
+    protected function getObjectKet($key)
+    {
+        return $key;
+    }
+
     public function rename($formKey, $toKey, $options = [])
     {
+        $formKey = $this->getObjectKet($formKey);
+        $toKey = $this->getObjectKet($toKey);
+
         $this->copy($formKey, $toKey, $options);
         $this->delete($formKey, $options);
     }
