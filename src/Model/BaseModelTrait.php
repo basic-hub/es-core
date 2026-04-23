@@ -195,27 +195,43 @@ trait BaseModelTrait
      * 将数据表不存在的字段都存入指定key
      * @param array $input
      * @param string $columnName
-     * @param bool $assign
-     * @return $this
+     * @return array
      * @throws \EasySwoole\ORM\Exception\Exception
      */
-    public function dataExtension($input = [], $columnName = 'extension', $assign = true)
+    public function inputExtension($input = [], $columnName = 'extension')
     {
         $columns = array_keys($this->schemaInfo()->getColumns());
 
-        $data = [$columnName => $input[$columnName] ?? []];
+        // 请求参数应该k=>v扁平化，不要让客户端拼接extension
+        $org = is_array($input[$columnName]) ? $input[$columnName] : [];
+
+        $data = [$columnName => $org];
         foreach ($input as $key => $value)
         {
             if ($key === $columnName) {
                 continue;
             }
+
             if (in_array($key, $columns)) {
                 $data[$key] = $value;
             } else {
-                $data[$columnName] = array_merge($data[$columnName] ?? [], $input[$columnName] ?? [], [$key => $value]);
+                $data[$columnName][$key] = $value;
             }
         }
-        $assign && $this->data($data);
+        return $data;
+    }
+
+    /**
+     * 将数据表不存在的字段都存入指定key,且设置到模型data
+     * @param array $input
+     * @param string $columnName
+     * @return $this
+     * @throws \EasySwoole\ORM\Exception\Exception
+     */
+    public function dataExtension($input = [], $columnName = 'extension')
+    {
+        $data = $this->inputExtension($input, $columnName);
+        $this->data($data);
         return $this;
     }
 
