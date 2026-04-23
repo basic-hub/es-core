@@ -201,10 +201,11 @@ class Alibaba extends Base
      * 2. 对象存储 数据安全 -> 跨域设置： *    暴露header（ETag、x-oss-request-id、x-oss-etag） 勾选“返回 Vary: Origin”
      * 3. 对象存储 权限控制 -> Bucket授权策略 -> 设置oss子账号（用户）完全控制权限
      * 4. oss子账号需要AssumeRole权限（AliyunSTSAssumeRoleAccess）、KMS权限（AliyunKMSFullAccess）
-     * @param $expire
+     * @param string $key
+     * @param int $expire
      * @return array
      */
-    public function stsUpload($expire = 3600)
+    public function stsUpload($key, $expire = 3600)
     {
         $Sts = new \BasicHub\EsCore\Common\CloudLib\Sts\Alibaba($this->toArray());
 
@@ -248,6 +249,7 @@ class Alibaba extends Base
         // 除了基本的密钥信息之外，还需要给客户端返回对象存储信息
         $data['bucket'] = $this->bucket;
         $data['driver'] = $this->getClassName();
+        $data['cloudKey'] = $this->getObjectKet($key);
 
 //        $data['endpoint'] = $this->endpoint;
         $data['region'] = $this->region;
