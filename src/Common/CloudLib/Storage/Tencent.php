@@ -176,11 +176,12 @@ class Tencent extends Base
      * 客户端直传对象存储,一般用于超超大文件
      * 1. 对象存储需要开放允许跨域 ：  安全管理 -> 允许跨域设置 *
      * 2. 对象存储需要设置Policy权限： 给cos子账号允许对象存储操作
-     * @param $expire
+     * @param string $key
+     * @param int $expire
      * @return array
      * @throws \TencentCloud\Common\Exception\TencentCloudSDKException
      */
-    public function stsUpload($expire = 3600)
+    public function stsUpload($key, $expire = 3600)
     {
         $Sts = new \BasicHub\EsCore\Common\CloudLib\Sts\Tencent($this->toArray());
 
@@ -224,6 +225,7 @@ class Tencent extends Base
         // 除了基本的密钥信息之外，还需要给客户端返回对象存储信息
         $data['bucket'] = $this->bucket;
         $data['driver'] = $this->getClassName();
+        $data['cloudKey'] = $this->getObjectKet($key);
 
         $data['region'] = $this->region;
 

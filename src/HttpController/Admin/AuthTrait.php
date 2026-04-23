@@ -543,10 +543,7 @@ trait AuthTrait
      */
     protected function __stsUpload($cloudKey, $expire = 3600)
     {
-        $resp = storage()->stsUpload($expire);
-        // 上传对象存储key
-        $resp['cloudKey'] = $cloudKey;
-        return $resp;
+        return storage()->stsUpload($cloudKey, $expire);
     }
 
     // 分片上传的主目录
