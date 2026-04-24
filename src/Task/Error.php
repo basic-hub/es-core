@@ -35,10 +35,10 @@ class Error implements TaskInterface
         $servname = config('SERVNAME');
         $servername = config('SERVER_NAME');
 
-        $driver = config('ES_NOTIFY.driver') ?: 'dingTalk';
+        $driver = config('ES_NOTIFY.driver') ?: EsNotify::NOTIFY_TYPE_DINGTALK;
 
         switch ($driver) {
-            case 'feishu': // 飞书 card
+            case EsNotify::NOTIFY_TYPE_FEISHU: // 飞书 card
 
                 $message = $this->data['message'] ?? '';
                 foreach ($this->merge as $key => $value) {

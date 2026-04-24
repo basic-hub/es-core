@@ -183,6 +183,9 @@ trait BaseControllerTrait
         // 根节点名称
         $rootName = get_mode('all');
         $point = HTManager::getInstance($HTConfig)->createStart($rootName);
+        if (empty($point)) {
+            return;
+        }
 
         // 如果希望查询某一个key，又不确定在GET还是POST还是XML中，此时查起来会很麻烦，是否需要新增一个ALL 将所有参数合并集中到一个key来进行查询 ??
         $effect = [
@@ -217,7 +220,8 @@ trait BaseControllerTrait
             'repeated' => intval(stripos($request->getHeaderLine('user-agent'), HTConfig::REPEATED) !== false)
         ] + $effect;
 
-        $point && $point->setStartArg($params);
+        $point->setStartArg($params);
+        ctx_set(CtxManager::HTTP_TRACKER_PARENTID, $point->pointId());
     }
 
     protected function httpTrackerEnd()
