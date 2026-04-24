@@ -13,6 +13,8 @@ use EasySwoole\Socket\Bean\Caller;
  */
 class CtxManager extends ContextManager
 {
+    const HTTP_TRACKER_PARENTID = 'HTTP_TRACKER_PARENTID';
+
     private $httpRequestKey = 'httpRequest';
 
     private $websocketCallerKey = 'websocketCaller';

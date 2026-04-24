@@ -15,6 +15,7 @@ use BasicHub\EsCore\Common\Languages\Dictionary;
 use BasicHub\EsCore\Common\Openssl\RsaManager;
 use BasicHub\EsCore\Common\OrmCache\Strings;
 use BasicHub\EsCore\Consumer\Config as ConsumerConfig;
+use BasicHub\EsCore\HttpTracker\Config as HTConfig;
 use BasicHub\EsCore\HttpTracker\HTManager;
 use BasicHub\EsCore\Notify\DingTalk\Message\Markdown;
 use BasicHub\EsCore\Notify\DingTalk\Message\Text;
@@ -656,12 +657,19 @@ if ( ! function_exists('langsf')) {
 if ( ! function_exists('notice')) {
     function notice($content = '', $title = null, $name = 'default')
     {
-        // 富文本
-        if ($title) {
-            config('ES_NOTIFY.driver') == 'feishu' ? feishu_textarea($title, $content, true, $name) : dingtalk_markdown($title, $content, true, $name);
-        } else {
-            config('ES_NOTIFY.driver') == 'feishu' ? feishu_text($content, true, $name) : dingtalk_text($content, true, $name);
-        }
+        $pointId = ctx_get(CtxManager::HTTP_TRACKER_PARENTID);
+        $call = function () use ($content, $title, $name, $pointId) {
+            ctx_set(CtxManager::HTTP_TRACKER_PARENTID, $pointId);
+            // 富文本
+            if ($title) {
+                config('ES_NOTIFY.driver') == 'feishu' ? feishu_textarea($title, $content, true, $name) : dingtalk_markdown($title, $content, true, $name);
+            } else {
+                config('ES_NOTIFY.driver') == 'feishu' ? feishu_text($content, true, $name) : dingtalk_text($content, true, $name);
+            }
+        };
+
+        // 现改为协程环境运行。原因：发现海外程序发送一次(飞书|钉钉|微信)需要好几秒，会阻塞业务请求
+        \Swoole\Coroutine::getCid() > 0 ? go($call) : $call();
     }
 }
 
@@ -910,19 +918,32 @@ if ( ! function_exists('http_tracker')) {
      * 子链路记录，返回一个结束回调，必须保证结束回调被调用
      * @param string $pointName 标识名
      * @param array $data 除自定义参数外，这些key尽量传递完整：ip,method,path,url,GET,POST,JSON,server_name,header
-     * @param string|null $parentId 父级的pointId(在go函数内才需要传)
      * @return \BasicHub\EsCore\HttpTracker\End
      */
-    function http_tracker(string $pointName, array $data = [], $parentId = null)
+    function http_tracker(string $pointName, array $data = [])
     {
+        $config = config('HTTP_TRACKER');
         // 不开启,config进程级
-        if (empty(config('HTTP_TRACKER.open'))) {
+        if (empty($config['open'])) {
             return new \BasicHub\EsCore\HttpTracker\End();
         }
         try {
             $point = HTManager::getInstance()->startPoint();
             if (empty($point)) {
-                return new \BasicHub\EsCore\HttpTracker\End();
+                // 处于子协程中时，父节点还未创建。初始化一个根节点，且从协程上下文读取父id
+                $HTConfig = new HTConfig([
+                    'saveRedisName' => $config['pool_name'],
+                    'saveQueueName' => $config['queue_name'],
+                    'clusterShardNumber' => $config['clusterShardNumber'] ?? 0,
+                ]);
+                // 根节点名称
+                $rootName = get_mode('all') . '.child';
+                $point = HTManager::getInstance($HTConfig)->createStart($rootName);
+                if ($ppid = ctx_get(CtxManager::HTTP_TRACKER_PARENTID)) {
+                    $point->setParentId($ppid);
+                }
+                $point->setStartArg($data + ['server_name' => config('SERVNAME')]);
+                return new \BasicHub\EsCore\HttpTracker\End($point);
             }
 
             // 确保pointName一定是可用的，树结构是通过name标识，相同的name会覆盖之前的
@@ -950,10 +971,6 @@ if ( ! function_exists('http_tracker')) {
             }
 
             $childPoint = $point->appendChild($name);
-            if ($parentId) {
-                // 设置父级id
-                $childPoint->setParentId($parentId);
-            }
             $childPoint->setStartArg($data + ['server_name' => config('SERVNAME')]);
             return new \BasicHub\EsCore\HttpTracker\End($childPoint);
         } catch (\Exception|\Throwable $e) {
