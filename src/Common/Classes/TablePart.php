@@ -152,6 +152,14 @@ class TablePart extends SplBean
             if (!$isMatchExp && !$isMatchArr) {
                 continue;
             }
+
+            // RANGE分区需要分区字段包含在主键中
+            $primaryKey = $this->MysqlClient->getPrimaryKey($tableName);
+            if (!in_array($fieldName, $primaryKey)) {
+                trace("需要分区的表[$tableName]主键中不包含需要分区的字段[$fieldName], 主键为：" . var_export($primaryKey, true), 'error');
+                continue;
+            }
+
             // 符合规则的数据表，对于已有分区则添加，无分区则执行初始化
             if ($this->checkExist($tableName)) {
                 $this->addPart($tableName, $listdate);
