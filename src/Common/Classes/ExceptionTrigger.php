@@ -47,6 +47,9 @@ class ExceptionTrigger implements TriggerInterface
         trace($eMsg, 'error', $trigger);
         unset($eMsg['trace']);
         $eMsg['trigger'] = $trigger;
+        if ($htid = ctx_get(CtxManager::HTTP_TRACKER_PARENTID)) {
+            $eMsg['htid'] = $htid;
+        }
         if (\Swoole\Coroutine::getCid() > 0) {
             $task = \EasySwoole\EasySwoole\Task\TaskManager::getInstance();
             $task->async(new \BasicHub\EsCore\Task\Error($eMsg));

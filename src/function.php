@@ -659,7 +659,7 @@ if ( ! function_exists('notice')) {
     {
         $pointId = ctx_get(CtxManager::HTTP_TRACKER_PARENTID);
         $call = function () use ($content, $title, $name, $pointId) {
-            ctx_set(CtxManager::HTTP_TRACKER_PARENTID, $pointId);
+            $pointId && ctx_set(CtxManager::HTTP_TRACKER_PARENTID, $pointId);
             // 富文本
             if ($title) {
                 config('ES_NOTIFY.driver') == 'feishu' ? feishu_textarea($title, $content, true, $name) : dingtalk_markdown($title, $content, true, $name);
@@ -928,21 +928,23 @@ if ( ! function_exists('http_tracker')) {
             return new \BasicHub\EsCore\HttpTracker\End();
         }
         try {
-            $point = HTManager::getInstance()->startPoint();
+            $data['server_name'] = config('SERVNAME');
+
+            $HTConfig = new HTConfig([
+                'saveRedisName' => $config['pool_name'],
+                'saveQueueName' => $config['queue_name'],
+                'clusterShardNumber' => $config['clusterShardNumber'] ?? 0,
+            ]);
+
+            $point = HTManager::getInstance($HTConfig)->startPoint();
             if (empty($point)) {
                 // 处于子协程中时，父节点还未创建。初始化一个根节点，且从协程上下文读取父id
-                $HTConfig = new HTConfig([
-                    'saveRedisName' => $config['pool_name'],
-                    'saveQueueName' => $config['queue_name'],
-                    'clusterShardNumber' => $config['clusterShardNumber'] ?? 0,
-                ]);
-                // 根节点名称
                 $rootName = get_mode('all') . '.child';
-                $point = HTManager::getInstance($HTConfig)->createStart($rootName);
+                $point = HTManager::getInstance()->createStart($rootName);
                 if ($ppid = ctx_get(CtxManager::HTTP_TRACKER_PARENTID)) {
                     $point->setParentId($ppid);
                 }
-                $point->setStartArg($data + ['server_name' => config('SERVNAME')]);
+                $point->setStartArg($data);
                 return new \BasicHub\EsCore\HttpTracker\End($point);
             }
 
@@ -971,7 +973,7 @@ if ( ! function_exists('http_tracker')) {
             }
 
             $childPoint = $point->appendChild($name);
-            $childPoint->setStartArg($data + ['server_name' => config('SERVNAME')]);
+            $childPoint->setStartArg($data);
             return new \BasicHub\EsCore\HttpTracker\End($childPoint);
         } catch (\Exception|\Throwable $e) {
             trace("http_tracker name=$pointName; Error: " . $e->__toString(), 'error');
