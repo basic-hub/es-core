@@ -45,8 +45,8 @@ abstract class Base extends SplBean implements HttpInterface
     protected $headers = [];
 
     /**
-     * http_tracker名
-     * @var string
+     * http_tracker名，传 null 时不记录链路，例如在自定义进程或crontab程序中运行时
+     * @var string|null
      */
     protected $htname = 'http-request';
 
@@ -155,20 +155,23 @@ abstract class Base extends SplBean implements HttpInterface
      */
     private function doRequest($data)
     {
+        $End = null;
         try {
-            $End = http_tracker($this->htname, [
-                'method'  => strtoupper($this->method),
-                'url'     => $this->url,
-                'data'    => $data,
-                'headers' => $this->headers,
-            ]);
+            if (!empty($this->htname)) {
+                $End = http_tracker($this->htname, [
+                    'method'  => strtoupper($this->method),
+                    'url'     => $this->url,
+                    'data'    => $data,
+                    'headers' => $this->headers,
+                ]);
+            }
 
             $sendResult = $this->send($data);
             $code = $sendResult[0];
             $org  = $sendResult[1];
             $rawObject = $sendResult[2] ?? null;
 
-            $End($org, $code);
+            is_callable($End) && $End($org, $code);
         } catch (\Exception $e) {
             $err = "{$this->logKeyword} 请求失败！信息为：{$e->getMessage()} 传参为："
                 . json_encode(['url' => $this->url, 'data' => $data], JSON_UNESCAPED_UNICODE);
