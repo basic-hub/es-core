@@ -2,6 +2,7 @@
 
 namespace BasicHub\EsCore\Task;
 
+use BasicHub\EsCore\Common\Classes\CtxManager;
 use EasySwoole\Task\AbstractInterface\TaskInterface;
 use EasySwoole\Utility\File;
 use BasicHub\EsCore\Common\Classes\DateUtils;
@@ -34,6 +35,10 @@ class Error implements TaskInterface
         $title = '程序异常';
         $servname = config('SERVNAME');
         $servername = config('SERVER_NAME');
+
+        if (!empty($this->data['htid'])) {
+            ctx_set(CtxManager::HTTP_TRACKER_PARENTID, $this->data['htid']);
+        }
 
         $driver = config('ES_NOTIFY.driver') ?: EsNotify::NOTIFY_TYPE_DINGTALK;
 

@@ -280,6 +280,7 @@ trait BaseControllerTrait
                         'message' => $message,
                         'file' => $throwable->getFile(),
                         'line' => $throwable->getLine(),
+                        'htid' => ctx_get(CtxManager::HTTP_TRACKER_PARENTID) ?? '',
                     ], $throwable->getData())
             );
         } else {
