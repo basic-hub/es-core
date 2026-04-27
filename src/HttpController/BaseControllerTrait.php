@@ -152,7 +152,7 @@ trait BaseControllerTrait
 
     /**
      * 校验jwt token
-     * @param string $chkdata 检查参数key，空值则不进行检查
+     * @param string|array $chkdata 检查参数key，空值则不进行检查，支持多参数校验
      * @return void
      */
     protected function checkJwtToken($chkKey = '')
@@ -221,6 +221,7 @@ trait BaseControllerTrait
         ] + $effect;
 
         $point->setStartArg($params);
+        // 当前的point_id，也是子协程的parent_id
         ctx_set(CtxManager::HTTP_TRACKER_PARENTID, $point->pointId());
     }
 
