@@ -942,7 +942,7 @@ if ( ! function_exists('http_tracker')) {
             $point = HTManager::getInstance($HTConfig)->startPoint();
             if (empty($point)) {
                 // 处于子协程中时，父节点还未创建。初始化一个根节点，且从协程上下文读取父id
-                $rootName = get_mode('all') . '.child';
+                $rootName = $pointName . '.child';
                 $point = HTManager::getInstance()->createStart($rootName);
                 if ($ppid = ctx_get(CtxManager::HTTP_TRACKER_PARENTID)) {
                     $point->setParentId($ppid);
