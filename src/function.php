@@ -505,6 +505,9 @@ if ( ! function_exists('get_jwt_token')) {
             $Jwt->setIss(CP);
         }
 
+        // sub：固定存 用户唯一 ID / 唯一身份标识
+        // aud：存 客户端类型、业务服务名、站点标识 （SDK登录/线下充值/后台登录）
+
         return $Jwt->setSecretKey($config['key'])
             ->setExp($time + $config['expire'])
             ->setIat($time)
