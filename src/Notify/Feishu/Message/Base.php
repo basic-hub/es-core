@@ -100,62 +100,8 @@ abstract class Base extends SplBean implements MessageInterface
             ]);
     }
 
-    public function getImageKey($img, $pool = 'admin')
-    {
-        $tenant_access_token = $this->tenantAccessToken($pool);
-        $headers = [
-            'Content-Type' => HttpClient::CONTENT_TYPE_FORM_DATA,
-            'Authorization' => "Bearer {$tenant_access_token}",
-        ];
-        $sendParams = [
-            'image_type' => 'message',
-            'image' => curl_file_create($img),
-        ];
-        $result = hcurl('https://open.feishu.cn/open-apis/im/v1/images', $sendParams, 'post', $headers);
-        if (isset($result['code']) && $result['code'] == 0) {
-            return $result['data']['image_key'];
-        } else {
-            return '';
-        }
-    }
-
-    public function sendUserToken($pool = 'admin')
-    {
-        return $this->tenantAccessToken($pool);
-    }
-
     public function setInner($inner)
     {
         $this->inner = $inner;
-    }
-
-    /**
-     * 自建应用获取 tenant_access_token
-     * @document https://open.feishu.cn/document/server-docs/authentication-management/access-token/tenant_access_token_internal
-     * @return mixed|string
-     * @throws \EasySwoole\HttpClient\Exception\InvalidUrl
-     */
-    public function tenantAccessToken($pool = 'admin')
-    {
-        $appId = config('ES_NOTIFY.feishu.appId');
-        $appSecret = config('ES_NOTIFY.feishu.appSecret');
-        $key = "tenant_access_token-{$appId}";
-        $Redis = defer_redis($pool);
-        $token = $Redis->get($key);
-        if ( ! empty($token)) {
-            return $token;
-        }
-
-        $sendParams = [
-            'app_id' => $appId,
-            'app_secret' => $appSecret,
-        ];
-
-        $result = hcurl('https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal', $sendParams);
-        if (isset($result['code']) && $result['code'] == 0) {
-            $Redis->setEx($key, $result['expire'] - 60, $result['tenant_access_token']);
-            return $result['tenant_access_token'];
-        }
-        return '';
     }
 }

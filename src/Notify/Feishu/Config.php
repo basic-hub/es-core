@@ -26,6 +26,12 @@ class Config extends SplBean implements ConfigInterface
      */
     protected $at = false;
 
+    /**
+     * 自建应用获取tenant_access_token时，需要redis缓存
+     * @var string
+     */
+    protected $redisPoolName = 'admin';
+
     public function setUrl($url)
     {
         $this->url = $url;
@@ -54,6 +60,16 @@ class Config extends SplBean implements ConfigInterface
     public function getAt()
     {
         return $this->at;
+    }
+
+    public function setRedisPoolName(string $pool)
+    {
+        $this->redisPoolName = $pool;
+    }
+
+    public function getRedisPoolName()
+    {
+        return $this->redisPoolName;
     }
 
     public function getNotifyClass(): NotifyInterface
