@@ -4,14 +4,14 @@ namespace BasicHub\EsCore\Notify\Feishu\Message;
 
 class Images extends Base
 {
-    protected $content = '';
+    protected $imageKey= '';
 
     public function fullData()
     {
         $data = [
             'msg_type' => 'image',
             'content' => [
-                'image_key' => $this->getImageKey($this->content),
+                'image_key' => $this->imageKey,
             ],
         ];
         return $data;

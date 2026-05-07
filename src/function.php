@@ -505,6 +505,9 @@ if ( ! function_exists('get_jwt_token')) {
             $Jwt->setIss(CP);
         }
 
+        // sub：固定存 用户唯一 ID / 唯一身份标识
+        // aud：存 客户端类型、业务服务名、站点标识 （SDK登录/线下充值/后台登录）
+
         return $Jwt->setSecretKey($config['key'])
             ->setExp($time + $config['expire'])
             ->setIat($time)
@@ -939,7 +942,7 @@ if ( ! function_exists('http_tracker')) {
             $point = HTManager::getInstance($HTConfig)->startPoint();
             if (empty($point)) {
                 // 处于子协程中时，父节点还未创建。初始化一个根节点，且从协程上下文读取父id
-                $rootName = get_mode('all') . '.child';
+                $rootName = $pointName . '.child';
                 $point = HTManager::getInstance()->createStart($rootName);
                 if ($ppid = ctx_get(CtxManager::HTTP_TRACKER_PARENTID)) {
                     $point->setParentId($ppid);

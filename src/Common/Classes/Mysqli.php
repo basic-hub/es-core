@@ -44,6 +44,14 @@ class Mysqli extends MysqliClient
         }
     }
 
+    /**
+     * 注意$rawQuery默认值为true是直接生成原始SQL，没有走预查询，会导致SQL注入风险，SDK中应该禁止使用
+     * @param QueryBuilder $builder
+     * @param bool $rawQuery
+     * @return Result
+     * @throws \EasySwoole\ORM\Exception\Exception
+     * @throws \Throwable
+     */
     public function query(QueryBuilder $builder, bool $rawQuery = true): Result
     {
         return parent::query($builder, $rawQuery);
@@ -85,6 +93,18 @@ class Mysqli extends MysqliClient
         return $pk;
     }
 
+    /**
+     * onDuplicate会导致自增id跳步，自增id表慎用
+     * 1.执行 INSERT ... ON DUPLICATE KEY UPDATE
+     * 2.MySQL 先预分配、拉高自增 ID 计数器
+     * 3.然后检测到唯一索引冲突，放弃插入、改成更新
+     * 4.但是：已经拉高的自增计数器不会回滚
+     * @param string $tableName
+     * @param array $data
+     * @param array $duplicate
+     * @return Result
+     * @throws Exception
+     */
     public function replace($tableName, $data = [], $duplicate = [])
     {
         $columns = array_flip($this->fullColumns($tableName));
@@ -142,7 +162,9 @@ class Mysqli extends MysqliClient
 
         $this->connect();
 
-        // 由于上方可能已经将连接close，导致session级变量失效，需重新设置
+        // 由于上方可能已经将连接close，导致session级变量失效，解决方案二选一：
+        // 1. 从实例化就设置为fetch模式，上方就不会close连接
+        // 2. 传递session级变量，重新给client设置
         if ($vars) {
             foreach ($vars as $varname => $val) {
                 $name = 'set' . Str::studly($varname);
