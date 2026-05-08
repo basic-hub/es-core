@@ -27,6 +27,18 @@ class Config extends SplBean implements ConfigInterface
     protected $at = false;
 
     /**
+     * 自建应用appId
+     * @var string
+     */
+    protected $appId = '';
+
+    /**
+     * 自建应用密钥
+     * @var string
+     */
+    protected $appSecret = '';
+
+    /**
      * 自建应用获取tenant_access_token时，需要redis缓存
      * @var string
      */
@@ -60,6 +72,27 @@ class Config extends SplBean implements ConfigInterface
     public function getAt()
     {
         return $this->at;
+    }
+
+    public function setAppId($appId)
+    {
+        $this->appId = $appId;
+    }
+
+    public function getAppId()
+    {
+        return $this->appId;
+    }
+
+    public function setAppSecret($appSecret)
+    {
+        $this->appSecret = $appSecret;
+    }
+
+    public function getAppSecret()
+    {
+        return $this->appSecret;
+
     }
 
     public function setRedisPoolName(string $pool)

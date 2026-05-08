@@ -43,13 +43,8 @@ class Notify implements NotifyInterface
 
         $json = hcurl($url, $data, 'json');
         if ($json['errcode'] !== 0) {
-            // todo 异常处理
+            trace("dingTalk消息发送失败: message=" . $message->__toString() . ', response=' . json_encode($json, JSON_UNESCAPED_UNICODE), 'error');
         }
         return $json;
-    }
-
-    public function sendUser(MessageInterface $message, $union_id)
-    {
-
     }
 }
