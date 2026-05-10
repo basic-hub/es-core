@@ -42,21 +42,6 @@ trait BaseTrait
     {
     }
 
-    protected function success($result = null, $msg = null)
-    {
-        // 合计行antdv的rowKey
-        $name = config('fetchSetting.footerField');
-        // 合计行为二维数组
-        if (is_array($result) && isset($result[$name]) && is_array($result[$name])) {
-            $date = date(DateUtils::YmdHis);
-            $result[$name] = array_map(function ($value) use ($date) {
-                $value['key'] = strval($value['key'] ?? ($date . uniqid(true)));
-                return $value;
-            }, $result[$name]);
-        }
-        return $this->writeJson(Code::CODE_OK, $result, $msg);
-    }
-
     /**
      * 如果GET有传tzn参数，自动注入连接并切时区
      * @return bool
