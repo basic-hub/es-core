@@ -21,13 +21,24 @@ class Notify implements NotifyInterface
         $this->Config = $Config;
     }
 
+
+    public function does(MessageInterface $message)
+    {
+        // 优先使用自建应用推送，实例还需要应用appid、secret等参数，这里暂不做校验
+        if ($this->Config->getReceiveId()) {
+            $this->sendAppMessages($message);
+        } else {
+            $this->sendWebHook($message);
+        }
+    }
+
     /**
      * @document https://open.feishu.cn/document/client-docs/bot-v3/add-custom-bot#%E6%94%AF%E6%8C%81%E5%8F%91%E9%80%81%E7%9A%84%E6%B6%88%E6%81%AF%E7%B1%BB%E5%9E%8B%E8%AF%B4%E6%98%8E
      * 自定义机器人的频率控制和普通应用不同，为 100 次/分钟，5 次/秒
      * @param MessageInterface $message
      * @return void|array
      */
-    public function does(MessageInterface $message)
+    public function sendWebHook(MessageInterface $message)
     {
         $data = $message->fullData();
 
@@ -111,21 +122,23 @@ class Notify implements NotifyInterface
      * @document https://open.feishu.cn/document/server-docs/im-v1/message/create?appId=cli_a6f0289db033500b
      * 接口频率限制 1000 次/分钟、50 次/秒
      * @param MessageInterface $message
-     * @param string $receive_id 消息接收者的 ID
-     * @param string $receive_id_type 用户id类型，枚举值：open_id|union_id|user_id|email|chat_id
      * @return array|mixed|object
      * @throws \Exception
      */
-    public function sendAppMessages(MessageInterface $message, $receive_id, $receive_id_type = 'chat_id')
+    public function sendAppMessages(MessageInterface $message)
     {
         $message->setInner(false);
         $sendParams = $message->fullData();
-        $url = "https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=$receive_id_type";
+
+        $receiveIdType = $this->Config->getReceiveIdType();
+        $receiveId = $this->Config->getReceiveId();
+
+        $url = "https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=$receiveIdType";
         $headers = [
             'Content-Type' => HttpClient::CONTENT_TYPE_APPLICATION_JSON,
             'Authorization' => 'Bearer ' . $this->getTenantAccessToken(),
         ];
-        $sendParams['receive_id'] = $receive_id;
+        $sendParams['receive_id'] = $receiveId;
         $sendParams['content'] = json_encode($sendParams['card'] ?? $sendParams['content']); // 实际上要二次encode,下面还有一次
 
         return hcurl($url, $sendParams, 'json', $headers);
