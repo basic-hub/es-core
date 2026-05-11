@@ -6,9 +6,11 @@ use EasySwoole\Mysqli\QueryBuilder;
 use BasicHub\EsCore\Common\Classes\Mysqli;
 use BasicHub\EsCore\Common\Exception\HttpParamException;
 use BasicHub\EsCore\Common\Http\Code;
+use EasySwoole\ORM\AbstractModel;
 
 /**
- * @property \App\Model\Log\HttpTracker $Model
+ * @property AbstractModel $Model
+ * @mixin \App\Model\Log\HttpTracker
  */
 trait HttpTrackerTrait
 {
@@ -34,6 +36,11 @@ trait HttpTrackerTrait
         }
 
         $builder = new QueryBuilder();
+        // 如果是联合主键（point_id + instime）
+        $pk = $this->Model->schemaInfo()->getPkFiledName();
+        if (is_array($pk) && in_array('instime', $pk)) {
+            $builder->where('point_id', '', '<>');
+        }
         $builder->where('instime', [$filter['begintime'], $filter['endtime']], 'BETWEEN');
 
         foreach (['repeated', 'server_name', 'url', 'ip', 'depth'] as $col) {
@@ -89,9 +96,6 @@ trait HttpTrackerTrait
         if ($my = trim($filter['sql'])) {
             $builder->where("($my)");
         }
-
-        // 初始层级
-        //$builder->where('depth', 0);
 
         return $builder;
     }
