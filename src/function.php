@@ -2144,7 +2144,7 @@ if (!function_exists('request_lock_await')) {
             }
             if ($waited >= $waitMax) {
                 // 超时仍未获得锁，说明持锁方异常，记录告警后放行（避免永久阻塞）
-                is_callable($timeoutCall) && $timeoutCall($lockKey, $lockVal);
+                is_callable($timeoutCall) && $timeoutCall();
                 break;
             }
             \Swoole\Coroutine::sleep($waitInterval);
