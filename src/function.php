@@ -2119,6 +2119,47 @@ if (!function_exists('request_lock')) {
     }
 }
 
+if (!function_exists('request_lock_await')) {
+    /**
+     * 分布式并发阻塞锁, 抢到锁的先执行，未抢到的轮询等待，锁释放后再继续
+     * 处理多台服务器、多个进程 同时处理相同请求，但此类请求不能并发运行且不能响应失败的场景
+     *    例如:防止 iosPay/iosServer、googlePay/googleServer、支付渠道同步/异步 同时处理同一笔订单
+     * @param Redis $Redis
+     * @param string $lockKey
+     * @param string $lockVal
+     * @param int $ttl 锁最长持有秒数，防止进程崩溃后死锁，30
+     * @param int $waitMax 最多等待秒数，10
+     * @param float $waitInterval 每次轮询间隔（秒），0.3
+     * @param \Closure $timeoutCall 超时回调,回调内应只做日志登操作，请勿抛异常
+     * @return Closure
+     * @throws \EasySwoole\Redis\Exception\RedisException
+     */
+    function request_lock_await(Redis $Redis, $lockKey, $lockVal, $ttl, $waitMax, $waitInterval, $timeoutCall = null)
+    {
+        $waited = 0;
+        while (true) {
+            $locked = $Redis->set($lockKey, $lockVal, ['NX', 'EX' => $ttl]);
+            if ($locked) {
+                break; // 抢到锁，继续执行
+            }
+            if ($waited >= $waitMax) {
+                // 超时仍未获得锁，说明持锁方异常，记录告警后放行（避免永久阻塞）
+                is_callable($timeoutCall) && $timeoutCall($lockKey, $lockVal);
+                break;
+            }
+            \Swoole\Coroutine::sleep($waitInterval);
+            $waited += $waitInterval;
+        }
+        // 可能return function 更好，时机可控，欢迎反馈
+        \Swoole\Coroutine::defer(function () use ($Redis, $lockKey, $lockVal) {
+            // 释放锁：比对 lockVal 确保只删自己持有的锁
+            if ($Redis->get($lockKey) === $lockVal) {
+                $Redis->del($lockKey);
+            }
+        });
+    }
+}
+
 if (!function_exists('build_consumer_config')) {
     /**
      * 将消费者配置数组批量转换为 Config 对象
