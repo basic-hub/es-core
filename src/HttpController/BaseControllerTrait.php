@@ -167,13 +167,11 @@ trait BaseControllerTrait
     protected function httpTrackerStart()
     {
         $htConfig = $this->htcfg;
-        if (empty($htConfig['open'])) {
+        if ($this->isIgnoreHttpTracker()) {
             return;
         }
+
         $request = $this->request();
-        if (is_array($htConfig['ignore_path']) && in_array($request->getUri()->getPath(), $htConfig['ignore_path'])) {
-            return;
-        }
 
         $HTConfig = new HTConfig([
             'saveRedisName' => $htConfig['pool_name'],
@@ -227,12 +225,7 @@ trait BaseControllerTrait
 
     protected function httpTrackerEnd()
     {
-        $htConfig = $this->htcfg;
-        if (empty($htConfig['open'])) {
-            return;
-        }
-        $request = $this->request();
-        if (is_array($htConfig['ignore_path']) && in_array($request->getUri()->getPath(), $htConfig['ignore_path'])) {
+        if ($this->isIgnoreHttpTracker()) {
             return;
         }
 
@@ -251,6 +244,24 @@ trait BaseControllerTrait
 
         $point = HTManager::getInstance()->startPoint();
         $point && $point->setEndArg($endData)->end();
+    }
+
+    /**
+     * 是否忽略链路日志
+     * @return bool  true-不记录日志，false-记录
+     */
+    protected function isIgnoreHttpTracker()
+    {
+        $htConfig = $this->htcfg;
+        // 未开启
+        if (empty($htConfig['open'])) {
+            return false;
+        }
+        $request = $this->request();
+        $ignore_path = is_array($htConfig['ignore_path']) && in_array($request->getUri()->getPath(), $htConfig['ignore_path']);
+        $ignore = is_callable($htConfig['ignore']) && $htConfig['ignore']($request->getUri());
+
+        return $ignore_path || $ignore;
     }
 
     protected function setLanguageConstants()
