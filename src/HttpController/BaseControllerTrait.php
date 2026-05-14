@@ -255,7 +255,7 @@ trait BaseControllerTrait
         $htConfig = $this->htcfg;
         // 未开启
         if (empty($htConfig['open'])) {
-            return false;
+            return true;
         }
         $request = $this->request();
         $ignore_path = is_array($htConfig['ignore_path']) && in_array($request->getUri()->getPath(), $htConfig['ignore_path']);
