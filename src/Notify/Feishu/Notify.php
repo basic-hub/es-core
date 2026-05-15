@@ -57,22 +57,21 @@ class Notify implements NotifyInterface
     }
 
     /**
-     * 自建应用获取 tenant_access_token
-     * @document https://open.feishu.cn/document/server-docs/authentication-management/access-token/tenant_access_token_internal
-     * @return mixed
-     * @throws \EasySwoole\HttpClient\Exception\InvalidUrl
+     * @param string $tokenName tenant_access_token|app_access_token
+     * @return bool|string
      */
-    public function getTenantAccessToken()
+    protected function getAccessToken($tokenName)
     {
         $Config = $this->Config;
-        return RedisPool::invoke(function (Redis $Redis) use ($Config) {
+        return RedisPool::invoke(function (Redis $Redis) use ($Config, $tokenName) {
             $appId = $Config->getAppId();
             $appSecret = $Config->getAppSecret();
             // 再拼接md5值，任何一个参数变化，都重新缓存。否则重置密钥之后会有问题。明文appid是给人看
             $md5 = md5($appId . $appSecret);
-            $key = "tenant_access_token-{$appId}-{$md5}";
+            $key = "Feishu-{$tokenName}-{$appId}-{$md5}";
 
             $token = $Redis->get($key);
+            // 命中redis
             if ( ! empty($token)) {
                 return $token;
             }
@@ -82,13 +81,33 @@ class Notify implements NotifyInterface
                 'app_secret' => $appSecret,
             ];
 
-            $result = hcurl('https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal', $sendParams);
+            $result = hcurl("https://open.feishu.cn/open-apis/auth/v3/$tokenName/internal", $sendParams, 'json');
             if (isset($result['code']) && $result['code'] == 0) {
-                $Redis->setEx($key, $result['expire'] - 60, $result['tenant_access_token']);
-                return $result['tenant_access_token'];
+                $Redis->setEx($key, $result['expire'] - 60, $result[$tokenName]);
+                return $result[$tokenName];
             }
             return false;
         }, $Config->getRedisPoolName());
+    }
+
+    /**
+     * 自建应用获取 tenant_access_token
+     * @document https://open.feishu.cn/document/server-docs/authentication-management/access-token/tenant_access_token_internal
+     * @return bool|string
+     */
+    public function getTenantAccessToken()
+    {
+        return $this->getAccessToken('tenant_access_token');
+    }
+
+    /**
+     * 自建应用获取 app_access_token
+     * @document https://open.feishu.cn/document/server-docs/authentication-management/access-token/app_access_token_internal
+     * @return bool|string
+     */
+    public function getAppAccessToken()
+    {
+        return $this->getAccessToken('app_access_token');
     }
 
     /**
