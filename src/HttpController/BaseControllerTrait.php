@@ -173,14 +173,9 @@ trait BaseControllerTrait
 
         $request = $this->request();
 
-        $HTConfig = new HTConfig([
-            'saveRedisName' => $htConfig['pool_name'],
-            'saveQueueName' => $htConfig['queue_name'],
-            'clusterShardNumber' => $htConfig['clusterShardNumber'] ?? 0,
-        ]);
         // 根节点名称
         $rootName = get_mode('all');
-        $point = HTManager::getInstance($HTConfig)->createStart($rootName);
+        $point = http_tracker_instance($htConfig)->createStart($rootName);
         if (empty($point)) {
             return;
         }
@@ -242,7 +237,7 @@ trait BaseControllerTrait
         }
         $endData = ['httpStatusCode' => $code, 'data' => $data];
 
-        $point = HTManager::getInstance()->startPoint();
+        $point = http_tracker_instance()->startPoint();
         $point && $point->setEndArg($endData)->end();
     }
 
