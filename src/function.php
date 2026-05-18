@@ -915,6 +915,23 @@ if ( ! function_exists('json_decode_ext')) {
     }
 }
 
+if ( ! function_exists('http_tracker_instance')) {
+    function http_tracker_instance($config = [])
+    {
+        $config = $config ?: config('HTTP_TRACKER');
+        if (empty($config['open'])) {
+            throw new \Exception('http_tracker Not enabled' . get_mode('all'));
+        }
+        $HTConfig = new HTConfig([
+            'saveRedisName' => $config['pool_name'],
+            'saveQueueName' => $config['queue_name'],
+            'clusterShardNumber' => $config['clusterShardNumber'] ?? 0,
+        ]);
+
+        return HTManager::getInstance($HTConfig);
+    }
+}
+
 
 if ( ! function_exists('http_tracker')) {
     /**
@@ -932,18 +949,11 @@ if ( ! function_exists('http_tracker')) {
         }
         try {
             $data['server_name'] = config('SERVNAME');
-
-            $HTConfig = new HTConfig([
-                'saveRedisName' => $config['pool_name'],
-                'saveQueueName' => $config['queue_name'],
-                'clusterShardNumber' => $config['clusterShardNumber'] ?? 0,
-            ]);
-
-            $point = HTManager::getInstance($HTConfig)->startPoint();
+            $point = http_tracker_instance($config)->startPoint();
             if (empty($point)) {
                 // 处于子协程中时，父节点还未创建。初始化一个根节点，且从协程上下文读取父id
                 $rootName = $pointName . '.child';
-                $point = HTManager::getInstance()->createStart($rootName);
+                $point = http_tracker_instance($config)->createStart($rootName);
                 if ($ppid = ctx_get(CtxManager::HTTP_TRACKER_PARENTID)) {
                     $point->setParentId($ppid);
                 }
@@ -985,6 +995,25 @@ if ( ! function_exists('http_tracker')) {
     }
 }
 
+if ( ! function_exists('http_tracker_append')) {
+    /**
+     * 向根节点追加数据，用于一些加密请求，将解密数据设至原父节点，而不用新增子节点展示明文请求数据
+     * 例如：苹果支付服务器通知、谷歌支付服务器通知、RuStore服务器通知 等等等等
+     * @param array $append
+     * @return void
+     */
+    function http_tracker_append(array $append = [])
+    {
+        $rootPoint = http_tracker_instance()->startPoint();
+        if (empty($rootPoint)) {
+            return;
+        }
+        $startArg = $rootPoint->getStartArg();
+        // 只能新增，不能覆盖，禁止修改原始请求内容
+        $startArg += $append;
+        $rootPoint->setStartArg($startArg);
+    }
+}
 
 if ( ! function_exists('format_keyval')) {
     function format_keyval($kv = [], $keyName = 'Key', $valName = 'Value')
