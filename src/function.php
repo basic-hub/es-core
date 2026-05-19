@@ -1346,7 +1346,7 @@ if ( ! function_exists('request_pay_api')) {
 if ( ! function_exists('request_lan_api')) {
     /**
      * 请求内网api
-     * @param string $lan_key admin|sdk|pay|log
+     * @param string $lan_key admin|sdk|pay|log|直接传递域名
      * @param string $uri 地址
      * @param array $data 参数
      * @param string $method 请求方式
@@ -1386,9 +1386,12 @@ if ( ! function_exists('request_lan_api')) {
          }
          */
 
-        // 优先判断配置项  MODULE_DOMAIN.sdk_url
-        $url = config("MODULE_DOMAIN.{$lan_key}_url");
-        if (empty($url)) {
+        // 如果$lan_key是域名则直接使用 > config配置（内存） > sysinfo配置（Redis IO）。海外环境，可能每个包都是不同的一级域名，需要支持传参
+        if (is_http_protocol($lan_key)) {
+            $url = $lan_key;
+        } elseif ($cfgurl = config("MODULE_DOMAIN.{$lan_key}_url")) {
+            $url = $cfgurl;
+        } else {
             $env = get_mode();
             $lan = sysinfo("{$lan_key}_lan.$env");
             // 支持字符串和数组配置
