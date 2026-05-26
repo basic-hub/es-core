@@ -7,7 +7,8 @@
       "WebFetch(domain:docs.anthropic.com)",
       "WebFetch(domain:lanyiapi.com)",
       "WebFetch(domain:wiki.swoole.com)",
-      "WebFetch(domain:open.feishu.cn)"
+      "WebFetch(domain:open.feishu.cn)",
+      "WebFetch(domain:developers.cloudflare.com)"
     ]
   }
 }

@@ -25,7 +25,7 @@ abstract class Base extends SplBean implements GeoInterface
      * @param string $ip 待检测IP地址（IPv4/IPv6）
      * @return bool true=非公网IP，false=公网IP
      */
-    public function isNonPublicIp(string $ip): bool
+    public static function isNonPublicIp(string $ip): bool
     {
         // 所有非公网IP的CIDR段（IPv4+IPv6）
         $nonPublicCidrs = [

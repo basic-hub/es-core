@@ -19,8 +19,8 @@ use Swoole\Coroutine;
  *   $client = new HCurl([
  *       'url'           => 'https://api.example.com/data',
  *       'retryTimes'    => 3,
- *       'retryCallback' => function ($code, $result, $org) {
- *           return $code === 200 && !empty($result['data']);
+ *       'retryCallback' => function ($httpCode, $decodeOrg, $org) {
+ *           return $httpCode === 200 && !empty($decodeOrg['data']);
  *       },
  *   ]);
  */
@@ -74,7 +74,7 @@ abstract class Base extends SplBean implements HttpInterface
 
     /**
      * 判断请求是否成功的回调，返回 true 表示成功无需重试，返回 false 触发重试
-     * 签名: function(int $code, mixed $result, string $org): bool
+     * 签名: function(int $httpCode, mixed $decodeOrg, string $org): bool
      * null 时使用默认策略（2xx/3xx 为成功）
      * false 时禁用重试判断（即使 retryTimes > 0 也不重试）
      * @var \Closure|false|null
@@ -115,8 +115,8 @@ abstract class Base extends SplBean implements HttpInterface
     protected function initialize(): void
     {
         if (is_null($this->retryCallback)) {
-            $this->retryCallback = function (int $code = 200, $result = [], string $org = ''): bool {
-                return in_array($code, [200, 201, 202, 204, 302, 303, 307]);
+            $this->retryCallback = function (int $httpCode = 200, $decodeOrg = [], string $org = ''): bool {
+                return in_array($httpCode, [200, 201, 202, 204, 302, 303, 307]);
             };
         }
 
@@ -167,11 +167,11 @@ abstract class Base extends SplBean implements HttpInterface
             }
 
             $sendResult = $this->send($data);
-            $code = $sendResult[0];
+            $httpCode = $sendResult[0];
             $org  = $sendResult[1];
             $rawObject = $sendResult[2] ?? null;
 
-            is_callable($End) && $End($org, $code);
+            is_callable($End) && $End($org, $httpCode);
         } catch (\Exception $e) {
             $err = "{$this->logKeyword} 请求失败！信息为：{$e->getMessage()} 传参为："
                 . json_encode(['url' => $this->url, 'data' => $data], JSON_UNESCAPED_UNICODE);
@@ -188,33 +188,33 @@ abstract class Base extends SplBean implements HttpInterface
             return $rawObject ?? $org;
         }
 
-        $res  = $this->decodeRes($org);
+        $decodeOrg  = $this->decodeOrg($org);
         $call = $this->retryCallback;
 
         // 自动重试
-        if ($this->retryTimes > 0 && is_callable($call) && !$call($code, $res, $org)) {
+        if ($this->retryTimes > 0 && is_callable($call) && !$call($httpCode, $decodeOrg, $org)) {
             if ($this->retryCurt < $this->retryTimes) {
                 $this->sleep($this->retryInterval);
                 $this->retryCurt++;
                 return $this->doRequest($data);
             }
 
-            $err = "{$this->logKeyword} 响应失败！状态码为：{$code}，响应内容为：{$org}，传参为："
+            $err = "{$this->logKeyword} 响应失败！HTTP状态码为：{$httpCode}，响应内容为：{$org}，传参为："
                 . json_encode(['url' => $this->url, 'data' => $data], JSON_UNESCAPED_UNICODE);
             trace($err, $this->logErrorLevel, $this->logErrorCategory);
 
             if ($this->throw) {
-                throw new \Exception($org, $code);
+                throw new \Exception($org, $httpCode);
             }
         }
 
-        return $res;
+        return $decodeOrg;
     }
 
     /**
      * 根据 resultType 解析响应体
      */
-    protected function decodeRes(string $org)
+    protected function decodeOrg(string $org)
     {
         switch ($this->resultType) {
             case 'xml':

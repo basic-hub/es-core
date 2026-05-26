@@ -53,7 +53,7 @@ class MaxMind extends Base
     public function getArea($ip)
     {
         // GeoLite2/GeoIP2 数据库仅收录公网可路由IP的地理信息，内网IP、保留IP、局域网IP等不在数据库覆盖范围内，因此会抛出 \GeoIp2\Exception\AddressNotFoundException
-        if ($this->isNonPublicIp($ip)) {
+        if (self::isNonPublicIp($ip)) {
             // 允许外部修改名称
             $name = $this->convAreaMap('NonPublic');
             return [$name];
@@ -80,7 +80,7 @@ class MaxMind extends Base
 
     public function getIsp($ip)
     {
-        if ($this->isNonPublicIp($ip)) {
+        if (self::isNonPublicIp($ip)) {
             return null;
         }
 
