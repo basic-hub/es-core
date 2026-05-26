@@ -229,16 +229,15 @@ trait BaseControllerTrait
         if (is_string($data) && ($array = json_decode($data, true))) {
             $data = $array;
         }
-        $code = $response->getStatusCode();
 
-        // 302重定向，则记录Location地址
-        if ($code === Status::CODE_MOVED_TEMPORARILY) {
-            $data = $response->getHeader('Location');
-        }
-        $endData = ['httpStatusCode' => $code, 'data' => $data];
+        $endArg = [
+            'httpStatusCode' => $response->getStatusCode(),
+            'header' => $response->getHeaders(),
+            'data' => $data,
+        ];
 
         $point = http_tracker_instance()->startPoint();
-        $point && $point->setEndArg($endData)->end();
+        $point && $point->setEndArg($endArg)->end();
     }
 
     /**
