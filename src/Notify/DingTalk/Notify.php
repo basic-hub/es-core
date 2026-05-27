@@ -41,7 +41,7 @@ class Notify implements NotifyInterface
 
         // 支持文本 (text)、链接 (link)、markdown(markdown)、ActionCard、FeedCard消息类型
 
-        $json = hcurl($url, $data, 'json');
+        $json = hcurl($url, $data, 'json')->json();
         if ($json['errcode'] !== 0) {
             trace("dingTalk消息发送失败: message=" . $message->__toString() . ', response=' . json_encode($json, JSON_UNESCAPED_UNICODE), 'error');
         }

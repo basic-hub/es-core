@@ -98,6 +98,6 @@ trait HttpTrackerTrait
                     'followLocation' => 0 // 禁止重定向
                 ]
             ],
-        );
+        )->getObject();
     }
 }

@@ -9,8 +9,8 @@ class Http implements Interfaces
     public function list(): array
     {
         $url = rtrim(config('CRONTAB.url'), '/') . '/api/crontab/list';
-        $array = hcurl($url, $this->body(config('CRONTAB.post') ?: []));
-        return $array['result'] ?? [];
+        $result = hcurl($url, $this->body(config('CRONTAB.post') ?: []))->json();
+        return $result['result'] ?? [];
     }
 
     public function update(int $id, int $status)

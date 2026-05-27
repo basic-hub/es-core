@@ -1438,14 +1438,14 @@ if ( ! function_exists('request_lan_api')) {
         $cfg = array_merge($cfg, [
             'logKeyword' => $lan_key,
             'retryTimes' => 3,
-            'retryCallback' => function ($code, $res, $org) {
-                return ($res['code'] ?? 0) == 200;
+            'retryCallback' => function (HttpResponse $Resp) {
+                return $Resp->code === 200;
             }
         ]);
 
         try {
-            $res = hcurl($url, $params, $method, $headers, $cfg);
-            return $res['result'];
+            $result = hcurl($url, $params, $method, $headers, $cfg)->json();
+            return $result['result'];
         } catch (\Exception $e) {
             notice($e->getMessage(), null, $notice);
             if ($cfg['throw'] ?? true) {
@@ -1745,14 +1745,14 @@ if ( ! function_exists('hcurl')) {
      * @param string $method get|post|put|delete|patch|head|options|xml|json|download
      * @param array $header
      * @param array $property 其他自定义属性
-     * @return array|mixed|string|null
-     * @throws Exception
+     * @return \BasicHub\EsCore\Common\Http\HttpResponse
+     * @throws \Exception
      */
     function hcurl($url = '', $data = [], $method = 'post', $header = [], array $property = [])
     {
         $HCurl = new \BasicHub\EsCore\Common\Http\HCurl([
-            'url' => $url,
-            'method' => $method,
+            'url'     => $url,
+            'method'  => $method,
             'headers' => $header,
         ] + $property);
         return $HCurl->request($data);
@@ -1766,17 +1766,17 @@ if ( ! function_exists('curl')) {
      * @param mixed $data
      * @param string $method get|post|put|delete|patch|head|options|xml|json|download
      * @param array $header
-     * @param array $property
-     * @return array|mixed|string|null
-     * @throws Exception
+     * @param array $property 其他自定义属性
+     * @return \BasicHub\EsCore\Common\Http\HttpResponse
+     * @throws \Exception
      */
     function curl($url = '', $data = [], $method = 'post', $header = [], array $property = [])
     {
         $Curl = new \BasicHub\EsCore\Common\Http\Curl([
-                'url' => $url,
-                'method' => $method,
-                'headers' => $header,
-            ] + $property);
+            'url'     => $url,
+            'method'  => $method,
+            'headers' => $header,
+        ] + $property);
         return $Curl->request($data);
     }
 }
@@ -1805,9 +1805,9 @@ if ( ! function_exists('call_phone')) {
             'token' => $config['token'],
             'content' => $content,
         ];
-        $resp = hcurl($url, $params, 'json', ['token' => $config['token']], ['resultType' => '', 'retryTimes' => 0, 'throw' => false]);
-        $level = $resp->getStatusCode() === 200 ? 'info' : 'error';
-        trace("[call_phone]params=" . var_export($params, true) . ',resp=' . var_export($resp->getBody(), true), $level);
+        $Resp = hcurl($url, $params, 'json', ['token' => $config['token']], ['throw' => false]);
+        $level = $Resp->code === 200 ? 'info' : 'error';
+        trace("[call_phone]params=" . var_export($params, true) . ",resp={$Resp->raw}", $level);
     }
 }
 
@@ -1836,9 +1836,9 @@ if ( ! function_exists('call_sms')) {
             'content' => $content,
         ];
 
-        $resp = hcurl($url, $params, 'json', ['token' => $config['token']], ['resultType' => '', 'retryTimes' => 0, 'throw' => false]);
-        $level = $resp->getStatusCode() === 200 ? 'info' : 'error';
-        trace("[call_sms]params=" . var_export($params, true) . ',resp=' . var_export($resp->getBody(), true), $level);
+        $Resp = hcurl($url, $params, 'json', ['token' => $config['token']], ['resultType' => '', 'retryTimes' => 0, 'throw' => false]);
+        $level = $Resp->code === 200 ? 'info' : 'error';
+        trace("[call_sms]params=" . var_export($params, true) . ",resp={$Resp->raw}", $level);
     }
 }
 
