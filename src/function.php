@@ -24,6 +24,7 @@ use BasicHub\EsCore\Notify\Feishu\Message\Card;
 use BasicHub\EsCore\Notify\Feishu\Message\Text as FeishuText;
 use BasicHub\EsCore\Notify\Feishu\Message\Textarea;
 use BasicHub\EsCore\Notify\WeChat\Message\Notice;
+use BasicHub\EsCore\Common\Http\HttpResponse;
 use EasySwoole\EasySwoole\Config;
 use EasySwoole\EasySwoole\Logger;
 use EasySwoole\Http\Request;
@@ -1745,7 +1746,7 @@ if ( ! function_exists('hcurl')) {
      * @param string $method get|post|put|delete|patch|head|options|xml|json|download
      * @param array $header
      * @param array $property 其他自定义属性
-     * @return \BasicHub\EsCore\Common\Http\HttpResponse
+     * @return HttpResponse
      * @throws \Exception
      */
     function hcurl($url = '', $data = [], $method = 'post', $header = [], array $property = [])
@@ -1767,7 +1768,7 @@ if ( ! function_exists('curl')) {
      * @param string $method get|post|put|delete|patch|head|options|xml|json|download
      * @param array $header
      * @param array $property 其他自定义属性
-     * @return \BasicHub\EsCore\Common\Http\HttpResponse
+     * @return HttpResponse
      * @throws \Exception
      */
     function curl($url = '', $data = [], $method = 'post', $header = [], array $property = [])
