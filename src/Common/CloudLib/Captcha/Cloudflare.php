@@ -67,8 +67,7 @@ class Cloudflare extends Base
         try {
             $result = hcurl(self::VERIFY_URL, $params, 'post', [], [
                 'htname' => 'Cloudflare:captcha'
-            ]);
-
+            ])->json();
             // $result['success'] 为 true 表示验证通过
             return !empty($result['success']);
 

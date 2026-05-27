@@ -53,7 +53,7 @@ class Notify implements NotifyInterface
         $data['sign'] = $sign;
 
         // 支持文本(text)、富文本(textarea)、群名片(share_chat)、图片(image)、消息卡片(interactive)消息类型
-        return hcurl($url, $data, 'json');
+        return hcurl($url, $data, 'json')->json();
     }
 
     /**
@@ -81,7 +81,7 @@ class Notify implements NotifyInterface
                 'app_secret' => $appSecret,
             ];
 
-            $result = hcurl("https://open.feishu.cn/open-apis/auth/v3/$tokenName/internal", $sendParams, 'json');
+            $result = hcurl("https://open.feishu.cn/open-apis/auth/v3/$tokenName/internal", $sendParams, 'json')->json();
             if (isset($result['code']) && $result['code'] == 0) {
                 $Redis->setEx($key, $result['expire'] - 60, $result[$tokenName]);
                 return $result[$tokenName];
@@ -128,7 +128,7 @@ class Notify implements NotifyInterface
             'image_type' => 'message',
             'image' => curl_file_create($img),
         ];
-        $result = hcurl('https://open.feishu.cn/open-apis/im/v1/images', $sendParams, 'post', $headers);
+        $result = hcurl('https://open.feishu.cn/open-apis/im/v1/images', $sendParams, 'post', $headers)->json();
         if (isset($result['code']) && $result['code'] == 0) {
             return $result['data']['image_key'];
         } else {
@@ -160,6 +160,6 @@ class Notify implements NotifyInterface
         $sendParams['receive_id'] = $receiveId;
         $sendParams['content'] = json_encode($sendParams['card'] ?? $sendParams['content']); // 实际上要二次encode,下面还有一次
 
-        return hcurl($url, $sendParams, 'json', $headers);
+        return hcurl($url, $sendParams, 'json', $headers)->json();
     }
 }

@@ -10,17 +10,19 @@ use Swoole\Coroutine;
  *
  * 通过 SplBean 在实例化时设置属性，再调用 request() 发送请求。
  * 子类只需实现 send() 方法即可，各自的专属配置以属性形式定义。
+ * request() 始终返回 HttpResponse，由调用方自主决定如何解析响应体。
  *
  * 基本用法:
  *   $client = new Curl(['url' => 'https://example.com', 'method' => 'get']);
- *   $result = $client->request(['page' => 1]);
+ *   $Resp = $client->request(['page' => 1]);
+ *   $data = $Resp->json();
  *
  * 重试用法:
  *   $client = new HCurl([
  *       'url'           => 'https://api.example.com/data',
  *       'retryTimes'    => 3,
- *       'retryCallback' => function ($httpCode, $decodeOrg, $org) {
- *           return $httpCode === 200 && !empty($decodeOrg['data']);
+ *       'retryCallback' => function (HttpResponse $Resp) {
+ *           return $Resp->code === 200;
  *       },
  *   ]);
  */
@@ -51,17 +53,7 @@ abstract class Base extends SplBean implements HttpInterface
     protected $htname = 'http-request';
 
     /**
-     * 响应数据解析类型
-     *   'json'  - json_decode 为数组（默认）
-     *   'xml'   - 解析为数组
-     *   'body'  - 返回原始字符串
-     *   ''|null - 直接返回原始对象（仅协程客户端）
-     * @var string|null
-     */
-    protected $resultType = 'json';
-
-    /**
-     * 请求失败时是否抛出异常，false 时返回 null
+     * 请求失败（网络异常）时是否抛出异常，false 时返回 code=0 的 HttpResponse
      * @var bool
      */
     protected $throw = true;
@@ -74,7 +66,7 @@ abstract class Base extends SplBean implements HttpInterface
 
     /**
      * 判断请求是否成功的回调，返回 true 表示成功无需重试，返回 false 触发重试
-     * 签名: function(int $httpCode, mixed $decodeOrg, string $org): bool
+     * function(HttpResponse $Resp): bool
      * null 时使用默认策略（2xx/3xx 为成功）
      * false 时禁用重试判断（即使 retryTimes > 0 也不重试）
      * @var \Closure|false|null
@@ -89,7 +81,6 @@ abstract class Base extends SplBean implements HttpInterface
 
     /**
      * 内部重试计数，每次顶层 request() 调用自动重置
-     * 如需复用类，则还需要处理重置。暂无需求
      * @var int
      */
     private $retryCurt = 0;
@@ -115,8 +106,8 @@ abstract class Base extends SplBean implements HttpInterface
     protected function initialize(): void
     {
         if (is_null($this->retryCallback)) {
-            $this->retryCallback = function (int $httpCode = 200, $decodeOrg = [], string $org = ''): bool {
-                return in_array($httpCode, [200, 201, 202, 204, 302, 303, 307]);
+            $this->retryCallback = function (HttpResponse $Resp): bool {
+                return in_array($Resp->code, [200, 201, 202, 204, 302, 303, 307]);
             };
         }
 
@@ -126,7 +117,7 @@ abstract class Base extends SplBean implements HttpInterface
     /**
      * 执行实际 HTTP 请求，由子类实现
      * @param  mixed $data  请求数据
-     * @return array        [int $httpCode, string $body]
+     * @return array        [int $httpCode, string $body, mixed $rawObject = null]
      * @throws \Exception
      */
     abstract protected function send($data): array;
@@ -134,9 +125,8 @@ abstract class Base extends SplBean implements HttpInterface
     /**
      * 发起请求（对外统一入口）
      *
-     * @param  array|string $data   请求数据，GET 时会拼到 URL 上，xml 时传字符串
-     * @param  array        $option 保留参数，暂未使用（配置请通过属性设置）
-     * @return mixed|\EasySwoole\HttpClient\Bean\Response
+     * @param  array|string $data  请求数据，GET 时会拼到 URL 上，xml 时传字符串
+     * @return HttpResponse
      * @throws \Exception|\Error
      */
     public function request($data = [])
@@ -167,11 +157,11 @@ abstract class Base extends SplBean implements HttpInterface
             }
 
             $sendResult = $this->send($data);
-            $httpCode = $sendResult[0];
-            $org  = $sendResult[1];
-            $rawObject = $sendResult[2] ?? null;
+            $httpCode   = $sendResult[0];
+            $raw        = $sendResult[1];
+            $rawObject  = $sendResult[2] ?? null;
 
-            is_callable($End) && $End($org, $httpCode);
+            is_callable($End) && $End($raw, $httpCode);
         } catch (\Exception $e) {
             $err = "{$this->logKeyword} 请求失败！信息为：{$e->getMessage()} 传参为："
                 . json_encode(['url' => $this->url, 'data' => $data], JSON_UNESCAPED_UNICODE);
@@ -180,64 +170,29 @@ abstract class Base extends SplBean implements HttpInterface
             if ($this->throw) {
                 throw $e;
             }
-            return null;
+            return new HttpResponse(0, $e->getMessage());
         }
 
-        // resultType 为空时直接返回原始对象（如有）或原始字符串
-        if (!$this->resultType) {
-            return $rawObject ?? $org;
-        }
+        $HttpResponse = new HttpResponse($httpCode, $raw, $rawObject);
 
-        $decodeOrg  = $this->decodeOrg($org);
+        // 重试
         $call = $this->retryCallback;
-
-        // 自动重试
-        if ($this->retryTimes > 0 && is_callable($call) && !$call($httpCode, $decodeOrg, $org)) {
+        if ($this->retryTimes > 0 && is_callable($call) && !$call($HttpResponse)) {
             if ($this->retryCurt < $this->retryTimes) {
                 $this->sleep($this->retryInterval);
                 $this->retryCurt++;
                 return $this->doRequest($data);
             }
 
-            $err = "{$this->logKeyword} 响应失败！HTTP状态码为：{$httpCode}，响应内容为：{$org}，传参为："
+            $err = "{$this->logKeyword} 响应失败！HTTP状态码为：{$httpCode}，响应内容为：{$raw}，传参为："
                 . json_encode(['url' => $this->url, 'data' => $data], JSON_UNESCAPED_UNICODE);
             trace($err, $this->logErrorLevel, $this->logErrorCategory);
 
             if ($this->throw) {
-                throw new \Exception($org, $httpCode);
+                throw new \Exception($raw, $httpCode);
             }
         }
-
-        return $decodeOrg;
-    }
-
-    /**
-     * 根据 resultType 解析响应体
-     */
-    protected function decodeOrg(string $org)
-    {
-        switch ($this->resultType) {
-            case 'xml':
-                return $this->xml($org);
-            case 'json':
-                return json_decode($org, true);
-            case 'body':
-            default:
-                return $org;
-        }
-    }
-
-    /**
-     * 解析 XML 响应为数组
-     * @see https://www.w3.org/TR/2008/REC-xml-20081126/#charsets
-     */
-    protected function xml(string $body): array
-    {
-        $backup = libxml_disable_entity_loader(true);
-        $xml    = preg_replace('/[^\x{9}\x{A}\x{D}\x{20}-\x{D7FF}\x{E000}-\x{FFFD}\x{10000}-\x{10FFFF}]+/u', '', $body);
-        $result = simplexml_load_string($xml, 'SimpleXMLElement', LIBXML_COMPACT | LIBXML_NOCDATA | LIBXML_NOBLANKS);
-        libxml_disable_entity_loader($backup);
-        return (array)$result;
+        return $HttpResponse;
     }
 
     /**
