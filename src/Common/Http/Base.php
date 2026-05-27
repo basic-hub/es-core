@@ -156,10 +156,19 @@ abstract class Base extends SplBean implements HttpInterface
                 ]);
             }
 
-            $sendResult = $this->send($data);
-            $httpCode   = $sendResult[0];
-            $raw        = $sendResult[1];
-            $rawObject  = $sendResult[2] ?? null;
+            $sendResult  = $this->send($data);
+            // http状态码
+            $httpCode    = $sendResult[0];
+            // http body 原始字符串
+            $raw         = $sendResult[1];
+            // Response 原始对象
+            $rawObject   = $sendResult[2] ?? null;
+            // 真实Http请求头
+            $sentHeaders = $sendResult[3] ?? null;
+
+            if ($End && $sentHeaders) {
+                $End->updateStartArg(['headers' => $sentHeaders]);
+            }
 
             is_callable($End) && $End($raw, $httpCode);
         } catch (\Exception $e) {

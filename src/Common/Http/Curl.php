@@ -272,6 +272,6 @@ class Curl extends Base
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        return [$httpCode, (string)$response];
+        return [$httpCode, (string)$response, null, $headers];
     }
 }
