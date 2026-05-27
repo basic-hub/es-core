@@ -255,6 +255,6 @@ class HCurl extends Base
         }
 
         /** @var \EasySwoole\HttpClient\Bean\Response $response */
-        return [$response->getStatusCode(), $response->getBody(), $response];
+        return [$response->getStatusCode(), $response->getBody(), $response, $client->getHeader()];
     }
 }

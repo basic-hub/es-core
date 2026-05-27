@@ -31,6 +31,18 @@ class End
         $this->end($data, $httpCode);
     }
 
+    /**
+     * 在请求发出后、结束前，合并更新 startArg 中的字段（如实际发送的 headers）
+     */
+    public function updateStartArg(array $merge): void
+    {
+        if (!$this->Point || $this->isInvoked) {
+            return;
+        }
+        $startArg = $this->Point->getStartArg() ?: [];
+        $this->Point->setStartArg(array_merge($startArg, $merge));
+    }
+
     public function __destruct()
     {
         $this->end();
