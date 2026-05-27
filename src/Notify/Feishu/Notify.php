@@ -26,9 +26,9 @@ class Notify implements NotifyInterface
     {
         // 优先使用自建应用推送，实例还需要应用appid、secret等参数，这里暂不做校验
         if ($this->Config->getReceiveId()) {
-            $this->sendAppMessages($message);
+            return $this->sendAppMessages($message);
         } else {
-            $this->sendWebHook($message);
+            return $this->sendWebHook($message);
         }
     }
 
