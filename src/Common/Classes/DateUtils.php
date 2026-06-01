@@ -15,6 +15,25 @@ class DateUtils
     const YmdHis = 'YmdHis';
     const FMT_1 = 'Y-m-d';
 
+    // Asia/Shanghai的别名，不推荐，兼容性差，且未来版本可能废弃
+    const PRC = 'PRC';
+    // 上海
+    const ASIA_SHANGHAI = 'Asia/Shanghai';
+    // 香港
+    const ASIA_HONGKONG = 'Asia/Hong_Kong';
+    // 新加坡
+    const ASIA_SINGAPORE = 'Asia/Singapore';
+    // 日本-东京
+    const ASIA_TOKYO = 'Asia/Tokyo';
+    // 韩国-首尔
+    const ASIA_SEOUL = 'Asia/Seoul';
+    // 美国东部，纽约-含弗吉尼亚
+    const AMERICA_NEWYORK = 'America/New_York';
+    // 美国西部，洛杉矶-含加州、旧金山
+    const AMERICA_LOSANGELES = 'America/Los_Angeles';
+    // 德国-法兰克福
+    const EUROPE_FRANKFURT = 'Europe/Frankfurt';
+
     public static function format($time, $fmt = '')
     {
         if ( ! is_numeric($time)) {
@@ -44,7 +63,7 @@ class DateUtils
      * @param string $format
      * @return string
      */
-    public static function timestampToDatetime(int $timestamp, $inia = 'PRC', $format = self::FULL): string
+    public static function timestampToDatetime(int $timestamp, $inia = self::ASIA_SHANGHAI, $format = self::FULL): string
     {
         return (new \DateTime('@' . $timestamp))
             ->setTimezone(new \DateTimeZone($inia))
@@ -74,7 +93,7 @@ class DateUtils
      * @param string $inia Asia/Shanghai
      * @return int
      */
-    public static function formatDiffTimestamp(int $time1, int $time2, $inia = 'PRC'): int
+    public static function formatDiffTimestamp(int $time1, int $time2, $inia = self::ASIA_SHANGHAI): int
     {
         $tz = new \DateTimeZone($inia);
         $dt1 = (new \DateTime('@' . $time1))->setTimezone($tz)->setTime(0, 0);

@@ -65,10 +65,11 @@ class Jwt extends JwtObject
      */
     public function decode(string $raw): Jwt
     {
-        if (strpos($raw, ' ')) {
-            $prefix       = explode(' ', $raw);
-            $this->prefix = $prefix[0];
-            $raw          = str_replace($this->prefix . ' ', '', $raw);
+        $prefix = '';
+        if (strpos($raw, ' ') !== false) {
+            $parts  = explode(' ', $raw, 2);
+            $prefix = $parts[0];
+            $raw    = $parts[1];
         }
 
         $items = explode('.', $raw);
@@ -100,13 +101,13 @@ class Jwt extends JwtObject
             $header,
             $payload,
             [
-                'header' => $items[0],
-                'payload' => $items[1],
+                'header'    => $items[0],
+                'payload'   => $items[1],
                 'signature' => $items[2],
                 'secretKey' => $this->secretKey,
-                'alg' => $this->alg
-            ],
-            ['prefix' => $this->prefix]
+                'alg'       => $this->alg,
+                'prefix'    => $prefix,
+            ]
         );
 
         return new static($jwtObjConfig);
@@ -165,7 +166,7 @@ class Jwt extends JwtObject
         if (empty($this->prefix)) {
             return $this->header . '.' . $this->payload . '.' . $this->signature;
         } else {
-            return $this->prefix . $this->header . '.' . $this->payload . '.' . $this->signature;
+            return $this->prefix . ' ' . $this->header . '.' . $this->payload . '.' . $this->signature;
         }
     }
 }

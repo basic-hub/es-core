@@ -250,6 +250,7 @@ class HCurl extends Base
                 $response = $client->download($this->url, $this->downloadOffset, HttpClient::METHOD_GET, $data);
                 break;
             default:
+                // 隐患：可能有些方法不支持传参、或者data非首位参数
                 $response = $client->$method($data);
                 break;
         }

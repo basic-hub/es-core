@@ -1434,8 +1434,6 @@ if ( ! function_exists('request_lan_api')) {
                 return false;
         }
 
-
-
         $cfg = array_merge($cfg, [
             'logKeyword' => $lan_key,
             'retryTimes' => 3,
