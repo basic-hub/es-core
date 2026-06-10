@@ -45,19 +45,4 @@ trait GameModelTrait
         }
         return $this->where('status', 1)->setOrder()->all('id');
     }
-
-    /**
-     * 获取id => name 键值对
-     * @param array $idArray
-     * @return array|null
-     * @throws \EasySwoole\ORM\Exception\Exception
-     * @throws \Throwable
-     */
-    public function getKeyVlaueByid($idArray = [])
-    {
-        if ($idArray) {
-            $this->where(['id' => [$idArray, 'in']]);
-        }
-        return $this->getMap();
-    }
 }

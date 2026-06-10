@@ -93,7 +93,6 @@ trait HttpTrackerTrait
             strtolower($request['method']),
             $headers,
             [
-                'resultType' => null,
                 'clientSet' => [
                     'followLocation' => 0 // 禁止重定向
                 ]
