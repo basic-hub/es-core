@@ -29,7 +29,7 @@ class DateUtils
     const ASIA_SEOUL = 'Asia/Seoul';
     // 美国东部，纽约-含弗吉尼亚
     const AMERICA_NEWYORK = 'America/New_York';
-    // 美国西部，洛杉矶-含加州、旧金山
+    // 美国西部，洛杉矶-含加州、旧金山、硅谷
     const AMERICA_LOSANGELES = 'America/Los_Angeles';
     // 德国-法兰克福
     const EUROPE_FRANKFURT = 'Europe/Frankfurt';
@@ -84,6 +84,39 @@ class DateUtils
             $target = (new \DateTimeZone($inia))->getOffset(new \DateTime('now', new \DateTimeZone('UTC')));
         }
         return (int)date('Z') === $target;
+    }
+
+    /**
+     * 获取时区的 UTC 偏移字符串，格式如 UTC+8:00、UTC-5:30
+     * @param string|null $inia 时区标识，如 Asia/Shanghai、America/New_York，为 null 时取服务器当前时区
+     * @return string
+     */
+    public static function getTimeZone(string $inia = null): string
+    {
+        $inia = $inia !== null ? $inia : date_default_timezone_get();
+        $offset = (int)(new \DateTimeZone($inia))
+            ->getOffset(new \DateTime('now', new \DateTimeZone('UTC')));
+
+        $sign = $offset >= 0 ? '+' : '-';
+        $abs = abs($offset);
+        $hours = intdiv($abs, 3600);
+        $minutes = intdiv($abs % 3600, 60);
+
+        return sprintf('UTC%s%d:%02d', $sign, $hours, $minutes);
+    }
+
+    /**
+     * 将时区标识转换为 UTC 偏移小时数
+     * @param string|null $inia 时区标识，如 Asia/Shanghai、America/New_York，为 null 时取服务器当前时区
+     * @return int 如 8、-5
+     */
+    public static function getTimezoneOffset(string $inia = null): int
+    {
+        $inia = $inia !== null ? $inia : date_default_timezone_get();
+        $offset = (int)(new \DateTimeZone($inia))
+            ->getOffset(new \DateTime('now', new \DateTimeZone('UTC')));
+
+        return intdiv($offset, 3600);
     }
 
     /**
