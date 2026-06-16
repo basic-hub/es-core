@@ -3,6 +3,7 @@
 namespace BasicHub\EsCore\Task;
 
 use BasicHub\EsCore\Common\Classes\CtxManager;
+use BasicHub\EsCore\Notify\Feishu\Message\CardErrorTimeZone;
 use EasySwoole\Task\AbstractInterface\TaskInterface;
 use EasySwoole\Utility\File;
 use BasicHub\EsCore\Common\Classes\DateUtils;
@@ -50,15 +51,34 @@ class Error implements TaskInterface
                     $message = "\n" . (is_int($key) ? $value : "$key: $value");
                 }
 
-                $Message = new CardError([
-                    'servername' => $servname,
-                    'project' => $servername,
-                    'datetime' => date(DateUtils::FULL),
-                    'trigger' => $this->data['trigger'] ?? '',
-                    'filename' => "{$this->data['file']} 第 {$this->data['line']} 行",
-                    'content' => $message,
-                    'isAtAll' => true
-                ]);
+                // 东8区用默认模板，非东8区使用带时区的模板
+                if (DateUtils::isInTimeZone(8)) {
+                    $Message = new CardError([
+                        'servername' => $servname,
+                        'project' => $servername,
+                        'datetime' => date(DateUtils::FULL),
+                        'trigger' => $this->data['trigger'] ?? '',
+                        'filename' => "{$this->data['file']} 第 {$this->data['line']} 行",
+                        'content' => $message,
+                        'isAtAll' => true
+                    ]);
+                } else {
+                    $Message = new CardErrorTimeZone([
+                        // 东8区时间
+                        'datetime8' => DateUtils::timestampToDatetime(time()),
+                        // 服务器本地时间
+                        'datetimeLocal' => date(DateUtils::FULL),
+                        // 服务器时区：UTC-5:00、UTC+8:00
+                        'timeZone' => DateUtils::getTimeZone(),
+                        'servername' => $servname,
+                        'project' => $servername,
+                        'trigger' => $this->data['trigger'] ?? '',
+                        'filename' => "{$this->data['file']} 第 {$this->data['line']} 行",
+                        'content' => $message,
+                        'isAtAll' => true
+                    ]);
+                }
+
 
                 break;
             default: // 钉钉 markdown
