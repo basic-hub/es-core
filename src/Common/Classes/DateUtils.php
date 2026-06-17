@@ -17,21 +17,23 @@ class DateUtils
 
     // Asia/Shanghai的别名，不推荐，兼容性差，且未来版本可能废弃
     const PRC = 'PRC';
-    // 上海
+    // 上海（UTC+8）
     const ASIA_SHANGHAI = 'Asia/Shanghai';
-    // 香港
+    // 香港（UTC+8）
     const ASIA_HONGKONG = 'Asia/Hong_Kong';
-    // 新加坡
+    // 新加坡（UTC+8）
     const ASIA_SINGAPORE = 'Asia/Singapore';
-    // 日本-东京
+    // 日本-东京（UTC+9）
     const ASIA_TOKYO = 'Asia/Tokyo';
-    // 韩国-首尔
+    // 韩国-首尔 （UTC+9）
     const ASIA_SEOUL = 'Asia/Seoul';
-    // 美国东部，纽约-含弗吉尼亚
+    // 美国东部，纽约-含弗吉尼亚（标准：UTC-5，夏令时：UTC-4）
     const AMERICA_NEWYORK = 'America/New_York';
-    // 美国西部，洛杉矶-含加州、旧金山、硅谷
+    // 美国西部，洛杉矶-含加州、旧金山、硅谷（标准：UTC-8，夏令时：UTC-7）
     const AMERICA_LOSANGELES = 'America/Los_Angeles';
-    // 德国-法兰克福
+    // 哥伦比亚波哥大,全年固定采用UTC-5，无夏令时调整
+    const AMERICA_BOGOTA = 'America/Bogota';
+    // 德国-法兰克福 （标准：UTC+1，夏令时：UTC+2）
     const EUROPE_FRANKFURT = 'Europe/Frankfurt';
 
     public static function format($time, $fmt = '')
