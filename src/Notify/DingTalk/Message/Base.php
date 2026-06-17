@@ -2,6 +2,7 @@
 
 namespace BasicHub\EsCore\Notify\DingTalk\Message;
 
+use BasicHub\EsCore\Common\Classes\DateUtils;
 use EasySwoole\Spl\SplBean;
 use BasicHub\EsCore\Notify\Interfaces\MessageInterface;
 
@@ -36,7 +37,7 @@ abstract class Base extends SplBean implements MessageInterface
         return $text . PHP_EOL . implode(PHP_EOL, [
                 '系统：' . APP_MODULE,
                 '服务器：' . config('SERVNAME'),
-                '时间：' . date('Y年m月d日 H:i:s')
+                '服务器时间：' . date(DateUtils::FULL) . ' （' . DateUtils::getTimeZone() . '）'
             ]);
     }
 }
