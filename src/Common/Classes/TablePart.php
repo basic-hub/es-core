@@ -29,7 +29,7 @@ class TablePart extends SplBean
      * MySQL使用的时区，默认为东8区
      * @var string
      */
-    protected $tzs = '+8:00';
+    protected $tzs = DateUtils::UTC8;
 
     /** @var null | Mysqli */
     private $MysqlClient = null;
