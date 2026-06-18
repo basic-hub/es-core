@@ -93,7 +93,7 @@ class DateUtils
      * @param string|null $inia 时区标识，如 Asia/Shanghai、America/New_York，为 null 时取服务器当前时区
      * @return string
      */
-    public static function getTimeZone(string $inia = null): string
+    public static function getTimeZoneUTC(string $inia = null): string
     {
         $inia = $inia !== null ? $inia : date_default_timezone_get();
         $offset = (int)(new \DateTimeZone($inia))

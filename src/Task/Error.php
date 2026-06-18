@@ -69,7 +69,7 @@ class Error implements TaskInterface
                         // 服务器本地时间
                         'datetimeLocal' => date(DateUtils::FULL),
                         // 服务器时区：UTC-5:00、UTC+8:00
-                        'timeZone' => DateUtils::getTimeZone(),
+                        'timeZone' => DateUtils::getTimeZoneUTC(),
                         'servername' => $servname,
                         'project' => $servername,
                         'trigger' => $this->data['trigger'] ?? '',
