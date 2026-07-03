@@ -52,6 +52,10 @@ class DateUtils
     const EUROPE_ISTANBUL = 'Europe/Istanbul';
     // 俄罗斯-莫斯科、圣彼得堡，固定 UTC+3（俄罗斯实际跨十几个时区，以莫斯科为准即可）
     const EUROPE_MOSCOW = 'Europe/Moscow';
+    // 冰岛-雷克雅未克，固定 UTC+0
+    const ATLANTIC_REYKJAVIK = 'Atlantic/Reykjavik';
+    // 英国-伦敦，（标准：UTC+0，夏令时：UTC+1）
+    const EUROPE_LONDON = 'Europe/London';
 
     public static function format($time, $fmt = '')
     {
