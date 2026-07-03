@@ -15,6 +15,19 @@ class DateUtils
     const YmdHis = 'YmdHis';
     const FMT_1 = 'Y-m-d';
 
+    // 常用UTC时区
+    const UTC0 = '+0:00';
+    const UTC1 = '+1:00';
+    const UTC2 = '+2:00';
+    const UTC3 = '+3:00';
+    const UTC8 = '+8:00';
+    const UTC9 = '+9:00';
+    // 下划线表示负数
+    const UTC_4 = '-4:00';
+    const UTC_5 = '-5:00';
+    const UTC_7 = '-7:00';
+    const UTC_8 = '-8:00';
+
     // Asia/Shanghai的别名，不推荐，兼容性差，且未来版本可能废弃
     const PRC = 'PRC';
     // 上海（UTC+8）
@@ -31,10 +44,18 @@ class DateUtils
     const AMERICA_NEWYORK = 'America/New_York';
     // 美国西部，洛杉矶-含加州、旧金山、硅谷（标准：UTC-8，夏令时：UTC-7）
     const AMERICA_LOSANGELES = 'America/Los_Angeles';
-    // 哥伦比亚波哥大,全年固定采用UTC-5，无夏令时调整
+    // 哥伦比亚波哥大,全年固定采用UTC-5
     const AMERICA_BOGOTA = 'America/Bogota';
     // 德国-法兰克福 （标准：UTC+1，夏令时：UTC+2）
     const EUROPE_FRANKFURT = 'Europe/Frankfurt';
+    // 土耳其-伊斯坦布尔  固定UTC+3
+    const EUROPE_ISTANBUL = 'Europe/Istanbul';
+    // 俄罗斯-莫斯科、圣彼得堡，固定 UTC+3（俄罗斯实际跨十几个时区，以莫斯科为准即可）
+    const EUROPE_MOSCOW = 'Europe/Moscow';
+    // 冰岛-雷克雅未克，固定 UTC+0
+    const ATLANTIC_REYKJAVIK = 'Atlantic/Reykjavik';
+    // 英国-伦敦，（标准：UTC+0，夏令时：UTC+1）
+    const EUROPE_LONDON = 'Europe/London';
 
     public static function format($time, $fmt = '')
     {
@@ -93,7 +114,7 @@ class DateUtils
      * @param string|null $inia 时区标识，如 Asia/Shanghai、America/New_York，为 null 时取服务器当前时区
      * @return string
      */
-    public static function getTimeZone(string $inia = null): string
+    public static function getTimeZoneUTC(string $inia = null): string
     {
         $inia = $inia !== null ? $inia : date_default_timezone_get();
         $offset = (int)(new \DateTimeZone($inia))

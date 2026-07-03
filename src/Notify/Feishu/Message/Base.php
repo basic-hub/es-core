@@ -97,7 +97,7 @@ abstract class Base extends SplBean implements MessageInterface
         return PHP_EOL . implode(PHP_EOL, [
                 '系统：' . APP_MODULE,
                 '服务器：' . config('SERVNAME'),
-                '服务器时间：' . date(DateUtils::FULL) . ' （' . DateUtils::getTimeZone() . '）'
+                '服务器时间：' . date(DateUtils::FULL) . ' （' . DateUtils::getTimeZoneUTC() . '）'
             ]);
     }
 
