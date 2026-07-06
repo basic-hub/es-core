@@ -40,10 +40,12 @@ class Item extends SplBean
 
         // 产生日志的时间
         $this->time = time();
-        $this->date = date(DateUtils::FULL, $this->time);
+        $utcLocal = DateUtils::getTimeZoneUTC();
+        $this->date = "($utcLocal)" . date(DateUtils::FULL, $this->time);
         // 不在东8区，则记录东8区时间
-        if ( ! DateUtils::isInTimeZone(8)) {
-            $this->date .= ', +8区: ' . DateUtils::timestampToDatetime($this->time);
+        if ( ! DateUtils::isInTimeZone(DateUtils::ASIA_SHANGHAI)) {
+            $utc8 = DateUtils::getTimeZoneUTC(DateUtils::ASIA_SHANGHAI);
+            $this->date .= ", ($utc8)" . DateUtils::timestampToDatetime($this->time);
         }
     }
 
