@@ -4,6 +4,7 @@ namespace BasicHub\EsCore\HttpController\Admin;
 
 use App\HttpController\Base;
 use BasicHub\EsCore\Common\Classes\CtxManager;
+use BasicHub\EsCore\Model\BaseModelTrait;
 use EasySwoole\Component\Timer;
 use EasySwoole\Http\Exception\FileException;
 use EasySwoole\Mysqli\QueryBuilder;
@@ -20,6 +21,7 @@ use BasicHub\EsCore\Common\Languages\Dictionary;
 
 /**
  * @mixin BaseTrait
+ * @property BaseModelTrait $Model
  */
 trait AuthTrait
 {
@@ -409,7 +411,7 @@ trait AuthTrait
         }
 
         if ($this->isExport) {
-            $sort = $this->Model->sort;
+            $sort = $this->Model->getSort();
             // 'id desc'
             if (is_string($sort)) {
                 list($sortField, $sortValue) = explode(' ', $sort);
