@@ -364,12 +364,26 @@ trait AuthTrait
         return $result;
     }
 
+    /**
+     * 关联预查询
+     * @param string|array $column
+     * @return $this
+     */
     protected function __with($column = 'relation')
     {
         $origin = $this->Model->getWith();
-        $exist = is_array($origin) && in_array($column, $origin);
-        if ( ! $exist && method_exists($this->Model, $column)) {
-            $with = is_array($origin) ? array_merge($origin, [$column]) : [$column];
+        $columns = is_array($column) ? $column : [$column];
+        $add = [];
+
+        foreach ($columns as $col) {
+            $exist = is_array($origin) && in_array($col, $origin);
+            if ( ! $exist && method_exists($this->Model, $col)) {
+                $add[] = $col;
+            }
+        }
+
+        if ( ! empty($add)) {
+            $with = array_unique(is_array($origin) ? array_merge($origin, $add) : $add);
             $this->Model->with($with);
         }
         return $this;
