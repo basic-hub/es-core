@@ -114,6 +114,11 @@ trait BaseModelTrait
         return $this->subid;
     }
 
+    public function getSort()
+    {
+        return $this->sort;
+    }
+
     /**
      * 克隆携带分表标识符
      * @return AbstractModel
