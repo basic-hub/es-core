@@ -112,6 +112,7 @@ class Tencent extends Base
         $certificates = $this->listAll($params);
 
         $result = [];
+        $rowColors = [];
         foreach ($certificates as $cert) {
             $days = $this->calcCertDays($cert['CertBeginTime'] ?? '', $cert['CertEndTime'] ?? '');
             $remain = $this->calcRemainDays($cert['CertEndTime'] ?? '');
@@ -126,6 +127,7 @@ class Tencent extends Base
                 'end' => $cert['CertEndTime'] ?? '',
                 'id' => $cert['CertificateId'] ?? '',
             ];
+            $rowColors[] = $this->rowColor($remain);
         }
 
         $header = [
@@ -139,7 +141,7 @@ class Tencent extends Base
             'end' => '到期时间',
             'id' => '证书ID',
         ];
-        $this->echo($header, $result);
+        $this->echo($header, $result, $rowColors);
     }
 
     protected function sign($key, $msg)
