@@ -106,6 +106,7 @@ class Alibaba extends Base
         $certificates = $this->listAll($params);
 
         $result = [];
+        $rowColors = [];
         foreach ($certificates as $cert) {
             $begin = $cert['StartDate'] ?? '';
             $end = $cert['EndDate'] ?? '';
@@ -122,6 +123,7 @@ class Alibaba extends Base
                 'end' => $end,
                 'id' => $cert['InstanceId'] ?? '',
             ];
+            $rowColors[] = $this->rowColor($remain);
         }
 
         $header = [
@@ -135,7 +137,7 @@ class Alibaba extends Base
             'end' => '到期时间',
             'id' => '实例ID',
         ];
-        $this->echo($header, $result);
+        $this->echo($header, $result, $rowColors);
     }
 
     /**
