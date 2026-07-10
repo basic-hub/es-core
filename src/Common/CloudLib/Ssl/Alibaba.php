@@ -7,8 +7,7 @@ use EasySwoole\HttpClient\HttpClient;
 /**
  *  阿里云数字证书管理服务（原SSL证书）
  *  非核心功能尽量不安装依赖，此处使用原生接口实现（RPC 风格签名 HMAC-SHA1）
- * todo 阿里云未测试
- * @document 证书列表 ListUserCertificateOrder：https://help.aliyun.com/zh/ssl-certificate/developer-reference/api-cas-2020-04-07-listusercertificateorder
+ * @document 证书列表 ListCertificates：https://help.aliyun.com/zh/ssl-certificate/developer-reference/api-cas-2020-04-07-listcertificates
  * @document 签名机制：https://help.aliyun.com/zh/user-guide/overview-of-rpc-api-signatures
  */
 class Alibaba extends Base
@@ -32,27 +31,16 @@ class Alibaba extends Base
     protected $limit = 50;
 
     /**
-     * 资源类型
-     * CERT=已签发证书，UPLOAD=上传证书，CPACK=证书包订单，BUY=购买订单
-     * 默认查询已签发证书，查询上传的证书可传 OrderType=UPLOAD
-     * @var string
-     */
-    protected $orderType = 'CERT';
-
-    /**
      * 列出证书（单页）
-     * @param array $params 接口参数（PascalCase），如 Keyword/Status/OrderType/CurrentPage/ShowSize/ResourceGroupId
-     * @return array Response body，含 TotalCount、CertificateOrderList、RequestId
+     * @param array $params 接口参数（PascalCase），如 Keyword/InstanceId/CertificateStatus/CertificateSource/ResourceGroupId/ShowSize/CurrentPage
+     *   - CertificateStatus: issued=已签发，revoked=已吊销，willExpire=即将过期，expired=已过期
+     *   - CertificateSource: BUY=正式证书，TEST=测试证书，UPLOAD=上传证书
+     * @return array Response body，含 TotalCount、CertificateList、RequestId
      * @throws \Exception
      */
     public function list($params = [])
     {
-        // 默认查询已签发证书，调用方显式传入则以调用方为准
-        if (!isset($params['OrderType']) && $this->orderType) {
-            $params['OrderType'] = $this->orderType;
-        }
-
-        $result = $this->request('ListUserCertificateOrder', $params);
+        $result = $this->request('ListCertificates', $params);
 
         if (isset($result['Code'])) {
             throw new \Exception('Response Error: ' . ($result['Message'] ?? ''));
@@ -64,7 +52,7 @@ class Alibaba extends Base
     /**
      * 列出账号下所有证书（自动分页拉取）
      * @param array $params 接口参数（无需传 CurrentPage/ShowSize，内部自动处理）
-     * @return array 全部 CertificateOrderList
+     * @return array 全部 CertificateList
      * @throws \Exception
      */
     public function listAll($params = [])
@@ -78,7 +66,7 @@ class Alibaba extends Base
             $params['CurrentPage'] = $page;
 
             $response = $this->list($params);
-            $certs = $response['CertificateOrderList'] ?? [];
+            $certs = $response['CertificateList'] ?? [];
             $total = $response['TotalCount'] ?? 0;
 
             $all = array_merge($all, $certs);
@@ -87,8 +75,8 @@ class Alibaba extends Base
 
         // 默认按到期时间升序（快到期的排在最前面）
         usort($all, function ($a, $b) {
-            $ta = strtotime($a['EndDate'] ?? '') ?: 0;
-            $tb = strtotime($b['EndDate'] ?? '') ?: 0;
+            $ta = intval($a['NotAfter'] ?? 0);
+            $tb = intval($b['NotAfter'] ?? 0);
             return $ta <=> $tb;
         });
 
@@ -96,7 +84,7 @@ class Alibaba extends Base
     }
 
     /**
-     * 将证书列表输出为控制台表格（含证书天数、有效期天数）
+     * 将证书列表输出为控制台表格（含证书天数、有效期天数、关联云产品数量）
      * @param array $params 接口参数，同 listAll
      * @return void
      * @throws \Exception
@@ -108,15 +96,21 @@ class Alibaba extends Base
         $result = [];
         $rowColors = [];
         foreach ($certificates as $cert) {
-            $begin = $cert['StartDate'] ?? '';
-            $end = $cert['EndDate'] ?? '';
+            // 阿里云时间为毫秒时间戳，转为日期字符串
+            $begin = $this->msToDate($cert['NotBefore'] ?? 0);
+            $end = $this->msToDate($cert['NotAfter'] ?? 0);
             $days = $this->calcCertDays($begin, $end);
             $remain = $this->calcRemainDays($end);
+            // 关联云产品数量
+            $products = $cert['UsingProductList'] ?? [];
+            $productCount = is_array($products) ? count($products) : 0;
             $result[] = [
-                'domain' => $cert['Domain'] ?? ($cert['CommonName'] ?? ''),
-                'alias' => $cert['Name'] ?? '',
-                'product' => $cert['ProductName'] ?? '',
-                'status' => $cert['Status'] ?? '',
+                'domain' => $cert['CommonName'] ?? '',
+                'name' => $cert['CertificateName'] ?? '',
+                'issuer' => $cert['Issuer'] ?? '',
+                'source' => $this->sourceMap($cert['CertificateSource'] ?? ''),
+                'status' => $this->statusMap($cert['CertificateStatus'] ?? ''),
+                'products' => $productCount,
                 'days' => $days,
                 'remain' => $remain,
                 'begin' => $begin,
@@ -128,9 +122,11 @@ class Alibaba extends Base
 
         $header = [
             'domain' => '域名',
-            'alias' => '备注',
-            'product' => '产品名称',
+            'name' => '证书名称',
+            'issuer' => '签发机构',
+            'source' => '来源',
             'status' => '状态',
+            'products' => '关联云产品数',
             'days' => '证书天数',
             'remain' => '剩余天数',
             'begin' => '开始时间',
@@ -138,6 +134,51 @@ class Alibaba extends Base
             'id' => '实例ID',
         ];
         $this->echo($header, $result, $rowColors);
+    }
+
+    /**
+     * 毫秒时间戳转日期字符串
+     * @param int $ms 毫秒时间戳
+     * @return string Y-m-d H:i:s 格式，为0返回空字符串
+     */
+    protected function msToDate($ms)
+    {
+        $ms = intval($ms);
+        if ($ms <= 0) {
+            return '';
+        }
+        return date('Y-m-d H:i:s', intval($ms / 1000));
+    }
+
+    /**
+     * 阿里云证书状态枚举转中文
+     * @param string $status
+     * @return string
+     */
+    protected function statusMap($status)
+    {
+        $map = [
+            'issued'     => '已签发',
+            'revoked'    => '已吊销',
+            'willExpire' => '即将过期',
+            'expired'    => '已过期',
+        ];
+        return isset($map[$status]) ? $map[$status] : $status;
+    }
+
+    /**
+     * 阿里云证书来源枚举转中文
+     * @param string $source
+     * @return string
+     */
+    protected function sourceMap($source)
+    {
+        $map = [
+            'BUY'    => '正式证书',
+            'TEST'   => '测试证书',
+            'UPLOAD' => '上传证书',
+        ];
+        return isset($map[$source]) ? $map[$source] : $source;
     }
 
     /**
@@ -154,7 +195,7 @@ class Alibaba extends Base
     }
 
     /**
-     * @param string $action 接口动作名，如 ListUserCertificateOrder
+     * @param string $action 接口动作名，如 ListCertificates
      * @param array  $params 接口业务参数
      * @return bool|array
      * @throws \Exception
