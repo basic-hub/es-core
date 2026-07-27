@@ -40,19 +40,15 @@ trait BaseTrait
             return;
         }
 
-        if (config('PROCESS_INFO.isopen')) {
-            EventMainServerCreate::listenProcessInfo();
-        }
-
         // 多定时器处理
-        /** @var Config $childrens */
-        $childrens = $Config->getChildren();
+        /** @var Config[] $configs */
+        $configs = $Config->getChildren();
 
-        if (empty($childrens)) {
-            $childrens = [$Config];
+        if (empty($configs)) {
+            $configs = [$Config];
         }
-        foreach ($childrens as $children) {
-            $this->startTick($children);
+        foreach ($configs as $config) {
+            $this->startTick($config);
         }
     }
 
@@ -60,6 +56,7 @@ trait BaseTrait
     {
         if ( ! $config instanceof Config) {
             trace("非法进程参数:" . __METHOD__ . '; config=' . var_export($config, true), 'error');
+            Trigger::getInstance()->error("非法进程参数:" . __METHOD__ . '; config=' . var_export($config, true));
             return;
         }
 
@@ -77,12 +74,20 @@ trait BaseTrait
                     for ($i = 0; $i < $limit; ++$i) {
                         // 左出右进
                         $data = $Redis->lPop($queue);
-                        if ( ! $data) {
+                        // 队列为空时 lPop 返回 false 或 null，需严格判断，避免误杀值为 "0"、"" 等合法数据
+                        if ($data === false || $data === null) {
                             break;
                         }
                         try {
                             if ($toJson) {
-                                $data = json_decode($data, true);
+                                $decoded = json_decode($data, true);
+                                if ($decoded === null && json_last_error() !== JSON_ERROR_NONE) {
+                                    Trigger::getInstance()->error(
+                                        "json_decode failed: " . json_last_error_msg() . "; queue=$queue; data=$data; continue"
+                                    );
+                                    continue;
+                                }
+                                $data = $decoded;
                             }
                             // 多任务在同一进程时可按Config分发到不同方法处理（业务层处理）
                             $this->consume($data, $Redis, $config);
