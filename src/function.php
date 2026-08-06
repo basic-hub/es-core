@@ -7,6 +7,7 @@ use BasicHub\EsCore\Common\CloudLib\Captcha\CaptchaInterface;
 use BasicHub\EsCore\Common\CloudLib\Cdn\CdnInterface;
 use BasicHub\EsCore\Common\CloudLib\Dns\DnsInterface;
 use BasicHub\EsCore\Common\CloudLib\Email\EmailInterface;
+use BasicHub\EsCore\Common\CloudLib\Geo\Geo;
 use BasicHub\EsCore\Common\CloudLib\Sms\SmsInterface;
 use BasicHub\EsCore\Common\CloudLib\Storage\StorageInterface;
 use BasicHub\EsCore\Common\Exception\HttpParamException;
@@ -1568,48 +1569,45 @@ if ( ! function_exists('sms')) {
 
 if ( ! function_exists('geo')) {
     /**
-     * 将IP解析为地区数据
+     * 将IP解析为地区数据（MaxMind 与 Cz88 不可共存，始终只使用配置的单个驱动）
+     * 建议： 海外请使用maxmind存储Iso3166码。
      * @param string $ip
      * @param int|string $num
      *                      all：返回整个ip解析地址，数组格式
-     *                      isp：返回包含网络供应商的数组
+     *                      isp：返回网络供应商
+     *                      alpha2：返回国家 alpha-2 代码（ISO 3166-1 二位字母，如 CN、US）
+     *                      alpha3：返回国家 alpha-3 代码（ISO 3166-1 三位字母，如 CHN、USA）
      *                      class: 直接返回对象，复杂场景需要独立处理
      *                      数字：返回ip解析地址中的指定索引成员
      * @param array $config 额外配置项
-     * @return string|array
+     * @return string|array|null
      */
     function geo($ip = '', $num = 0, $config = [])
     {
-        // 允许配置一个（string）或多个（array）
-        $drivers = config('GEO.driver') ?: [];
-        if (is_string($drivers)) {
-            $drivers = [$drivers];
-        }
-
-        foreach ($drivers as $driver) {
-            try {
-
-                /** @var \BasicHub\EsCore\Common\CloudLib\Geo\GeoInterface $geo */
-                $geo = get_drivers(__FUNCTION__, strtoupper(__FUNCTION__), ['driver' => $driver] + $config);
-
-                switch (true) {
-                    case $num === 'class':
-                        return $geo;
-                    case $num === 'isp':
-                        return $geo->getIsp($ip);
-                    case $num === 'all':
-                        return $geo->getArea($ip);
-                    default:
-                        return $geo->getArea($ip)[$num];
-                }
-
-            } catch (\Exception|\Throwable $e) {
-                trace($e->__toString(), 'info', 'geo');
-            }
-        }
+        if ($num === 'class')  return Geo::driver($config);
+        if ($num === 'all')    return Geo::area($ip, $config);
+        if ($num === 'isp')    return Geo::isp($ip, $config);
+        if ($num === 'alpha2') return Geo::alpha2($ip, $config);
+        if ($num === 'alpha3') return Geo::alpha3($ip, $config);
+        return Geo::index($ip, $num, $config);
     }
 }
 
+if ( ! function_exists('geo_alpha2')) {
+    /** 解析IP获取国家 alpha-2 代码 */
+    function geo_alpha2($ip = '', $config = [])
+    {
+        return Geo::alpha2($ip, $config);
+    }
+}
+
+if ( ! function_exists('geo_alpha3')) {
+    /** 解析IP获取国家 alpha-3 代码 */
+    function geo_alpha3($ip = '', $config = [])
+    {
+        return Geo::alpha3($ip, $config);
+    }
+}
 
 /******************** 媒体或渠道常用函数的封装 *********************/
 

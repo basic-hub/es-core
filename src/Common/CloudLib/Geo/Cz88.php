@@ -56,15 +56,65 @@ class Cz88 extends Base
 
     public function getArea($ip)
     {
-        $arr = $this->search($ip);
-        $str = $this->convAreaMap($arr[0]);
-        return explode('–', $str);
+        if (self::isNonPublicIp($ip)) {
+            return self::FAIL_AREA;
+        }
+
+        try {
+            $arr = $this->search($ip);
+            $str = $this->convAreaMap($arr[0]);
+            return explode('–', $str);
+        } catch (\Exception|\Throwable $e) {
+            trace($e->__toString(), 'info', 'geo');
+            return self::FAIL_AREA;
+        }
     }
 
     public function getIsp($ip)
     {
-        $arr = $this->search($ip);
-        return $arr[1] ?? '';
+        if (self::isNonPublicIp($ip)) {
+            return self::FAIL_ISP;
+        }
+
+        try {
+            $arr = $this->search($ip);
+            return $arr[1] ?? '';
+        } catch (\Exception|\Throwable $e) {
+            trace($e->__toString(), 'info', 'geo');
+            return self::FAIL_ISP;
+        }
+    }
+
+    /**
+     * 获取ip解析的国家 alpha-2 代码
+     * Cz88 返回的中文字符串经 convAreaMap 处理后，首段即国家级名称，通过 Iso3166 转换为 alpha-2
+     * @param string $ip
+     * @return string
+     */
+    public function getAlpha2($ip)
+    {
+        $area = $this->getArea($ip);
+        if ($area === self::FAIL_AREA) {
+            return Iso3166::FAIL_ALPHA2;
+        }
+        $countryName = $area[0] ?? '';
+        $alpha2 = Iso3166::cnNameToAlpha2($countryName);
+        return $alpha2 !== null ? $alpha2 : Iso3166::FAIL_ALPHA2;
+    }
+
+    /**
+     * 获取ip解析的国家 alpha-3 代码
+     * 基于 getAlpha2 获取的 alpha-2 代码，通过 Iso3166 转换为 alpha-3
+     * @param string $ip
+     * @return string
+     */
+    public function getAlpha3($ip)
+    {
+        $alpha2 = $this->getAlpha2($ip);
+        if ($alpha2 === Iso3166::FAIL_ALPHA2) {
+            return Iso3166::FAIL_ALPHA3;
+        }
+        return Iso3166::alpha2ToAlpha3($alpha2);
     }
 
     protected function search($ip)
