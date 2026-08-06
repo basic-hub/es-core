@@ -73,10 +73,6 @@ class EventMainServerCreate extends SplBean
         $this->registerNotify();
         $this->wordsMatch();
         $this->tplEngine();
-
-        if (config('PROCESS_INFO.isopen')) {
-            $this->EventRegister->add(EventRegister::onWorkerStart, [static::class, 'listenProcessInfo']);
-        }
     }
 
     protected function registerWebSocketServer()
@@ -279,83 +275,6 @@ class EventMainServerCreate extends SplBean
                 }
                 EsNotify::getInstance()->register(new $className($v, true), $key, $k);
             }
-        }
-    }
-
-    /**
-     * 侦听进程、协程、连接池信息
-     * config结构： 'PROCESS_INFO' => [
-     * 'isopen' => true,           // 是否开启
-     * 'timer' => 5000,            // 定时器间隔时间
-     * 'pool' => 'log',            // 写入redis连接池
-     * 'queue' => 'ProcessInfo',   // 写入队列名
-     * ]
-     * @return void
-     */
-    public static function listenProcessInfo()
-    {
-        $cfg = config('PROCESS_INFO');
-
-        if ($cfg && is_numeric($cfg['timer'])) {
-            // 服务器id
-            $servname = config('SERVNAME');
-            // 当前服务
-            $servername = config('SERVER_NAME');
-
-            $mysql = config('MYSQL');
-            $redis = config('REDIS');
-
-            // jenkins 新旧程序切换,是否要延迟10s ?
-            \EasySwoole\Component\Timer::getInstance()->loop($cfg['timer'], function () use ($servname, $servername, $mysql, $redis, $cfg) {
-                $pid = getmypid();
-                $info = [
-                    'servname' => $servname,
-                    'servername' => $servername,
-                    'pid' => $pid,
-                    'instime' => time(),
-                ];
-                // 进程信息
-                $info['process'] = \EasySwoole\Component\Process\Manager::getInstance()->info($pid)[$pid];
-                $info['name'] = $info['process']['name'];
-                // 总协程信息
-                $info['coroutine'] = \Swoole\Coroutine::stats();
-                // 单个协程信息
-                $coros = \Swoole\Coroutine::list();
-                foreach ($coros as $cid) {
-                    $info['coroutine_list'][$cid] = [
-                        // 已运行时间，浮点毫秒
-                        'runtime' => \Swoole\Coroutine::getelapsed($cid)
-                    ];
-                    // 调用堆栈
-                    // \Swoole\Coroutine::getbacktrace($cid)
-                }
-
-                // mysql连接池
-                foreach ($mysql as $dName => $dVal) {
-                    $info['mysql_pool'][$dName] = [];
-                    // status返回类型bug，遍历取当前进程
-                    $dValues = DbManager::getInstance()->getConnection($dName)->__getClientPool()->status();
-                    foreach ($dValues as $value) {
-                        if ($value['pid'] === $pid) {
-                            $info['mysql_pool'][$dName] = $value;
-                        }
-                    }
-                }
-                // redis连接池
-                foreach ($redis as $rName => $rVal) {
-                    $info['redis_pool'][$rName] = [];
-                    $rValues = RedisPool::getInstance()->getPool($rName)->status();
-                    foreach ($rValues as $value) {
-                        if ($value['pid'] === $pid) {
-                            $info['redis_pool'][$rName] = $value;
-                        }
-                    }
-                }
-
-                RedisPool::invoke(function (Redis $redis) use ($info, $cfg) {
-                    $redis->rPush($cfg['queue'], json_encode($info, JSON_UNESCAPED_UNICODE));
-                }, $cfg['pool'] ?? 'default');
-            });
         }
     }
 

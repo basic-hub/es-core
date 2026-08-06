@@ -48,7 +48,7 @@ class Error implements TaskInterface
 
                 $message = $this->data['message'] ?? '';
                 foreach ($this->merge as $key => $value) {
-                    $message = "\n" . (is_int($key) ? $value : "$key: $value");
+                    $message .= "\n" . (is_int($key) ? $value : "$key: $value");
                 }
 
                 // 东8区用默认模板，非东8区使用带时区的模板
@@ -87,8 +87,8 @@ class Error implements TaskInterface
                     '- 服务器: ' . $servname,
                     '- 项 目：' . $servername,
                     "- 文 件：{$this->data['file']} 第 {$this->data['line']} 行",
-                    "- 详 情：" . $this->data['message'] ?? '',
-                    '- 触发方式： ' . $this->data['trigger'] ?? '',
+                    "- 详 情：" . ($this->data['message'] ?? ''),
+                    '- 触发方式： ' . ($this->data['trigger'] ?? ''),
                 ];
 
                 foreach ($this->merge as $key => $value) {
@@ -117,7 +117,6 @@ class Error implements TaskInterface
 
     /**
      * 同一个文件出错，N分钟内不重复发送
-     * @param string $file
      * @return bool
      */
     protected function checkTime()

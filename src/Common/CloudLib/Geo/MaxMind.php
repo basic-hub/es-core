@@ -47,18 +47,15 @@ class MaxMind extends Base
     /**
      * @param string $ip
      * @return array
-     * @throws \GeoIp2\Exception\AddressNotFoundException
-     * @throws \MaxMind\Db\Reader\InvalidDatabaseException
      */
     public function getArea($ip)
     {
-        // GeoLite2/GeoIP2 数据库仅收录公网可路由IP的地理信息，内网IP、保留IP、局域网IP等不在数据库覆盖范围内，因此会抛出 \GeoIp2\Exception\AddressNotFoundException
+        // GeoLite2/GeoIP2 数据库仅收录公网可路由IP的地理信息，内网IP、保留IP、局域网IP等不在数据库覆盖范围内
         if (self::isNonPublicIp($ip)) {
-            // 允许外部修改名称
-            $name = $this->convAreaMap('NonPublic');
-            return [$name];
+            return self::FAIL_AREA;
         }
 
+        $Reader = null;
         try {
             $Reader = new Reader($this->db_file_country, [$this->locales]);
 
@@ -68,36 +65,83 @@ class MaxMind extends Base
             $name = $Country->country->name;
             $country = $this->convAreaMap($name);
 
-            $Reader->close();
             return [$country];
-        } catch (\Exception $e) {
+        } catch (\Exception|\Throwable $e) {
+            trace($e->__toString(), 'info', 'geo');
+            return self::FAIL_AREA;
+        } finally {
             if ($Reader instanceof Reader) {
                 $Reader->close();
             }
-            throw $e;
         }
     }
 
     public function getIsp($ip)
     {
         if (self::isNonPublicIp($ip)) {
-            return null;
+            return self::FAIL_ISP;
         }
 
+        $Reader = null;
         try {
             $Reader = new Reader($this->db_file_asn, [$this->locales]);
 
             // 解析IP（支持IPv4/IPv6）
             // '70.32.128.248'; // GOOGLE
             $name = $Reader->asn($ip)->autonomousSystemOrganization;
-            $Reader->close();
             return $name;
-        } catch (\Exception $e) {
+        } catch (\Exception|\Throwable $e) {
+            trace($e->__toString(), 'info', 'geo');
+            return self::FAIL_ISP;
+        } finally {
             if ($Reader instanceof Reader) {
                 $Reader->close();
             }
-            throw $e;
         }
+    }
+
+    /**
+     * 获取ip解析的国家 alpha-2 代码
+     * MaxMind country 数据库的 isoCode 字段本身就是 alpha-2，直接返回
+     * @param string $ip
+     * @return string
+     */
+    public function getAlpha2($ip)
+    {
+        if (self::isNonPublicIp($ip)) {
+            return Iso3166::FAIL_ALPHA2;
+        }
+
+        $Reader = null;
+        try {
+            $Reader = new Reader($this->db_file_country, [$this->locales]);
+            $Country = $Reader->country($ip);
+            // isoCode 即 ISO 3166-1 alpha-2 代码，如 CN、US、TW、HK、MO
+            $code = $Country->country->isoCode;
+            return $code ?: Iso3166::FAIL_ALPHA2;
+        } catch (\Exception|\Throwable $e) {
+            trace($e->__toString(), 'info', 'geo');
+            return Iso3166::FAIL_ALPHA2;
+        } finally {
+            if ($Reader instanceof Reader) {
+                $Reader->close();
+            }
+        }
+    }
+
+    /**
+     * 获取ip解析的国家 alpha-3 代码
+     * 基于 getAlpha2 获取的 alpha-2 代码，通过 Iso3166 转换为 alpha-3
+     * @param string $ip
+     * @return string
+     */
+    public function getAlpha3($ip)
+    {
+        $alpha2 = $this->getAlpha2($ip);
+        if ($alpha2 === Iso3166::FAIL_ALPHA2) {
+            return Iso3166::FAIL_ALPHA3;
+        }
+        return Iso3166::alpha2ToAlpha3($alpha2);
     }
 
     /*

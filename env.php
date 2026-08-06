@@ -93,7 +93,7 @@ return [
     'NOT_WRITE_SQL' => [
         // 正则匹配规则
         'pattern' => is_env('dev') ? [] : ['/^SELECT/i'],
-        'table' => ['http_tracker', 'process_info', 'log_sql', 'log_login', 'log_error']
+        'table' => ['http_tracker', 'log_sql', 'log_login', 'log_error']
     ],
 
     // api项目，接口RSA加密配置
