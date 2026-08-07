@@ -42,7 +42,7 @@ class GeoCode extends TestCase
     public function testAlpha2ToAlpha3FailMarker()
     {
         // ZZ => ZZZ 是解析失败标识，应能互转
-        $this->assertEquals('ZZZ', Iso3166::alpha2ToAlpha3('ZZ'));
+        $this->assertEquals('_ZZZ', Iso3166::alpha2ToAlpha3('_ZZ'));
     }
 
     public function testAlpha3ToAlpha2()
@@ -71,7 +71,7 @@ class GeoCode extends TestCase
     public function testAlpha3ToAlpha2FailMarker()
     {
         // ZZZ => ZZ 是解析失败标识，应能互转
-        $this->assertEquals('ZZ', Iso3166::alpha3ToAlpha2('ZZZ'));
+        $this->assertEquals('_ZZ', Iso3166::alpha3ToAlpha2('_ZZZ'));
     }
 
     public function testCnNameToAlpha2()
@@ -154,7 +154,7 @@ class GeoCode extends TestCase
         $this->assertEquals('JP', geo_alpha3_to_alpha2('JPN'));
         $this->assertEquals('GB', geo_alpha3_to_alpha2('GBR'));
         $this->assertEquals('CN', geo_alpha3_to_alpha2('chn'));
-        $this->assertEquals('ZZ', geo_alpha3_to_alpha2('ZZZ')); // 失败标识互转
+        $this->assertEquals('_ZZ', geo_alpha3_to_alpha2('_ZZZ')); // 失败标识互转
         $this->assertNull(geo_alpha3_to_alpha2('AAA'));
         $this->assertNull(geo_alpha3_to_alpha2(''));
     }
@@ -173,31 +173,36 @@ class GeoCode extends TestCase
         $this->assertEquals('GBR', geo_alpha2_to_alpha3('GB'));
         $this->assertEquals('CHN', geo_alpha2_to_alpha3('cn'));
         $this->assertEquals('CHN', geo_alpha2_to_alpha3(' Cn '));
-        $this->assertEquals('ZZZ', geo_alpha2_to_alpha3('ZZ')); // 失败标识互转
+        $this->assertEquals('_ZZZ', geo_alpha2_to_alpha3('_ZZ')); // 失败标识互转
         $this->assertNull(geo_alpha2_to_alpha3('AA'));
         $this->assertNull(geo_alpha2_to_alpha3(''));
     }
 
     /**
-     * 测试 FAIL 标准失败常量定义
+     * 测试 FAIL / LAN 标准常量定义
      */
     public function testFailConstants()
     {
         // Base 中定义
         $this->assertEquals(['未知'], Base::FAIL_AREA);
         $this->assertEquals('未知', Base::FAIL_ISP);
-        // Iso3166 中定义
-        $this->assertEquals('ZZ', Iso3166::FAIL_ALPHA2);
-        $this->assertEquals('ZZZ', Iso3166::FAIL_ALPHA3);
+        $this->assertEquals(['局域网'], Base::LAN_AREA);
+        // Iso3166 中定义（_前缀自定义码）
+        $this->assertEquals('_ZZ', Iso3166::FAIL_ALPHA2);
+        $this->assertEquals('_ZZZ', Iso3166::FAIL_ALPHA3);
+        $this->assertEquals('_XL', Iso3166::LAN_ALPHA2);
+        $this->assertEquals('_XLN', Iso3166::LAN_ALPHA3);
     }
 
     /**
-     * 测试 FAIL_ALPHA2 与 FAIL_ALPHA3 可通过 Iso3166 互转
+     * 测试 FAIL / LAN 标识可通过 Iso3166 互转
      */
     public function testFailMarkerBidirectional()
     {
         $this->assertEquals(Iso3166::FAIL_ALPHA3, Iso3166::alpha2ToAlpha3(Iso3166::FAIL_ALPHA2));
         $this->assertEquals(Iso3166::FAIL_ALPHA2, Iso3166::alpha3ToAlpha2(Iso3166::FAIL_ALPHA3));
+        $this->assertEquals(Iso3166::LAN_ALPHA3, Iso3166::alpha2ToAlpha3(Iso3166::LAN_ALPHA2));
+        $this->assertEquals(Iso3166::LAN_ALPHA2, Iso3166::alpha3ToAlpha2(Iso3166::LAN_ALPHA3));
     }
 
     /**
@@ -212,7 +217,8 @@ class GeoCode extends TestCase
         $this->assertEquals('美国', Iso3166::alpha2ToCn('US'));
         $this->assertEquals('日本', Iso3166::alpha2ToCn('JP'));
         $this->assertEquals('英国', Iso3166::alpha2ToCn('GB'));
-        $this->assertEquals('未知', Iso3166::alpha2ToCn('ZZ'));
+        $this->assertEquals('未知', Iso3166::alpha2ToCn('_ZZ'));
+        $this->assertEquals('局域网', Iso3166::alpha2ToCn('_XL'));
     }
 
     /**
@@ -267,7 +273,8 @@ class GeoCode extends TestCase
         $this->assertEquals('中国台湾', Iso3166::alpha3ToCn('TWN'));
         $this->assertEquals('美国', Iso3166::alpha3ToCn('USA'));
         $this->assertEquals('日本', Iso3166::alpha3ToCn('JPN'));
-        $this->assertEquals('未知', Iso3166::alpha3ToCn('ZZZ'));
+        $this->assertEquals('未知', Iso3166::alpha3ToCn('_ZZZ'));
+        $this->assertEquals('局域网', Iso3166::alpha3ToCn('_XLN'));
     }
 
     /**
@@ -315,7 +322,7 @@ class GeoCode extends TestCase
         $this->assertEquals('中国大陆', geo_alpha2_to_cn('CN'));
         $this->assertEquals('美国', geo_alpha2_to_cn('US'));
         $this->assertEquals('中国', geo_alpha2_to_cn('CN', ['CN' => '中国']));
-        $this->assertEquals('未知', geo_alpha2_to_cn('ZZ'));
+        $this->assertEquals('未知', geo_alpha2_to_cn('_ZZ'));
         $this->assertNull(geo_alpha2_to_cn('AA'));
     }
 
@@ -327,7 +334,7 @@ class GeoCode extends TestCase
         $this->assertEquals('中国大陆', geo_alpha3_to_cn('CHN'));
         $this->assertEquals('美国', geo_alpha3_to_cn('USA'));
         $this->assertEquals('中国', geo_alpha3_to_cn('CHN', ['CHN' => '中国']));
-        $this->assertEquals('未知', geo_alpha3_to_cn('ZZZ'));
+        $this->assertEquals('未知', geo_alpha3_to_cn('_ZZZ'));
         $this->assertNull(geo_alpha3_to_cn('AAA'));
     }
 
@@ -358,13 +365,12 @@ class GeoCode extends TestCase
         $this->assertTrue(function_exists('geo_alpha2'));
         $this->assertTrue(function_exists('geo_alpha3'));
 
-        // 非公网IP应返回 FAIL 标识（不需要真实IP库，isNonPublicIp 在驱动层拦截）
-        // 注意：这需要 config('GEO') 配置可用，若无配置会触发 get_drivers 异常被 geo() catch 后返回 null
-        // 此处仅验证函数可调用，不断言具体返回值
+        // 非公网IP应返回 LAN 标识（不需要真实IP库，isNonPublicIp 在驱动层拦截）
+        // 注意：这需要 config('GEO') 配置可用，若无配置会触发 get_drivers 异常被 geo() catch 后返回 FAIL 值
         $r2 = geo_alpha2('192.168.1.1');
         $r3 = geo_alpha3('192.168.1.1');
-        $this->assertTrue($r2 === null || $r2 === Iso3166::FAIL_ALPHA2);
-        $this->assertTrue($r3 === null || $r3 === Iso3166::FAIL_ALPHA3);
+        $this->assertTrue($r2 === Iso3166::LAN_ALPHA2 || $r2 === Iso3166::FAIL_ALPHA2);
+        $this->assertTrue($r3 === Iso3166::LAN_ALPHA3 || $r3 === Iso3166::FAIL_ALPHA3);
     }
 
     /**
@@ -389,9 +395,14 @@ class GeoCode extends TestCase
         $this->assertEquals('中国', Geo::alpha3ToCn('CHN', ['CHN' => '中国']));
 
         // 失败标识
-        $this->assertEquals('ZZZ', Geo::alpha2ToAlpha3(Iso3166::FAIL_ALPHA2));
-        $this->assertEquals('ZZ', Geo::alpha3ToAlpha2(Iso3166::FAIL_ALPHA3));
+        $this->assertEquals('_ZZZ', Geo::alpha2ToAlpha3(Iso3166::FAIL_ALPHA2));
+        $this->assertEquals('_ZZ', Geo::alpha3ToAlpha2(Iso3166::FAIL_ALPHA3));
         $this->assertEquals('未知', Geo::alpha2ToCn(Iso3166::FAIL_ALPHA2));
+
+        // 非公网IP标识
+        $this->assertEquals('_XLN', Geo::alpha2ToAlpha3(Iso3166::LAN_ALPHA2));
+        $this->assertEquals('_XL', Geo::alpha3ToAlpha2(Iso3166::LAN_ALPHA3));
+        $this->assertEquals('局域网', Geo::alpha2ToCn(Iso3166::LAN_ALPHA2));
     }
 
     /**

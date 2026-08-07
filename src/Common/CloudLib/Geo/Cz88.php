@@ -57,7 +57,7 @@ class Cz88 extends Base
     public function getArea($ip)
     {
         if (self::isNonPublicIp($ip)) {
-            return self::FAIL_AREA;
+            return self::PRIVATE_AREA;
         }
 
         try {
@@ -73,7 +73,7 @@ class Cz88 extends Base
     public function getIsp($ip)
     {
         if (self::isNonPublicIp($ip)) {
-            return self::FAIL_ISP;
+            return self::PRIVATE_ISP;
         }
 
         try {
@@ -94,6 +94,9 @@ class Cz88 extends Base
     public function getAlpha2($ip)
     {
         $area = $this->getArea($ip);
+        if ($area === self::PRIVATE_AREA) {
+            return Iso3166::PRIVATE_ALPHA2;
+        }
         if ($area === self::FAIL_AREA) {
             return Iso3166::FAIL_ALPHA2;
         }
@@ -111,6 +114,9 @@ class Cz88 extends Base
     public function getAlpha3($ip)
     {
         $alpha2 = $this->getAlpha2($ip);
+        if ($alpha2 === Iso3166::PRIVATE_ALPHA2) {
+            return Iso3166::PRIVATE_ALPHA3;
+        }
         if ($alpha2 === Iso3166::FAIL_ALPHA2) {
             return Iso3166::FAIL_ALPHA3;
         }
