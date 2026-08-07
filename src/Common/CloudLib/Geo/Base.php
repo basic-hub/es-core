@@ -7,16 +7,27 @@ use EasySwoole\Spl\SplBean;
 abstract class Base extends SplBean implements GeoInterface
 {
     /**
-     * IP解析失败时的标准返回值
+     * IP解析失败时的标准返回值（真正未知，IP库无记录或格式非法）
      * - FAIL_AREA: getArea 失败，返回单元素数组，区别于正常多元素地区数组
      * - FAIL_ISP:  getIsp 失败
      *
-     * 注：alpha-2/alpha-3 的失败标识（ZZ/ZZZ）定义在 Iso3166 类中
+     * 注：alpha-2/alpha-3 的失败标识（_ZZ/_ZZZ）定义在 Iso3166 类中
      *
-     * 程序判断示例：if (geo($ip, 'all') === Base::FAIL_AREA) { ... }
+     * 程序判断示例：if ($area === Base::FAIL_AREA) { ... }
      */
     const FAIL_AREA = ['未知'];
     const FAIL_ISP  = '未知';
+
+    /**
+     * 私有/保留 IP 的标准返回值（已知状态，并非真正未知）
+     * 涵盖：局域网、CGNAT、回环、链路本地等所有非公网地址
+     *
+     * 注：alpha-2/alpha-3 的私有标识（_LA/_LAN）定义在 Iso3166 类中
+     *
+     * 程序判断示例：if ($area === Base::PRIVATE_AREA) { ... }
+     */
+    const PRIVATE_AREA = ['局域网'];
+    const PRIVATE_ISP  = '局域网';
 
     /**
      * 多云商混用时，差异化处理

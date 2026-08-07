@@ -33,7 +33,8 @@ class Geo
      * 获取ip解析的国家/地区（geo($ip, 'all') 的等价方法）
      * @param string $ip
      * @param array $config
-     * @return array 解析失败返回 Base::FAIL_AREA (['未知'])
+     * @return array 局域网/私有IP 返回 Base::PRIVATE_AREA (['局域网'])
+     *               解析失败/真正未知 返回 Base::FAIL_AREA (['未知'])
      */
     public static function area($ip, array $config = [])
     {
@@ -49,7 +50,8 @@ class Geo
      * 获取isp网络供应商（geo($ip, 'isp') 的等价方法）
      * @param string $ip
      * @param array $config
-     * @return string 解析失败返回 Base::FAIL_ISP ('未知')
+     * @return string 局域网/私有IP 返回 Base::PRIVATE_ISP ('局域网')
+     *                解析失败/真正未知 返回 Base::FAIL_ISP ('未知')
      */
     public static function isp($ip, array $config = [])
     {

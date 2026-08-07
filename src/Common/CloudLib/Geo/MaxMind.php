@@ -52,7 +52,7 @@ class MaxMind extends Base
     {
         // GeoLite2/GeoIP2 数据库仅收录公网可路由IP的地理信息，内网IP、保留IP、局域网IP等不在数据库覆盖范围内
         if (self::isNonPublicIp($ip)) {
-            return self::FAIL_AREA;
+            return self::PRIVATE_AREA;
         }
 
         $Reader = null;
@@ -79,7 +79,7 @@ class MaxMind extends Base
     public function getIsp($ip)
     {
         if (self::isNonPublicIp($ip)) {
-            return self::FAIL_ISP;
+            return self::PRIVATE_ISP;
         }
 
         $Reader = null;
@@ -109,7 +109,7 @@ class MaxMind extends Base
     public function getAlpha2($ip)
     {
         if (self::isNonPublicIp($ip)) {
-            return Iso3166::FAIL_ALPHA2;
+            return Iso3166::PRIVATE_ALPHA2;
         }
 
         $Reader = null;
@@ -138,6 +138,9 @@ class MaxMind extends Base
     public function getAlpha3($ip)
     {
         $alpha2 = $this->getAlpha2($ip);
+        if ($alpha2 === Iso3166::PRIVATE_ALPHA2) {
+            return Iso3166::PRIVATE_ALPHA3;
+        }
         if ($alpha2 === Iso3166::FAIL_ALPHA2) {
             return Iso3166::FAIL_ALPHA3;
         }

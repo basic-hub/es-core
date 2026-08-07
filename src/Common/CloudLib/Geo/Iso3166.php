@@ -16,17 +16,18 @@ namespace BasicHub\EsCore\Common\CloudLib\Geo;
 class Iso3166
 {
     /**
-     * 解析失败时的 alpha-2 / alpha-3 标准返回值
-     * ZZ / ZZZ 不属于任何真实国家（ISO 3166-1 用户分配区段）
+     * 自定义状态码（以 _ 开头，永远不会与 ISO 3166-1 标准码冲突）
+     *
+     * 解析失败（真正未知，无法定位）：
+     *   _ZZ  / _ZZZ — IP 库无记录、格式非法等原因导致的解析失败
+     *
+     * 私有/保留 IP（已知状态，并非真正未知）：
+     *   _LA  / _LAN — 局域网、CGNAT、回环、链路本地等非公网地址
      */
-    const FAIL_ALPHA2 = 'ZZ';
-    const FAIL_ALPHA3 = 'ZZZ';
-
-    /**
-     * alpha-3 => 中文名 缓存（由 ALPHA2_TO_CN + ALPHA2_TO_ALPHA3 自动生成）
-     * @var array|null
-     */
-    private static $alpha3ToCnCache = null;
+    const FAIL_ALPHA2    = '_ZZ';
+    const FAIL_ALPHA3    = '_ZZZ';
+    const PRIVATE_ALPHA2 = '_LA';
+    const PRIVATE_ALPHA3 = '_LAN';
 
     /**
      * alpha-2 => alpha-3 完整映射表（ISO 3166-1 官方分配代码）
@@ -98,8 +99,9 @@ class Iso3166
         'ZW' => 'ZWE',
         // 1A2 用户分配（非正式ISO，但Cz88/MaxMind可能出现，便于兼容）
         'XK' => 'XKX',
-        // 解析失败标识，与 Iso3166::FAIL_ALPHA2 / FAIL_ALPHA3 对应
-        'ZZ' => 'ZZZ',
+        // 自定义状态码（_ 前缀，不与标准码冲突）
+        '_ZZ'  => '_ZZZ',   // 解析失败/真正未知
+        '_LA'  => '_LAN',   // 局域网/私有IP
     ];
 
     /**
@@ -367,6 +369,9 @@ class Iso3166
         '法罗群岛'  => 'FO',
         '奥兰群岛'  => 'AX',
         '斯瓦尔巴和扬马延' => 'SJ',
+
+        // 自定义状态（_ 前缀，不与标准码冲突）
+        '局域网' => '_LA',   // 局域网/私有IP
     ];
 
     /**
@@ -459,8 +464,9 @@ class Iso3166
         'JE' => '泽西岛', 'GG' => '根西岛', 'IM' => '马恩岛', 'FO' => '法罗群岛',
         'AX' => '奥兰群岛', 'SJ' => '斯瓦尔巴和扬马延',
 
-        // 失败标识
-        'ZZ' => '未知',
+        // 自定义状态码（_ 前缀，不与标准码冲突）
+        '_ZZ' => '未知',    // 解析失败/真正未知
+        '_LA' => '局域网',  // 局域网/私有IP
     ];
 
     /**
@@ -542,24 +548,21 @@ class Iso3166
     {
         $alpha3 = strtoupper(trim((string)$alpha3));
 
-        if (self::$alpha3ToCnCache === null) {
-            $cache = [];
-            foreach (self::ALPHA2_TO_CN as $alpha2 => $cn) {
-                $a3 = self::ALPHA2_TO_ALPHA3[$alpha2] ?? null;
-                if ($a3 !== null) {
-                    $cache[$a3] = $cn;
-                }
-            }
-            self::$alpha3ToCnCache = $cache;
-        }
+        // 直接两步查找：alpha-3 → alpha-2 → 中文名，无需静态缓存
+        $flipped = array_flip(self::ALPHA2_TO_ALPHA3);
+        $alpha2  = $flipped[$alpha3] ?? null;
+        $cn      = $alpha2 !== null ? (self::ALPHA2_TO_CN[$alpha2] ?? null) : null;
 
         if (empty($override)) {
-            return self::$alpha3ToCnCache[$alpha3] ?? null;
+            return $cn;
         }
-        $map = self::$alpha3ToCnCache;
+        // override 以 alpha-3 为 key，优先级高于默认值
+        $normalizedKey = $alpha3; // 已 strtoupper
         foreach ($override as $k => $v) {
-            $map[strtoupper(trim((string)$k))] = $v;
+            if (strtoupper(trim((string)$k)) === $normalizedKey) {
+                return $v;
+            }
         }
-        return $map[$alpha3] ?? null;
+        return $cn;
     }
 }
