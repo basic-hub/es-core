@@ -136,6 +136,9 @@ class EventInitialize extends SplBean
             return;
         }
         foreach ($config as $mname => $mvalue) {
+            if (empty($mvalue)) {
+                continue;
+            }
             DbManager::getInstance()->addConnection(
                 new \EasySwoole\ORM\Db\Connection(new \EasySwoole\ORM\Db\Config($mvalue)),
                 $mname
@@ -156,6 +159,9 @@ class EventInitialize extends SplBean
             return;
         }
         foreach ($config as $rname => $rvalue) {
+            if (empty($mvalue)) {
+                continue;
+            }
             $RedisPoolConfig = \EasySwoole\RedisPool\RedisPool::getInstance()->register(
                 new \EasySwoole\Redis\Config\RedisConfig($rvalue),
                 $rname
