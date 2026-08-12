@@ -159,7 +159,7 @@ class EventInitialize extends SplBean
             return;
         }
         foreach ($config as $rname => $rvalue) {
-            if (empty($mvalue)) {
+            if (empty($rvalue)) {
                 continue;
             }
             $RedisPoolConfig = \EasySwoole\RedisPool\RedisPool::getInstance()->register(
