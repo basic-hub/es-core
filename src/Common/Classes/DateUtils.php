@@ -16,17 +16,17 @@ class DateUtils
     const FMT_1 = 'Y-m-d';
 
     // 常用UTC时区
-    const UTC0 = '+0:00';
-    const UTC1 = '+1:00';
-    const UTC2 = '+2:00';
-    const UTC3 = '+3:00';
-    const UTC8 = '+8:00';
-    const UTC9 = '+9:00';
+    const UTC0 = '+00:00';
+    const UTC1 = '+01:00';
+    const UTC2 = '+02:00';
+    const UTC3 = '+03:00';
+    const UTC8 = '+08:00';
+    const UTC9 = '+09:00';
     // 下划线表示负数
-    const UTC_4 = '-4:00';
-    const UTC_5 = '-5:00';
-    const UTC_7 = '-7:00';
-    const UTC_8 = '-8:00';
+    const UTC_4 = '-04:00';
+    const UTC_5 = '-05:00';
+    const UTC_7 = '-07:00';
+    const UTC_8 = '-08:00';
 
     // Asia/Shanghai的别名，不推荐，兼容性差，且未来版本可能废弃
     const PRC = 'PRC';
