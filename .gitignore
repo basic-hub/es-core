@@ -8,3 +8,5 @@ vendor
 /EasySwooleEvent.php
 /dev.php
 /bootstrap.php
+/.claude/
+/.workbuddy/
