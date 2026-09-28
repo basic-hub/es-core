@@ -57,6 +57,18 @@ class Config extends SplBean implements ConfigInterface
     protected $appSecret = '';
 
     /**
+     * 自建应用，事件回调加密key
+     * @var string
+     */
+    protected $appEncryptKey = '';
+
+    /**
+     * 自建应用，事件回调校验token: Verification Token 是应用的验证标识。开发者后台会为应用自动生成 Verification Token，当飞书开放平台推送回调数据时，会携带 Verification Token 值，你可以据此 Token 验证推送的回调是否属于当前应用。
+     * @var string
+     */
+    protected $appVerificationToken = '';
+
+    /**
      * 自建应用获取tenant_access_token时，需要redis缓存
      * @var string
      */
@@ -122,6 +134,26 @@ class Config extends SplBean implements ConfigInterface
     {
         return $this->appSecret;
 
+    }
+
+    public function setAppEncryptKey(string $appEncryptKey)
+    {
+        $this->appEncryptKey = $appEncryptKey;
+    }
+
+    public function getAppEncryptKey()
+    {
+        return $this->appEncryptKey;
+    }
+
+    public function setAppVerificationToken(string $appVerificationToken)
+    {
+        $this->appVerificationToken = $appVerificationToken;
+    }
+
+    public function getAppVerificationToken()
+    {
+        return $this->appVerificationToken;
     }
 
     public function setRedisPoolName(string $pool)
