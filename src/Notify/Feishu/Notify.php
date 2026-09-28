@@ -256,6 +256,8 @@ class Notify implements NotifyInterface
             throw new \InvalidArgumentException('飞书解密结果不是有效的 JSON');
         }
 
+        // v1.0 事件 token 在顶层，v2.0 收在 header 内，需同时兼容
+        // https://open.feishu.cn/document/server-docs/event-subscription-guide/overview#aa74d688
         $eventToken = (string)($event['token'] ?? ($event['header']['token'] ?? ''));
         if ($eventToken === '' || !hash_equals($verificationToken, $eventToken)) {
             throw new \InvalidArgumentException('飞书 verification_token 校验失败');
@@ -281,7 +283,6 @@ class Notify implements NotifyInterface
             throw new \InvalidArgumentException('获取飞书 tenant_access_token 失败');
         }
 
-        $message->setInner(false);
         $sendParams = $message->fullData();
 
         $url = 'https://open.feishu.cn/open-apis/im/v1/messages/' . rawurlencode($messageId) . '/reply';
