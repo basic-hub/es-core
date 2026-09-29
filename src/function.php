@@ -2181,10 +2181,8 @@ if (!function_exists('request_lock_await')) {
         }
         // 可能return function 更好，时机可控，欢迎反馈
         \Swoole\Coroutine::defer(function () use ($Redis, $lockKey, $lockVal) {
-            // 释放锁：比对 lockVal 确保只删自己持有的锁
-            if ($Redis->get($lockKey) === $lockVal) {
-                $Redis->del($lockKey);
-            }
+            // 释放锁：其他等待者可继续运行
+            $Redis->del($lockKey);
         });
     }
 }
