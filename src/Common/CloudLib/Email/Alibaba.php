@@ -53,7 +53,7 @@ class Alibaba extends Base
         try {
             $Runtime = new RuntimeOptions();
             $Request = new SingleSendMailRequest([
-                'accountName' => $this->accountName,
+                'accountName' => $this->firstFromAddress ?: $this->accountName,
                 'addressType' => $this->addressType,
                 'toAddress' => $this->toAddress,
                 'subject' => $this->subject,

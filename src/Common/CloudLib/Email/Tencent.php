@@ -82,7 +82,7 @@ class Tencent extends Base
         try {
             $Request = new SendEmailRequest();
             $Request->fromJsonString(json_encode([
-                'FromEmailAddress' => $this->fromEmailAddress,
+                'FromEmailAddress' => $this->firstFromAddress ?: $this->fromEmailAddress,
                 // 最多支持50人
                 'Destination' => $destination,
                 'Subject' => $this->subject,
