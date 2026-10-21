@@ -32,6 +32,10 @@ class DateUtils
     const PRC = 'PRC';
     // 上海（UTC+8）
     const ASIA_SHANGHAI = 'Asia/Shanghai';
+    // 台北（UTC+8）
+    const ASIA_TAIPEI = 'Asia/Taipei';
+    // 澳门（UTC+8）
+    const ASIA_MACAU = 'Asia/Macau';
     // 香港（UTC+8）
     const ASIA_HONGKONG = 'Asia/Hong_Kong';
     // 新加坡（UTC+8）
