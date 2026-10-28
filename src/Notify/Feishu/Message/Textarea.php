@@ -20,7 +20,7 @@ class Textarea extends Base
                 'tag' => 'text',
                 'text' => $this->getServerText(),
             ];
-        }else{
+        } else {
             $content = [
                 [
                     'tag' => 'text',
