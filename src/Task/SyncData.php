@@ -24,6 +24,14 @@ class SyncData implements TaskInterface
      */
     protected $data = [];
 
+    protected $warnTitle = '';
+
+    /**
+     * 报警通知数据
+     * @var array
+     */
+    protected $warnText = [];
+
     /**
      * 备份删除的日志标识
      * @var string
@@ -52,6 +60,12 @@ class SyncData implements TaskInterface
             foreach ($classArray as $class) {
                 $this->doSync($class);
             }
+        }
+
+        // 一起处理上报webhook
+        if (!empty($this->warnText)) {
+            $text = implode("\n\n", $this->warnText);
+            notice($text, $this->warnTitle);
         }
     }
 
@@ -109,14 +123,12 @@ class SyncData implements TaskInterface
                 $orgs[$pk] = is_bool($insertId) ? $data[$pk] : $insertId;
             }
         } catch (\Exception|\Throwable $e) {
-            notice($msg = "数据同步失败 class:$className, 错误信息: {$e->getMessage()}");
-            wechat_notice($msg);
-            trace("$msg, data: " . json_encode($data, JSON_UNESCAPED_UNICODE), 'info', 'sync');
+            $this->warnTitle = '数据同步失败';
+            $this->warnText[] = "数据同步失败 class=$className, 错误信息= {$e->getMessage()}, data=" . json_encode($data, JSON_UNESCAPED_UNICODE);
         }
 
         // 清除缓存， 由对应model事件执行
 //        $model->cacheDel($orgs[$pk]);
-        return true;
     }
 
     protected function _delete($className)
@@ -138,8 +150,14 @@ class SyncData implements TaskInterface
                 $this->_delete_backup($row);
                 // 执行删除
                 $rowCount = $row->destroy();
+
                 // 不论成功失败，上报
-                $this->_delete_report($className, $rowCount, $row->lastQuery()->getLastQuery());
+                $this->warnTitle = '数据删除通知';
+                $text = "- Class: {$className}\n";
+                $text .= "- 删除行数: {$rowCount}\n";
+                $text .= "- 执行SQL：{$row->lastQuery()->getLastQuery()}\n";
+                $text .= "- 如需误删恢复，请查日志关键字：{$this->delBakupKey}";
+                $this->warnText[] = $text;
             }
 
             // 删缓存, 由对应model事件执行
@@ -159,20 +177,5 @@ class SyncData implements TaskInterface
         $builder = new QueryBuilder();
         $builder->insert($model->getTableName(), $rawArray);
         trace("[{$this->delBakupKey}_sql]{$builder->getLastQuery()}");
-    }
-
-    // 数据删除通知
-    protected function _delete_report($className = '', $rowCount = 0, $sql = '')
-    {
-        $newline = " \n\n ";
-        $title = '数据删除通知';
-
-        $ding = "## $title $newline";
-        $ding .= "- Class: {$className}{$newline}";
-        $ding .= "- 删除行数: {$rowCount}{$newline}";
-        $ding .= "- 执行SQL：{$sql}{$newline}";
-        $ding .= "- 如需误删恢复，请查日志关键字：{$this->delBakupKey}";
-        notice($ding, '数据删除通知');
-        wechat_notice("$title $sql");
     }
 }
