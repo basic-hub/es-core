@@ -103,9 +103,11 @@ abstract class Base extends SplBean implements NasInterface
         'copy'       => true,
         'move'       => true,
         'rename'     => true,
-        'read'       => false,
-        'thumbnail'  => false,
-        'previewUrl' => false,
+        'read'         => false,
+        'thumbnail'    => false,
+        'previewUrl'   => false,
+        'thumbnailUrl' => false,
+        'uploadTicket' => false,
     ];
 
     protected function initialize(): void
@@ -207,6 +209,10 @@ abstract class Base extends SplBean implements NasInterface
      *
      * 与 http_build_query 的区别：数组值会展开为重复的同名参数（source_file=a&source_file=b），
      * 而不是 source_file[0]=a。威联通的多文件操作必须用这种形式。
+     *
+     * 用 rawurlencode 而不是 urlencode：后者把空格编成 `+`，而 `+` 只在
+     * 表单编码语境下等于空格，放在 URL 里有的 CGI 会原样当加号处理，
+     * 导致带空格的 NAS 路径找不到文件。路径场景必须用 %20。
      * @param array $query
      * @return string
      */
@@ -222,11 +228,11 @@ abstract class Base extends SplBean implements NasInterface
             }
             if (is_array($value)) {
                 foreach ($value as $item) {
-                    $parts[] = urlencode($key) . '=' . urlencode($item);
+                    $parts[] = rawurlencode($key) . '=' . rawurlencode($item);
                 }
                 continue;
             }
-            $parts[] = urlencode($key) . '=' . urlencode($value);
+            $parts[] = rawurlencode($key) . '=' . rawurlencode($value);
         }
         return implode('&', $parts);
     }
@@ -646,7 +652,8 @@ abstract class Base extends SplBean implements NasInterface
 
             $status = $response->getStatusCode();
             if ($status < 200 || $status >= 300) {
-                throw new \Exception($this->getClassName() . " 请求失败 HTTP {$status}: {$url}");
+                // 状态码带进异常 code，调用方才能区分 404（资源不存在）这类可预期情况
+                throw new \Exception($this->getClassName() . " 请求失败 HTTP {$status}: {$url}", $status);
             }
 
             $body = (string)$response->getBody();
@@ -846,5 +853,27 @@ abstract class Base extends SplBean implements NasInterface
     public function previewUrl($path, $options = [])
     {
         $this->unsupported('previewUrl');
+    }
+
+    /**
+     * 默认直传凭据实现：厂商未实现时统一抛出
+     * @param string $path
+     * @param array $options
+     * @return array
+     */
+    public function uploadTicket($path, $options = [])
+    {
+        $this->unsupported('uploadTicket');
+    }
+
+    /**
+     * 默认缩略图地址实现：厂商未实现时统一抛出
+     * @param string $path
+     * @param array $options
+     * @return string
+     */
+    public function thumbnailUrl($path, $options = [])
+    {
+        $this->unsupported('thumbnailUrl');
     }
 }

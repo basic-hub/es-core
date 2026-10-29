@@ -4,7 +4,7 @@ namespace BasicHub\EsCore\Common\CloudLib\Nas;
 
 /**
  * 群晖 Synology DSM Web API 文件管理驱动
- * 
+ *
  * 配置示例：
  * [
  *     'host'     => 'https://192.168.1.200:5001',  // 必须带协议和端口
@@ -13,11 +13,11 @@ namespace BasicHub\EsCore\Common\CloudLib\Nas;
  *     'otpCode'  => '',     // 两步验证动态码（启用时必填）
  *     'session'  => 'FileStation',  // 会话名称，默认 FileStation
  * ]
- * 
+ *
  * 文档：
  * - 官方开发者指南：https://global.download.synology.com/download/Document/Software/DeveloperGuide/Firmware/FileStation/All/enu/Synology_File_Station_API_Guide.pdf
  * - API 参考实现：https://github.com/N4S4/synology-api
- * 
+ *
  * @document https://global.download.synology.com/download/Document/Software/DeveloperGuide/Firmware/FileStation/All/enu/Synology_File_Station_API_Guide.pdf
  */
 class Synology extends Base
@@ -167,9 +167,11 @@ class Synology extends Base
         'copy'       => true,
         'move'       => true,
         'rename'     => true,
-        'read'       => true,
-        'thumbnail'  => true,
-        'previewUrl' => true,
+        'read'         => true,
+        'thumbnail'    => true,
+        'previewUrl'   => true,
+        'thumbnailUrl' => true,
+        'uploadTicket' => true,
     ];
 
     /**
@@ -412,6 +414,54 @@ class Synology extends Base
     }
 
     /**
+     * 签发浏览器直传所需的上传地址与表单字段
+     *
+     * 群晖没有 S3 那种预签名 URL 机制，能下发给浏览器的只有 _sid，
+     * 它等同于该账号在 File Station 的全部权限，所以务必用一个
+     * 权限只限定到目标共享文件夹的专用 DSM 账号来登录。
+     *
+     * 返回的结构交给前端后，前端按 fields 顺序塞进 FormData，
+     * 文件段放最后（段名取 file_field），POST 到 url 即可。
+     * @document SYNO.FileStation.Upload
+     * @param string $path NAS 目标目录
+     * @param array $options overwrite|create_parents|mtime|crtime|atime
+     * @return array
+     * @throws \Exception
+     */
+    public function uploadTicket($path, $options = [])
+    {
+        $info = $this->getApiInfo('SYNO.FileStation.Upload');
+
+        // api/version/method/_sid 必须在查询串里，entry.cgi 只从那里解析路由参数
+        $query = [
+            'api'     => 'SYNO.FileStation.Upload',
+            'version' => $info['version'],
+            'method'  => 'upload',
+            '_sid'    => $this->getSessionToken(),
+        ];
+
+        // 业务参数必须作为 multipart 字段提交，且都要排在文件段之前
+        $fields = [
+            'path'           => $this->normalizePath($path),
+            'create_parents' => !empty($options['create_parents']) ? 'true' : 'false',
+            'overwrite'      => $this->uploadOverwrite($options['overwrite'] ?? true, $info['version']),
+        ];
+
+        foreach (['mtime', 'crtime', 'atime'] as $key) {
+            if (isset($options[$key])) {
+                $fields[$key] = (string)$options[$key];
+            }
+        }
+
+        return [
+            'url'        => $this->buildUrl($info['path'], $query),
+            'method'     => 'POST',
+            'file_field' => 'file',
+            'fields'     => $this->escape($fields),
+        ];
+    }
+
+    /**
      * 归一化上传的 overwrite 参数
      *
      * version 2 取 true/false，version 3 起取 overwrite/skip，语义一一对应。
@@ -507,7 +557,8 @@ class Synology extends Base
     /**
      * 获取图片/视频的缩略图
      *
-     * 依赖 NAS 的索引服务，未被索引或不支持的格式会由 DSM 返回错误码。
+     * 缩略图不是实时生成的，而是由索引服务预先生成后存在同目录的 @eaDir 里。
+     * 没有现成缩略图时 DSM 不返回 JSON 错误码，而是直接回 HTTP 404 页面。
      * @document SYNO.FileStation.Thumb
      * @param string $path NAS 文件绝对路径
      * @param array $options size 尺寸档位 small|medium|large|original、rotate 旋转档位 0-4
@@ -516,24 +567,17 @@ class Synology extends Base
      */
     public function thumbnail($path, $options = [])
     {
-        $size = $options['size'] ?? 'medium';
-        if (!in_array($size, self::$thumbSizes, true)) {
-            throw new \Exception('缩略图尺寸无效，可选: ' . implode('|', self::$thumbSizes));
+        $info  = $this->getApiInfo('SYNO.FileStation.Thumb');
+        $query = $this->thumbQuery($info['version'], $path, $options);
+
+        try {
+            list(, $headers, $body) = $this->requestContent($info['path'], $this->escape($query));
+        } catch (\Exception $e) {
+            if ((int)$e->getCode() === 404) {
+                throw new \Exception("该文件没有缩略图，需先由索引服务生成: {$path}", 404, $e);
+            }
+            throw $e;
         }
-
-        $info = $this->getApiInfo('SYNO.FileStation.Thumb');
-
-        $query = [
-            'api'     => 'SYNO.FileStation.Thumb',
-            'version' => $info['version'],
-            'method'  => 'get',
-            'path'    => $this->normalizePath($path),
-            'size'    => $size,
-            'rotate'  => (int)($options['rotate'] ?? 0),
-            '_sid'    => $this->getSessionToken(),
-        ];
-
-        list(, $headers, $body) = $this->requestContent($info['path'], $this->escape($query));
 
         if ($this->detectJsonError($headers['content-type'] ?? '', $body) !== null) {
             $this->parse($body, 'file');
@@ -544,6 +588,25 @@ class Synology extends Base
         }
 
         return $body;
+    }
+
+    /**
+     * 判断指定文件当前是否已有可用缩略图
+     *
+     * thumbnailUrl() 只拼地址、不发请求，无法得知封面图是否真的存在。
+     * 需要在入库前确认封面可用时用这个方法探测一次。
+     * @param string $path NAS 文件绝对路径
+     * @param array $options 同 thumbnail()
+     * @return bool
+     */
+    public function hasThumbnail($path, $options = [])
+    {
+        try {
+            $this->thumbnail($path, $options);
+            return true;
+        } catch (\Exception $e) {
+            return false;
+        }
     }
 
     /**
@@ -571,6 +634,55 @@ class Synology extends Base
         ];
 
         return $this->buildUrl($info['path'], $this->escape($query));
+    }
+
+    /**
+     * 生成缩略图地址，可直接作为 video 标签的 poster
+     *
+     * 与 thumbnail() 走的是同一个接口，区别是这里只拼地址、不取二进制，
+     * 适合交给浏览器去加载。
+     *
+     * 注意：只拼地址不发请求，所以不保证封面图真的存在 —— 视频需先被
+     * 索引服务生成缩略图，否则该地址会返回 404。要先确认可用性就调
+     * hasThumbnail()，前端兜底则给 poster 配 onerror 占位图。
+     * 地址内含 _sid，安全权衡与 previewUrl() 一致。
+     * @document SYNO.FileStation.Thumb
+     * @param string $path NAS 文件绝对路径
+     * @param array $options size 尺寸档位 small|medium|large|original、rotate 旋转档位 0-4
+     * @return string
+     * @throws \Exception
+     */
+    public function thumbnailUrl($path, $options = [])
+    {
+        $info = $this->getApiInfo('SYNO.FileStation.Thumb');
+
+        return $this->buildUrl($info['path'], $this->escape($this->thumbQuery($info['version'], $path, $options)));
+    }
+
+    /**
+     * 拼装缩略图接口的请求参数，thumbnail() 与 thumbnailUrl() 共用
+     * @param int|string $version
+     * @param string $path
+     * @param array $options
+     * @return array
+     * @throws \Exception
+     */
+    protected function thumbQuery($version, $path, array $options)
+    {
+        $size = $options['size'] ?? 'medium';
+        if (!in_array($size, self::$thumbSizes, true)) {
+            throw new \Exception('缩略图尺寸无效，可选: ' . implode('|', self::$thumbSizes));
+        }
+
+        return [
+            'api'     => 'SYNO.FileStation.Thumb',
+            'version' => $version,
+            'method'  => 'get',
+            'path'    => $this->normalizePath($path),
+            'size'    => $size,
+            'rotate'  => (int)($options['rotate'] ?? 0),
+            '_sid'    => $this->getSessionToken(),
+        ];
     }
 
     /**

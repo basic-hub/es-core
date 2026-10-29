@@ -60,6 +60,20 @@ interface NasInterface
     public function upload($file, $path, $options = []);
 
     /**
+     * 签发一份可供浏览器直传的上传凭据
+     *
+     * 返回上传地址与需要一起提交的表单字段，前端用 FormData 直接把文件
+     * POST 给 NAS，不再经服务器中转。适用于大文件。
+     *
+     * 注意：凭据内含会话凭证，等同于当前账号的文件访问权限，只应下发给
+     * 可信网络内的可信客户端。
+     * @param string $path NAS 目标目录绝对路径
+     * @param array $options 厂商扩展参数，如 overwrite、create_parents
+     * @return array url、method、file_field、fields
+     */
+    public function uploadTicket($path, $options = []);
+
+    /**
      * 下载 NAS 文件至本地
      * @param string $path NAS 文件绝对路径
      * @param string $saveFile 本地保存绝对路径
@@ -102,6 +116,17 @@ interface NasInterface
      * @return string 完整的 HTTP 地址
      */
     public function previewUrl($path, $options = []);
+
+    /**
+     * 生成缩略图地址，可直接作为 video 标签的 poster 或 img 的 src
+     *
+     * 与 thumbnail() 的区别是只返回地址、由浏览器去加载，不经 PHP 转发。
+     * 同样依赖 NAS 的索引服务，安全权衡与 previewUrl() 一致。
+     * @param string $path NAS 文件绝对路径
+     * @param array $options size 尺寸档位、rotate 旋转角度
+     * @return string 完整的 HTTP 地址
+     */
+    public function thumbnailUrl($path, $options = []);
 
     /**
      * 删除文件或目录
