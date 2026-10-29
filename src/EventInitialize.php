@@ -334,7 +334,6 @@ class EventInitialize extends SplBean
         Di::getInstance()->set(
             SysConst::HTTP_EXCEPTION_HANDLER,
             function (\Throwable $throwable, Request $request, Response $response): void {
-                Trigger::getInstance()->throwable($throwable);
 
                 if ($response->isEndResponse()) {
                     return;
