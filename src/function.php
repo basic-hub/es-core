@@ -8,6 +8,7 @@ use BasicHub\EsCore\Common\CloudLib\Cdn\CdnInterface;
 use BasicHub\EsCore\Common\CloudLib\Dns\DnsInterface;
 use BasicHub\EsCore\Common\CloudLib\Email\EmailInterface;
 use BasicHub\EsCore\Common\CloudLib\Geo\Geo;
+use BasicHub\EsCore\Common\CloudLib\Nas\NasInterface;
 use BasicHub\EsCore\Common\CloudLib\Sms\SmsInterface;
 use BasicHub\EsCore\Common\CloudLib\Storage\StorageInterface;
 use BasicHub\EsCore\Common\Exception\HttpParamException;
@@ -1478,7 +1479,7 @@ if ( ! function_exists('get_drivers')) {
         $cfg = $cfg[$driver] ?? $cfg['config'];
         $className = "\\BasicHub\\EsCore\\Common\\CloudLib\\$clsname\\$driver";
         if ( ! class_exists($className)) {
-            throw new \Exception("$clsname Driver Not Found");
+            throw new \Exception("$className Driver Not Found");
         }
         return new $className(array_merge($cfg, $config));
     }
@@ -1507,6 +1508,19 @@ if ( ! function_exists('storage')) {
      * @throws Exception
      */
     function storage($config = []): StorageInterface
+    {
+        return get_drivers(__FUNCTION__, strtoupper(__FUNCTION__), $config);
+    }
+}
+
+if ( ! function_exists('nas')) {
+    /**
+     * 助手函数，返回nas操作对象
+     * @param array $config
+     * @return NasInterface
+     * @throws Exception
+     */
+    function nas($config = []): NasInterface
     {
         return get_drivers(__FUNCTION__, strtoupper(__FUNCTION__), $config);
     }
