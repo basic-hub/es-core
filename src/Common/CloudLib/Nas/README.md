@@ -4,11 +4,12 @@
 
 ## 与对象存储（Storage）的区别
 
-| | 对象存储 | NAS |
-|---|---|---|
-| 路径模型 | 扁平 key | 真实目录树，有 mkdir / listDir 语义 |
-| 鉴权 | AK/SK 无状态签名 | 登录拿 session，后续请求带 session |
-| 能力一致性 | 各家基本一致 | 差异很大，需按 `can()` 降级 |
+|       | 对象存储        | NAS                        |
+|-------|-------------|----------------------------|
+| 路径模型  | 扁平 key      | 真实目录树，有 mkdir / listDir 语义 |
+| 鉴权    | AK/SK 无状态签名 | 登录拿 session，后续请求带 session  |
+| 能力一致性 | 各家基本一致      | 差异很大，需按 `can()` 降级         |
+| 成本    | 按量、按时计费     | 固定资产，一次投入                  |
 
 ## 目录结构
 
@@ -84,6 +85,7 @@ $nas = new Synology([
 | `exists` 判断存在 | 支持 | 支持（无 stat 接口，靠列父目录匹配名称） |
 | `mkdir` 建目录 | 支持 | 支持 |
 | `upload` 上传 | 支持 | 支持 |
+| `uploadTicket` 签发直传凭据 | 支持 | 未实现 |
 | `download` 下载 | 支持 | 支持 |
 | `delete` 删除 | 支持（异步任务） | 支持 |
 | `copy` 复制 | 支持（异步任务） | 支持 |
@@ -92,6 +94,7 @@ $nas = new Synology([
 | `read` 读取内容 | 支持 | 未实现 |
 | `thumbnail` 缩略图 | 支持 | 未实现 |
 | `previewUrl` 预览地址 | 支持 | 未实现 |
+| `thumbnailUrl` 缩略图地址 | 支持 | 未实现 |
 
 ```php
 if ($nas->can('thumbnail')) {
@@ -99,7 +102,7 @@ if ($nas->can('thumbnail')) {
 }
 ```
 
-威联通的 `read` / `thumbnail` / `previewUrl` 没有实现 —— QNAP 有类似接口，但未经真机验证，不臆造参数。
+威联通的 `read` / `thumbnail` / `thumbnailUrl` / `previewUrl` 没有实现 —— QNAP 有类似接口，但未经真机验证，不臆造参数。
 
 ## API 说明与示例
 
@@ -186,6 +189,130 @@ $nas->upload('/tmp/a.apk', '/home/apk', [
 
 传大文件记得把 `readTimeout` 调大。
 
+### uploadTicket 浏览器直传
+
+`upload()` 走的是「客户端 → 业务服务器 → NAS」两段路。大文件下这条路的瓶颈在第一段：为了绕开单请求体积限制，前端通常得切片上传到服务器，服务器再把几百个切片合并成一个完整文件才能转发给 NAS。合并 10GB 文件意味着读 10GB + 写 10GB 的纯磁盘拷贝，耗时长且期间没有任何数据流向 NAS，这一步是大文件上传的主要失败点。
+
+`uploadTicket()` 让前端跳过服务器直接传给 NAS，第一段路和合并一起消失：
+
+```php
+$ticket = $nas->uploadTicket('/home/apk', [
+    'overwrite'      => true,
+    'create_parents' => true,
+]);
+
+// [
+//     'url'        => 'https://nas:5001/webapi/entry.cgi?api=...&_sid=...',
+//     'method'     => 'POST',
+//     'file_field' => 'file',
+//     'fields'     => ['path' => '/home/apk', 'create_parents' => 'false', 'overwrite' => 'true'],
+// ]
+return $ticket;
+```
+
+前端拿到后按 `fields` 拼 FormData，**文件段必须放在最后**（群晖要求二进制段位于所有参数之后）。下面给了 axios 和原生 `XMLHttpRequest` 两个版本，任选其一。
+
+FormData 塞进去的是 `File` 对象，不是文件内容 —— 浏览器发送时按块从磁盘读、边读边写 socket，内存占用恒定在几 MB，不随文件大小增长，几十 GB 也不会把标签页撑爆。
+
+**axios 版：**
+
+```js
+import axios from 'axios'
+
+async function uploadToNas(file, ticket, onProgress) {
+  const form = new FormData()
+  // 先放业务参数，顺序不能和文件段颠倒
+  Object.keys(ticket.fields).forEach(function (key) {
+    form.append(key, ticket.fields[key])
+  })
+  form.append(ticket.file_field, file, file.name)
+
+  // 必须用裸 axios，不能用项目里配过拦截器的那个实例
+  return axios.post(ticket.url, form, {
+    timeout: 0,                  // 大文件别设超时，默认值会掐断上传
+    withCredentials: false,      // 凭证走 URL 里的 _sid，不要带 Cookie
+    transformRequest: [function (data) { return data }], // 阻止被序列化
+    onUploadProgress: function (e) {
+      if (e.total) {
+        onProgress(Math.round((e.loaded / e.total) * 100))
+      }
+    },
+  })
+}
+```
+
+用 axios 要避开四个坑，前三个都会让请求发不出去或被 NAS 拒掉：
+
+- **别用项目全局的 axios 实例。** 业务实例通常配了 `baseURL`（会把 NAS 的绝对地址拼坏）、`Authorization` 头（自定义头会触发 CORS 预检，而 DSM 不响应 `OPTIONS`，请求直接失败）、以及统一解包响应的拦截器（群晖返回的是 `{success, data}`，和业务约定的结构不一样，会被解析错）。直传请求必须用 `axios.create()` 开一个干净实例或直接用裸 `axios`。
+- **别自己设 `Content-Type`。** 传了 FormData 就让浏览器自动生成，它会带上 multipart 必需的 `boundary`。手写成 `multipart/form-data` 会丢掉 boundary，NAS 解不出分段。
+- **`timeout` 要显式设 0。** axios 默认不超时，但很多项目在全局配了 10 秒、30 秒，大文件必然被掐。
+- **`transformRequest` 覆盖掉。** 全局配置里如果有序列化逻辑，会把 FormData 转成别的东西。
+
+`onUploadProgress` 底层就是 `xhr.upload.onprogress`，axios 在浏览器里走的是 XHR 适配器，所以进度能力和原生一致，不用退回裸 XHR。
+
+**原生 XMLHttpRequest 版：** 不想为直传额外引依赖、或者嫌躲全局配置麻烦的，用原生写法同样可以，而且天然不受项目里 axios 全局配置的影响：
+
+```js
+function uploadToNas(file, ticket, onProgress) {
+  return new Promise(function (resolve, reject) {
+    const form = new FormData()
+    // 先放业务参数，顺序不能和文件段颠倒
+    Object.keys(ticket.fields).forEach(function (key) {
+      form.append(key, ticket.fields[key])
+    })
+    form.append(ticket.file_field, file, file.name)
+
+    const xhr = new XMLHttpRequest()
+    xhr.open(ticket.method, ticket.url)
+    // 默认就是 0（不超时），显式写出来避免被误改
+    xhr.timeout = 0
+    xhr.withCredentials = false
+
+    xhr.upload.onprogress = function (e) {
+      if (e.lengthComputable) {
+        onProgress(Math.round((e.loaded / e.total) * 100))
+      }
+    }
+    xhr.onload = function () {
+      // 没配 CORS 头时这里拿不到 responseText，只能靠状态码粗判
+      try {
+        resolve(JSON.parse(xhr.responseText))
+      } catch (err) {
+        resolve(null)
+      }
+    }
+    xhr.onerror = function () {
+      // 响应被 CORS 拦掉也会走到这里，不代表文件没传上去
+      reject(new Error('上传请求失败'))
+    }
+    xhr.send(form)
+  })
+}
+```
+
+两种写法的差别只在开发体验：axios 代码短、错误处理顺手，但要小心全局配置；原生 XHR 啰嗦一点，换来的是行为完全可控。能力上没有区别 —— 进度、不超时、流式发送三者都具备。
+
+两个版本都不要调 `setRequestHeader('Content-Type', ...)`，让浏览器自己生成带 boundary 的那一行。
+
+上线前要先处理三件事，否则直传跑不通：
+
+**一、DSM 要放 CORS 头。** DSM 默认不返回 `Access-Control-Allow-Origin`。注意 `multipart/form-data` 在 CORS 安全名单内，不触发预检，所以请求会真发出去、NAS 也会真收下文件，只是响应被浏览器拦掉 —— 表现为文件传成功了但前端报错，等于盲传。配置路径：DSM 控制台 > 登录门户 > 高级 > 反向代理，给 NAS 的访问入口加「自定义标题」：
+
+| 标题名 | 值 |
+|---|---|
+| `Access-Control-Allow-Origin` | 你的前端站点源，如 `https://admin.example.com` |
+| `Access-Control-Allow-Credentials` | `true` |
+
+不配 CORS 头也能用，但前端只能靠上传完成后回头调 `exists()` 确认结果，拿不到群晖的错误码。
+
+**二、用专用受限账号登录。** 群晖没有 S3 的预签名 URL 机制，签不出「只能写某个路径、几分钟后过期」的凭证。能交给浏览器的只有 `_sid`，它等同该账号在 File Station 的全部权限 —— 拿到的人可以浏览、下载、删除这个账号能碰到的所有文件。唯一的收窄手段是在 DSM 里单独建一个上传专用账号，权限只给目标共享文件夹的写入，驱动配置里用这个账号。做不到按单次操作或单个文件限权。
+
+**三、NAS 要能被浏览器直连，且证书可信。** 当前配置是 `https://10.172.10.87:5001`（内网 IP + 自签证书）：
+
+- 内网 IP 意味着只有办公网内的客户端能直传，外网用户用不了，得保留 `upload()` 这条中转路作为兜底
+- 浏览器会拦自签证书。Let's Encrypt 不给 IP 签证书，要么给 NAS 配一个内网 DNS 域名再签正式证书，要么把自签 CA 装进办公机器的信任库
+- 前端站点跑 HTTPS 时，不能传给 `http://` 的 NAS 地址，会被混合内容策略拦掉
+
 ### download 下载
 
 ```php
@@ -243,9 +370,58 @@ $jpg = $nas->thumbnail('/home/photo/a.jpg', [
 file_put_contents('/tmp/thumb.jpg', $jpg);
 ```
 
-依赖 NAS 自身的索引服务。视频被索引后也会有封面图。未被索引或格式不支持时抛异常。`size` 传了白名单外的值会直接快速失败，不发请求。
+`size` 传了白名单外的值会直接快速失败，不发请求。
 
-图片视频预览有两条路，按场景选：`previewUrl()` 不占 PHP 进程，适合直接给前端；`thumbnail()` 拿到二进制，适合自己做缓存层。
+**缩略图不是实时生成的。** 群晖的索引服务会预先把缩略图生成好，放在文件同目录的 `@eaDir` 隐藏目录里，Thumb 接口只是去读这个现成的文件。所以没有缩略图时，DSM 不走 JSON 错误码那套，而是直接返回一个 HTTP 404 的 HTML 页面（浏览器里看到的就是「抱歉，您所指定的页面不存在」）。这种情况 `thumbnail()` 会抛出「该文件没有缩略图，需先由索引服务生成」。
+
+视频要有封面图，得同时满足：
+
+- 文件所在的共享文件夹在「控制台 > 索引服务 > 媒体索引」的索引范围内
+- 已安装可生成缩略图的套件（Media Server / Synology Photos 之类）
+- 索引任务已经跑完 —— 刚上传的大视频要等一会儿，不是立刻就有
+
+### hasThumbnail 探测封面是否可用
+
+`thumbnailUrl()` 只拼地址不发请求，拿不到「封面到底存不存在」这个信息。要在入库前确认就用这个：
+
+```php
+if ($nas->hasThumbnail('/home/video/a.mp4')) {
+    $poster = $nas->thumbnailUrl('/home/video/a.mp4', ['size' => 'large']);
+}
+```
+
+内部就是调一次 `thumbnail()` 看会不会抛异常，会真实发一次请求，别在列表循环里对几百个文件逐个调。
+
+### thumbnailUrl 缩略图地址
+
+和 `thumbnail()` 同一个接口，区别是只拼地址、不取二进制，交给浏览器去加载：
+
+```php
+$poster = $nas->thumbnailUrl('/home/video/a.mp4', [
+    'size'   => 'large', // small|medium|large|original，默认 medium
+    'rotate' => 0,
+]);
+```
+
+主要用途是给 `<video>` 的 `poster` 属性，实现「进页面只加载封面图、点击后才加载视频」：
+
+```php
+$poster   = $nas->thumbnailUrl('/home/video/a.mp4', ['size' => 'large']);
+$videoUrl = $nas->previewUrl('/home/video/a.mp4');
+```
+
+```html
+<!-- preload="none" 让浏览器进页面时一个字节的视频都不下载，只显示 poster -->
+<video src="<?= $videoUrl ?>" poster="<?= $poster ?>" preload="none" controls></video>
+```
+
+`preload="none"` + `poster` 是原生行为，不用写 JS：初始只请求封面图，用户点播放键才开始拉视频。如果想连视频地址都延迟到点击后再从后端取（避免 `_sid` 过早暴露），就先只渲染 `poster`，点击时再请求接口拿 `previewUrl()` 填进 `src`。
+
+这个方法不发请求，所以**不保证封面图真的存在**。视频没被索引时该地址返回 404，`<video>` 的表现是不显示 poster（退化成黑屏或首帧）。要兜底就在前端换成一张 `<img>` 占位、`onerror` 时替换为默认图，或者后端先用 `hasThumbnail()` 探测。
+
+缩略图地址同样内含 `_sid`，安全权衡和 `previewUrl()` 一样。
+
+三条路按场景选：`previewUrl()` 和 `thumbnailUrl()` 不占 PHP 进程，适合直接给前端；`thumbnail()` 拿到二进制，适合自己做缓存层。
 
 ### delete 删除
 
@@ -337,6 +513,9 @@ use BasicHub\EsCore\Common\CloudLib\Nas\Synology;
         $imgUrl   = $nas->previewUrl('/home/demo/photo.jpg');
         $videoUrl = $nas->previewUrl('/home/demo/movie.mp4');
 
+        // 视频封面图，配合 <video poster> preload="none" 实现点击后才加载
+        $poster = $nas->thumbnailUrl('/home/demo/movie.mp4', ['size' => 'large']);
+
         // 7. 缩略图，落地本地缓存
         if ($nas->can('thumbnail')) {
             $thumb = $nas->thumbnail('/home/demo/photo.jpg', ['size' => 'medium']);
@@ -397,7 +576,7 @@ public function preview()
 | `sleep()` | 兼容协程与非协程环境 |
 | `unsupported()` | 未实现能力时统一抛异常 |
 
-`rename` / `read` / `thumbnail` / `previewUrl` 在 `Base` 里有默认的「抛不支持」实现，新驱动不实现也能跑。实现了就在 `$abilities` 里把对应开关置为 `true`：
+`rename` / `read` / `thumbnail` / `thumbnailUrl` / `previewUrl` 在 `Base` 里有默认的「抛不支持」实现，新驱动不实现也能跑。实现了就在 `$abilities` 里把对应开关置为 `true`：
 
 ```php
 class MyNas extends Base
@@ -411,10 +590,11 @@ class MyNas extends Base
         'delete'     => true,
         'copy'       => true,
         'move'       => true,
-        'rename'     => false,  // 该厂商没有重命名接口
-        'read'       => true,
-        'thumbnail'  => false,
-        'previewUrl' => true,
+        'rename'       => false,  // 该厂商没有重命名接口
+        'read'         => true,
+        'thumbnail'    => false,
+        'previewUrl'   => true,
+        'thumbnailUrl' => false,
     ];
 }
 ```
@@ -433,10 +613,16 @@ class MyNas extends Base
 
 **群晖的 API 版本不能硬编码。** DSM6 和 DSM7 的接口 path 与 version 差异很大，驱动通过 `SYNO.API.Info` 动态发现，取「文档已定义上限」与「设备 maxVersion」的较小值，再保证不低于 `minVersion`。高版本的参数语义未必向下兼容，所以不直接用 maxVersion。
 
+**查询串必须用 `rawurlencode`，不能用 `urlencode`。** `urlencode` 把空格编成 `+`，这是表单编码的规则；放在 URL 查询串里，部分 CGI 会把 `+` 原样当加号处理，于是带空格的 NAS 路径就变成了一个不存在的路径。表现为路径里有空格的文件请求 404，没空格的一切正常。
+
+**缩略图 404 不是错误码而是 HTML 页面。** Thumb 接口读的是索引服务预生成在 `@eaDir` 里的缩略图文件，不存在时 DSM 直接回 404 页面，不走 JSON 错误信封，所以 `detectJsonError()` 那套判错逻辑接不住。`requestContent()` 现在把 HTTP 状态码塞进异常的 code，`thumbnail()` 据此把 404 翻译成可读信息。
+
 **群晖参数里的逗号要转义**，因为逗号是多值分隔符。但两类值不能转义：一是 `passwd` / `password`，按文档要求原样传，否则含逗号的密码会登录失败；二是已经是 JSON 数组形式的值（如 `path`、`name`），其中的逗号是 JSON 语法的一部分。
 
 ## 待办
 
 - 视频的服务端 Range 代理（分片转发）还没做。目前视频预览靠 `previewUrl()` 让浏览器直连 NAS，如果要完全隐藏 NAS 地址和凭证，需要额外实现一个按 Range 转发的方法。
-- 威联通的 `read` / `thumbnail` / `previewUrl` 待真机验证后补齐。
+- 威联通的 `read` / `thumbnail` / `thumbnailUrl` / `previewUrl` / `uploadTicket` 待真机验证后补齐。
+- 直传只适用于能直连 NAS 的网络。外网场景仍需走 `upload()` 中转，业务层得按客户端所处网络二选一。
+- 视频封面依赖 NAS 的索引服务，驱动这边没法代劳。如果整个共享文件夹都没开媒体索引，`thumbnail()` / `thumbnailUrl()` 对视频永远拿不到图，这时只能自己用 ffmpeg 抽帧生成封面再传回 NAS。
 
