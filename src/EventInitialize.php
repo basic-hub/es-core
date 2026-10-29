@@ -3,9 +3,11 @@
 namespace BasicHub\EsCore;
 
 use BasicHub\EsCore\Common\Classes\CtxManager;
+use BasicHub\EsCore\Common\Languages\Dictionary;
 use EasySwoole\Component\Di;
 use EasySwoole\EasySwoole\Config;
 use EasySwoole\EasySwoole\SysConst;
+use EasySwoole\EasySwoole\Trigger;
 use EasySwoole\Http\Request;
 use EasySwoole\Http\Response;
 use EasySwoole\I18N\I18N;
@@ -325,5 +327,36 @@ class EventInitialize extends SplBean
                 break;
             }
         }
+    }
+
+    public function setGlobalException()
+    {
+        Di::getInstance()->set(
+            SysConst::HTTP_EXCEPTION_HANDLER,
+            function (\Throwable $throwable, Request $request, Response $response): void {
+                Trigger::getInstance()->throwable($throwable);
+
+                if ($response->isEndResponse()) {
+                    return;
+                }
+
+                $response->withStatus($throwable->getCode());
+
+                if (is_env('produce')) {
+                    $data = [
+                        'code' => $throwable->getCode(),
+                        'message' => lang(Dictionary::BASECONTROLLERTRAIT_1),
+                    ];
+                    $response->withHeader('Content-Type', 'application/json; charset=utf-8');
+                    $response->write(json_encode($data, JSON_UNESCAPED_UNICODE));
+                    // 可选，交给异常处理器
+                    // Trigger::getInstance()->throwable($throwable);
+                } else {
+                    $response->write(nl2br($throwable->getMessage() . "\n" . $throwable->getTraceAsString()));
+                }
+                // 禁止继续写response
+                $response->end();
+            }
+        );
     }
 }
