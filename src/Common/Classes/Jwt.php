@@ -36,10 +36,11 @@ class Jwt extends JwtObject
     {
         try {
 
-            // 兼容早期非jwt标准格式 todo 后面可能删除此兼容代码 - 2025-12-16
-            if (count(explode('.', $token)) !== 3) {
-                $token = base64_decode($token);
-            }
+            // 兼容早期非jwt标准格式 后面可能删除此兼容代码 - 2025-12-16
+            // 2026-10-29 兼容代码已移除，使用标准jwt格式。base64为明文编码，非加密，完全没有意义
+//            if (count(explode('.', $token)) !== 3) {
+//                $token = base64_decode($token);
+//            }
 
             $Jwt = $this->decode($token);
             $status = $Jwt->getStatus();
