@@ -1182,32 +1182,34 @@ if (!function_exists('notice_alarm_times')) {
     {
         try {
             if (!is_scalar($content)) {
-                $content = json_encode($content);
+                // JSON_INVALID_UTF8_SUBSTITUTE 保证非法UTF-8字节不会让json_encode返回false，
+                // 否则 md5(false) === md5('') 会使所有编码失败的内容共用同一个key，且报警内容为空
+                $content = json_encode($content, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
             }
 
             $fn = function (Redis $redis) use ($content, $times, $warname) {
                 $Ymd = date('Ymd');
-                $time = time();
                 $md5 = md5($content);
                 $redisKey = "alarm_times_{$Ymd}_{$md5}";
 
                 // 按自然日,缓存到今天结束
-                $expire = strtotime('tomorrow') - $time;
+                $expire = strtotime('tomorrow') - time();
 
-                if ($redis->exists($redisKey)) {
+                // SET NX EX 原子抢锁：只有第一个协程/进程能创建key并把计数器置为1，
+                // 避免 exists+setEx 两步之间并发覆盖导致计数丢失、重复报警
+                if ($redis->set($redisKey, 1, ['NX', 'EX' => $expire])) {
+                    notice($content, null, $warname);
+                    return;
+                }
 
-                    // 再次检查ttl
-                    $ttl = $redis->ttl($redisKey);
-                    if ($ttl < 0) {
-                        $redis->expire($redisKey, $expire);
-                    }
+                // 未抢到锁：原子自增，返回值即为当前是第几次
+                $count = $redis->incr($redisKey);
 
-                    if ($redis->get($redisKey) <= $times) {
-                        notice($content, null, $warname);
-                    }
-                    $redis->incr($redisKey);
-                } else {
-                    $redis->setEx($redisKey, $expire, $time);
+                // 无条件重设TTL：$expire是到今天午夜的绝对时间点，重复设置不会延长key寿命。
+                // 覆盖两种TTL缺失场景：key在抢锁后过期被incr重建、以及上一次expire执行失败残留的永久key
+                $redis->expire($redisKey, $expire);
+
+                if ($count <= $times) {
                     notice($content, null, $warname);
                 }
             };

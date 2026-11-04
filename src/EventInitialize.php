@@ -329,6 +329,11 @@ class EventInitialize extends SplBean
         }
     }
 
+    /**
+     * @document https://www.easyswoole.com/Http/Security/index.md
+     * 用途：\EasySwoole\Http\Dispatcher -> onException
+     * @return void
+     */
     public function setGlobalException()
     {
         Di::getInstance()->set(
