@@ -593,7 +593,17 @@ if ( ! function_exists('verify_jwt_params')) {
 
 if ( ! function_exists('ip')) {
     /**
-     * 获取http客户端ip
+     * 获取http客户端真实ip
+     *
+     * 仅当请求经由本机反向代理转发时（remote_addr 为内网/环回地址）才采信代理头；
+     * 直连请求一律以 TCP 连接地址为准，从根本上规避 HTTP 头伪造。
+     * x-forwarded-for 由各级代理自右侧追加，故从右向左回溯、跳过内网地址后
+     * 取第一个公网IP，客户端预置的伪造前缀不会被采信。
+     * 支持 IPv4/IPv6，自动剥离端口号。
+     *
+     * 注意：本函数用于「尽力还原用户真实IP」（日志、风控、地域识别），
+     * 不可用于判断请求来源是否可信；鉴权白名单请直接读取 remote_addr。
+     *
      * @param Request $Request
      * @return false|string
      */
@@ -607,29 +617,80 @@ if ( ! function_exists('ip')) {
             }
         }
 
-        $xForwardedFor = $Request->getHeaderLine('x-forwarded-for');
-        $ip = $xForwardedFor ?: $Request->getHeaderLine('x-real-ip');
-
-        if (empty($ip)) {
-            $servers = $Request->getServerParams();
-            if ( ! empty($servers['remote_addr'])) {
-                $ip = $servers['remote_addr'];
+        // 清洗单个取值：去噪、剥离端口号、校验格式，非法统一返回空串
+        $normalize = function ($value) {
+            $value = trim((string)$value);
+            if ($value === '' || strcasecmp($value, 'unknown') === 0) {
+                return '';
             }
+
+            if ($value[0] === '[') {
+                // "[::1]:8080" / "[::1]"
+                $end = strpos($value, ']');
+                $value = $end === false ? $value : substr($value, 1, $end - 1);
+            } elseif (substr_count($value, ':') === 1) {
+                // "1.2.3.4:5678"；IPv6 至少含两个冒号，不会被误切
+                $value = strstr($value, ':', true);
+            }
+
+            return filter_var($value, FILTER_VALIDATE_IP) === false ? '' : $value;
+        };
+
+        // 公网地址（排除私有段与保留段，IPv4/IPv6 通用）
+        $isPublic = function ($ip) {
+            $flags = FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE;
+            return filter_var($ip, FILTER_VALIDATE_IP, $flags) !== false;
+        };
+
+        $servers = $Request->getServerParams();
+        $remoteAddr = $normalize(isset($servers['remote_addr']) ? $servers['remote_addr'] : '');
+
+        // 直连请求：TCP 连接地址不可伪造，此时任何代理头都是客户端编造的
+        if ($isPublic($remoteAddr)) {
+            return $remoteAddr;
         }
 
-        $arr = explode(';', $ip);
-        foreach ($arr as $item) {
-            if ($item = trim($item)) {
-                $itemArr = explode(',', $item);
-                foreach ($itemArr as $value) {
-                    if (($value = trim($value)) && ! in_array($value, ['unknown'])) {
-                        return $value;
-                    }
+        // 至此可确认请求经由本机反向代理转发，代理头才具备参考价值
+        // 合法但非公网的IP，作为纯内网部署下的兜底候选
+        $fallback = '';
+
+        // x-real-ip 由本机 Nginx 覆写（proxy_set_header X-Real-IP $remote_addr），单值可信
+        // x-forwarded-for 含客户端可控前缀，必须从右向左回溯
+        foreach (['x-real-ip' => false, 'x-forwarded-for' => true] as $name => $reverse) {
+            $line = $Request->getHeaderLine($name);
+            if ($line === '') {
+                continue;
+            }
+
+            // getHeaderLine 把同名头用 "; " 拼接，x-forwarded-for 链内部以 "," 分隔
+            $values = preg_split('/[;,]/', $line);
+            if ($reverse) {
+                $values = array_reverse($values);
+            }
+
+            foreach ($values as $value) {
+                $ip = $normalize($value);
+                if ($ip === '') {
+                    continue;
+                }
+
+                if ($isPublic($ip)) {
+                    return $ip;
+                }
+
+                // 内网地址多为代理自身，暂存后继续向前回溯
+                if ($fallback === '') {
+                    $fallback = $ip;
                 }
             }
         }
 
-        return false;
+        // 纯内网部署：无公网IP可取，退回优先级最高的内网地址
+        if ($fallback !== '') {
+            return $fallback;
+        }
+
+        return $remoteAddr === '' ? false : $remoteAddr;
     }
 }
 
