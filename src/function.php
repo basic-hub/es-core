@@ -597,6 +597,9 @@ if ( ! function_exists('ip')) {
      *
      * 仅当请求经由本机反向代理转发时（remote_addr 为内网/环回地址）才采信代理头；
      * 直连请求一律以 TCP 连接地址为准，从根本上规避 HTTP 头伪造。
+     * 请求经 CDN（EdgeOne等API加速节点） 接入时（存在 cdn-loop / cf-ray 等链路标识），本机 Nginx 写入的
+     * x-real-ip 只是 CDN 边缘节点地址，故优先采信 CDN 边缘写入的用户IP头；
+     * 链路标识不存在则不读这类头，避免被客户端直接编造。
      * x-forwarded-for 由各级代理自右侧追加，故从右向左回溯、跳过内网地址后
      * 取第一个公网IP，客户端预置的伪造前缀不会被采信。
      * 支持 IPv4/IPv6，自动剥离端口号。
@@ -651,11 +654,30 @@ if ( ! function_exists('ip')) {
         }
 
         // 至此可确认请求经由本机反向代理转发，代理头才具备参考价值
+
+        // CDN 边缘节点写入的用户IP，优先级最高：
+        // 本机 Nginx 位于 CDN 之后，其 x-real-ip 记录的是 CDN 节点地址而非用户地址。
+        // 仅在对应 CDN 的链路标识存在时采信，避免无 CDN 部署下被客户端直接编造。
+        $cdnHeaders = [
+            'eo-connecting-ip' => 'cdn-loop',      // 腾讯云 EdgeOne
+            'cf-connecting-ip' => 'cf-ray',        // Cloudflare
+        ];
+        foreach ($cdnHeaders as $name => $evidence) {
+            if ($Request->getHeaderLine($evidence) === '') {
+                continue;
+            }
+
+            $ip = $normalize($Request->getHeaderLine($name));
+            if ($isPublic($ip)) {
+                return $ip;
+            }
+        }
+
         // 合法但非公网的IP，作为纯内网部署下的兜底候选
         $fallback = '';
 
         // x-real-ip 由本机 Nginx 覆写（proxy_set_header X-Real-IP $remote_addr），单值可信
-        // x-forwarded-for 含客户端可控前缀，必须从右向左回溯
+        // x-forwarded-for 含客户端可控前缀，从右向左回溯，跳过各级代理自身地址
         foreach (['x-real-ip' => false, 'x-forwarded-for' => true] as $name => $reverse) {
             $line = $Request->getHeaderLine($name);
             if ($line === '') {
@@ -665,7 +687,8 @@ if ( ! function_exists('ip')) {
             // getHeaderLine 把同名头用 "; " 拼接，x-forwarded-for 链内部以 "," 分隔
             $values = preg_split('/[;,]/', $line);
             if ($reverse) {
-                $values = array_reverse($values);
+                // 去重：CDN 回源可能重复追加同一节点地址
+                $values = array_reverse(array_values(array_unique(array_map('trim', $values))));
             }
 
             foreach ($values as $value) {
