@@ -298,71 +298,77 @@ if ( ! function_exists('array_merge_multi')) {
 
 if ( ! function_exists('array_sort_multi')) {
     /**
-     * 二维数组按某字段排序
+     * 二维数组按字段排序，支持多字段、各自独立的排序方向
+     *
+     * array_multisort 按数组内部顺序（位置）对齐各数组，与键无关；
+     * 但当被排序数组是列表（键为 0..n-1）时，它会把键不连续的关联数组
+     * 先按键重新排序再参与比较，导致对齐错位、排序失效。
+     * 因此这里统一把数据和各排序列重建为顺序一致的列表后再排序。
+     *
+     * 本函数只做排序，不改写数据：返回的每一行都保持传入时的原样，不做任何格式化。
+     * 排序值直接取字段原值（仅去掉百分号以便按数值比较）。
+     *
+     * @param array $data 待排序的二维数组
+     * @param string|array $fields 排序字段，必传；单个字段可传字符串
+     * @param int|array $directions 排序方向，与字段一一对应；传单个值时全部字段共用
+     * @return array
+     * @throws \Exception
      */
-    function array_sort_multi($data = [], $fields = '', $directions = SORT_DESC, $fmt = true, $filterCols = [], $customFn = null)
+    function array_sort_multi($data = [], $fields = '', $directions = SORT_DESC)
     {
-        if (empty($data)) {
+        if (empty($fields)) {
+            throw new \Exception('array_sort_multi: $fields is required');
+        }
+        if (empty($data) || ! is_array($data)) {
             return [];
         }
 
         // 处理单字段情况（兼容旧版）
         if ( ! is_array($fields)) {
             $fields = [$fields];
-            $directions = [$directions];
-        } elseif ( ! is_array($directions)) {
-            // 如果方向不是数组，所有字段使用相同方向
+        }
+        if ( ! is_array($directions)) {
+            // 方向不是数组时，所有字段使用相同方向
             $directions = array_fill(0, count($fields), $directions);
         }
 
+        $rows = array_values($data);
+
+        // 排序列与 $rows 保持相同的顺序与数量，缺失字段以 null 占位
         $sortColumns = [];
         foreach ($fields as $index => $field) {
             $sortColumns[$field] = [
                 'direction' => $directions[$index] ?? SORT_DESC,
-                'values' => []
+                'values' => array_fill(0, count($rows), null),
             ];
         }
 
-        // 确保所有字段的 values 数组包含所有行
-        $uniqids = array_keys($data);
-        foreach ($sortColumns as &$column) {
-            $column['values'] = array_fill_keys($uniqids, null);
-        }
-        unset($column);
-
-        foreach ($data as $uniqid => &$row) {
-            foreach ($row as $key => &$value) {
-                // 格式化数字（保留原逻辑）
-                if ($fmt && ! in_array($key, $filterCols)) {
-                    $value = format_number($value, 2, true);
-                }
-
-                // 为排序字段准备数据（去掉%符号）
-                if (isset($sortColumns[$key])) {
-                    $val = $value;
-                    // 自定义排序
-                    if ($customFn && is_callable($customFn)) {
-                        $val = $customFn($key, $val);
-                    }
-                    $sortColumns[$key]['values'][$uniqid] = str_replace('%', '', $val);
-                }
+        // 只根据排序字段推导比较值，不回写 $rows
+        foreach ($rows as $index => $row) {
+            if ( ! is_array($row)) {
+                continue;
             }
-            unset($value, $val);
+            foreach ($sortColumns as $field => &$column) {
+                if ( ! array_key_exists($field, $row)) {
+                    continue;
+                }
+                $val = $row[$field];
+                $column['values'][$index] = is_scalar($val) ? str_replace('%', '', $val) : $val;
+            }
+            unset($column);
         }
-        unset($row);
 
-        // 准备 array_multisort 参数
+        // 排序列必须按引用传入，否则 array_multisort 无法联动重排 $rows
         $args = [];
         foreach ($fields as $field) {
-            $args[] = $sortColumns[$field]['values'];
-            $args[] = $sortColumns[$field]['direction'];
+            $args[] = &$sortColumns[$field]['values'];
+            $args[] = &$sortColumns[$field]['direction'];
         }
-        $args[] = &$data;
+        $args[] = &$rows;
 
-        // 执行多字段排序
         array_multisort(...$args);
 
-        return $data;
+        return $rows;
     }
 }
 
