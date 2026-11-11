@@ -13,7 +13,7 @@ class EsNotify
 
     const NOTIFY_TYPE_FEISHU = 'feishu';
     const NOTIFY_TYPE_DINGTALK = 'dingTalk';
-    const NPTIFY_TYPE_WECHAT = 'weChat';
+    const NOTIFY_TYPE_WECHAT = 'weChat';
 
     protected $container = [];
 

@@ -23,6 +23,12 @@ trait BaseTrait
         }
     }
 
+    // 移除扩展参数（如有），否则会影响验签
+    protected function requestParamsExtend()
+    {
+        return [];
+    }
+
     protected function _checkRsaSign()
     {
         // 启用RSA加密

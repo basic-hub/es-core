@@ -126,11 +126,11 @@ if ( ! function_exists('model')) {
             // 请不要从连接池获取连接, 否则连接回收后会污染连接池
             $connectName = $model->getConnectionName();
             $Client = new Mysqli($connectName);
-            $Client->setTimeZone($inject);
-            $model->setExecClient($Client);
             \Swoole\Coroutine::defer(function () use ($Client) {
                 $Client->close();
             });
+            $Client->setTimeZone($inject);
+            $model->setExecClient($Client);
         }
         return $model;
     }
@@ -1173,7 +1173,9 @@ if ( ! function_exists('self_sign')) {
                 unset($data['sign']);
             }
             ksort($data);
-            $data = json_encode($data);
+            // json_encode是强类型，json_encode(['time' => 123]) 与 json_encode(['time' => '123']) 生成的md5编码值是不同的，为避免歧义，统一采用queryString格式
+//            $data = json_encode($data);
+            $data = urldecode(http_build_query($data));
         }
         $hash = md5($data . $key);
 
