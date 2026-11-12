@@ -588,7 +588,7 @@ if ( ! function_exists('verify_jwt_params')) {
             }
 
             // input中无此参数，或与jwt解密参数不符
-            if (empty($input[$name]) || $input[$name] != $jwtdata[$name]) {
+            if (empty($input[$name]) || $input[$name] !== $jwtdata[$name]) {
                 throw new HttpParamException("jwt的 $name 不符:" . ($jwtdata[$name] ?? ''), Code::CODE_PRECONDITION_FAILED);
             }
         }

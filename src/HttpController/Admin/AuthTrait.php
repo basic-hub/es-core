@@ -298,11 +298,10 @@ trait AuthTrait
     {
         $post = $this->post;
         $pk = $this->Model->getPk();
-        if ( ! isset($post[$pk]) || ( ! isset($post[$post['column']]) && ! isset($post['value']))) {
+        $column = $post['column'] ?? '';
+        if ( ! isset($post[$pk]) || $column === '' || ( ! isset($post[$column]) && ! isset($post['value']))) {
             return $this->error(Code::ERROR_OTHER, Dictionary::ADMIN_AUTHTRAIT_15);
         }
-
-        $column = $post['column'];
 
         $model = $this->__getModel();
 
@@ -311,9 +310,12 @@ trait AuthTrait
             // 普通字段
             $upd = $model->update([$column => $value]);
         } else {
-            // json字段
-            list($one, $two) = explode('.', $column);
-            $upd = $model->update([$one => QueryBuilder::func(sprintf("json_set($one, '$.%s','%s')", $two, $value))]);
+            // json字段: 列名与路径做标识符格式校验, 值走预处理绑定, 避免SQL注入。同时支持a.b.c多级语法
+            list($one, $two) = explode('.', $column, 2);
+            if ( ! preg_match('/^\w+$/', $one) || ! preg_match('/^\w+(\.\w+)*$/', $two)) {
+                throw new HttpParamException(lang(Dictionary::ADMIN_AUTHTRAIT_15));
+            }
+            $upd = $model->update([$one => QueryBuilder::func("json_set(`$one`, '$.$two', ?)", [$value])]);
         }
 
 //        $rowCount = $model->lastQueryResult()->getAffectedRows();

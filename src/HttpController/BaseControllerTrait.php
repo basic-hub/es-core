@@ -180,7 +180,6 @@ trait BaseControllerTrait
             return;
         }
 
-        // 如果希望查询某一个key，又不确定在GET还是POST还是XML中，此时查起来会很麻烦，是否需要新增一个ALL 将所有参数合并集中到一个key来进行查询 ??
         $effect = [
             'GET' => $this->get,
             'POST' => $this->post,
@@ -190,7 +189,7 @@ trait BaseControllerTrait
         $_body = $request->getBody()->__toString() ?: $request->getSwooleRequest()->rawContent();
         $isJson = stripos($request->getHeaderLine('content-type'), '/json') !== false;
         if ($isJson) {
-            $effect['JOSN'] = json_decode($_body, true);
+            $effect['JSON'] = json_decode($_body, true);
         }
 
         $isXml = stripos($request->getHeaderLine('content-type'), '/xml') !== false;
