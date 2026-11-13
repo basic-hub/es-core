@@ -48,7 +48,7 @@ class Alibaba extends Base
             'url' => '__ALI_EMAIL__',
             'POST' => $log,
             'method' => 'POST',
-        ], $this->parentId);
+        ]);
 
         try {
             $Runtime = new RuntimeOptions();
