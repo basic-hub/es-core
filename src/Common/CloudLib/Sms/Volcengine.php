@@ -99,4 +99,20 @@ class Volcengine extends Base
             return false;
         }
     }
+
+    /**
+     * 火山云只支持中国大陆
+     * @return array[]
+     */
+    public static function codeList()
+    {
+        return [
+            [
+                'en' => 'China',
+                'cn' => '中国大陆',
+                'code' => '86',
+                'alpha2' => 'CN'
+            ],
+        ];
+    }
 }
