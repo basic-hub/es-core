@@ -71,7 +71,7 @@ class Volcengine extends Base
                 'url' => '__VOLC_SMS__',
                 'POST' => $body,
                 'method' => 'POST',
-            ], $this->parentId);
+            ]);
 
             /** @var VodApplyUploadInfoResponse $response */
             $response = $client->sendSms(['json' => $body]);

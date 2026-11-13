@@ -97,7 +97,7 @@ class Tencent extends Base
                 'url' => '__TENCENT_EMAIL__',
                 'POST' => $Request->serialize(),
                 'method' => 'POST',
-            ], $this->parentId);
+            ]);
 
             $Credential = new Credential($this->secretId, $this->secretKey);
             $Client = new SesClient($Credential, $this->region);

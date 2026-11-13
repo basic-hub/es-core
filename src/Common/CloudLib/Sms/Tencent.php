@@ -72,7 +72,7 @@ class Tencent extends Base
                 'url' => '__TENCENT_SMS__',
                 'POST' => $Request->serialize(),
                 'method' => 'POST',
-            ], $this->parentId);
+            ]);
 
             $Credential = new Credential($this->secretId, $this->secretKey);
             $Client = new SmsClient($Credential, $this->region);

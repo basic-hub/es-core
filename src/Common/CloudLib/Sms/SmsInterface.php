@@ -17,7 +17,7 @@ interface SmsInterface
 
     /**
      * 国际短信必选地区码，不同云商支持的地区不同，由子类根据云商接口实现
-     * @return mixed
+     * @return array
      */
     static function codeList();
 }
