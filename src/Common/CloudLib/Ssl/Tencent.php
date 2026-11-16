@@ -49,6 +49,12 @@ class Tencent extends Base
     protected $expirationSort = 'ASC';
 
     /**
+     * 查询证书绑定资源API，超时时间，单位秒
+     * @var int
+     */
+    protected $listBindMaxRetries = 30;
+
+    /**
      * 列出证书（单页）
      * @param array $params 接口参数（PascalCase），如 Offset/Limit/SearchKey/CertificateType/CertificateStatus/ExpirationSort/Deployable/Upload/Renew/FilterSource/IsSM/FilterExpiring/Hostable/Tags/IsPendingIssue/CertIds/ServiceId
      * @return array Response body，含 TotalCount、Certificates、RequestId
@@ -213,5 +219,171 @@ class Tencent extends Base
             echo $err->getMessage();
             return false;
         }
+    }
+
+    /**
+     * 上传证书到腾讯云证书管理服务
+     * @document https://cloud.tencent.com/document/product/400/41665
+     * @param string $cert PEM格式证书内容或证书文件路径
+     * @param string $key PEM格式私钥内容或私钥文件路径
+     * @param array $params 其他参数，如：
+     *   - Alias: 证书备注名称（可选）
+     *   - CertificateType: 证书类型，默认 SVR（服务器证书），可选 CA（客户端证书）
+     *   - Repeatable: 是否允许重复上传（true=允许，false=不允许，默认false）
+     * @return array 响应数据，含 CertificateId、RepeatCertId（重复上传时返回已存在的证书ID）、RequestId
+     * @throws \Exception
+     */
+    public function upload($cert, $key, $params)
+    {
+        // 解析证书和私钥（支持 PEM 内容或文件路径）
+        $certContent = $this->parsePem($cert, '证书');
+        $keyContent = $this->parsePem($key, '私钥');
+
+        // 构造请求参数
+        $requestParams = [
+            'CertificatePublicKey' => $certContent,
+            'CertificatePrivateKey' => $keyContent,
+        ];
+
+        // 可选参数
+        if (isset($params['Alias'])) {
+            $requestParams['Alias'] = $params['Alias'];
+        }
+        if (isset($params['CertificateType'])) {
+            $requestParams['CertificateType'] = $params['CertificateType'];
+        } else {
+            $requestParams['CertificateType'] = 'SVR'; // 默认服务器证书
+        }
+        if (isset($params['Repeatable'])) {
+            $requestParams['Repeatable'] = $params['Repeatable'];
+        }
+
+        $result = $this->request('UploadCertificate', $requestParams);
+
+        $response = $result['Response'] ?? [];
+        if (isset($response['Error'])) {
+            throw new \Exception('Response Error: ' . ($response['Error']['Message'] ?? ''));
+        }
+
+        return $response;
+    }
+
+    /**
+     * 部署/更新资源绑定的SSL证书（统一部署接口）
+     * @document https://cloud.tencent.com/document/product/400/91667
+     * @param string $certificateId 证书ID
+     * @param array $params 部署参数，如：
+     *   - ResourceType: 资源类型（必填），支持 cdn/clb/waf/teo/ddos/live/vod/apigateway/tke/cos/tdmq/mqtt/scf/gaap/tcb 等
+     *   - InstanceIdList: 资源实例ID列表（必填，数组），如 ['cdn-xxx', 'cdn-yyy']
+     *   - Region: 地域（可选，部分资源类型需要）
+     * @return array 响应数据，含 DeployRecordId、DeployStatus、RequestId
+     * @throws \Exception
+     */
+    public function deployToResources($certificateId, $params)
+    {
+        // 验证必填参数
+        if (empty($params['ResourceType'])) {
+            throw new \Exception('资源类型（ResourceType）不能为空');
+        }
+        if (empty($params['InstanceIdList']) || !is_array($params['InstanceIdList'])) {
+            throw new \Exception('资源实例ID列表（InstanceIdList）不能为空且必须为数组');
+        }
+
+        // 构造请求参数
+        $requestParams = [
+            'CertificateId' => $certificateId,
+            'ResourceType' => $params['ResourceType'],
+            'InstanceIdList' => $params['InstanceIdList'],
+        ];
+
+        // 可选参数
+        if (isset($params['Region'])) {
+            $requestParams['Region'] = $params['Region'];
+        }
+
+        $result = $this->request('DeployCertificateInstance', $requestParams);
+
+        $response = $result['Response'] ?? [];
+        if (isset($response['Error'])) {
+            throw new \Exception('Response Error: ' . ($response['Error']['Message'] ?? ''));
+        }
+
+        return $response;
+    }
+
+    /**
+     * 查询证书详情
+     * @document https://cloud.tencent.com/document/api/400/41673
+     * @param string $certificateId 证书ID
+     * @return array 响应数据，含证书详细信息
+     * @throws \Exception
+     */
+    public function detail($certificateId)
+    {
+        $result = $this->request('DescribeCertificateDetail', ['CertificateId' => $certificateId]);
+
+        $response = $result['Response'] ?? [];
+        if (isset($response['Error'])) {
+            throw new \Exception('Response Error: ' . ($response['Error']['Message'] ?? ''));
+        }
+
+        return $response;
+    }
+
+    /**
+     * 查询证书绑定的资源列表（异步两步查询）
+     * @document https://cloud.tencent.com/document/product/400/97758
+     * @param string $certificateId 证书ID
+     * @param array $params 可选参数，如：
+     *   - ResourceType: 资源类型（可选），支持 clb/cdn/waf/live/vod/ddos/tke/apigateway/tcb/teo/cos/gaap/mqtt/scf/tdmq
+     *   - Region: 地域（可选）
+     * @return array 绑定的资源列表，含资源类型、实例ID、地域等信息
+     * @throws \Exception
+     */
+    public function listBindings($certificateId, $params = [])
+    {
+        // 步骤1：创建查询任务
+        $taskParams = ['CertificateIds' => [$certificateId]];
+        if (!empty($params['ResourceType'])) {
+            $taskParams['ResourceType'] = $params['ResourceType'];
+        }
+        if (!empty($params['Region'])) {
+            $taskParams['Region'] = $params['Region'];
+        }
+
+        $taskResult = $this->request('CreateCertificateBindResourceSyncTask', $taskParams);
+        $taskResponse = $taskResult['Response'] ?? [];
+        if (isset($taskResponse['Error'])) {
+            throw new \Exception('创建查询任务失败: ' . ($taskResponse['Error']['Message'] ?? ''));
+        }
+
+        $taskId = $taskResponse['TaskId'] ?? '';
+        if (empty($taskId)) {
+            throw new \Exception('创建查询任务失败: TaskId 为空');
+        }
+
+        // 步骤2：查询任务结果（轮询最多10次，每次间隔1秒）
+        $maxRetries = $this->listBindMaxRetries;
+        for ($i = 0; $i < $maxRetries; $i++) {
+            if ($i > 0) {
+                \Swoole\Coroutine::sleep(1);
+            }
+
+            $detailResult = $this->request('DescribeCertificateBindResourceTaskDetail', ['TaskId' => $taskId]);
+            $detailResponse = $detailResult['Response'] ?? [];
+            if (isset($detailResponse['Error'])) {
+                throw new \Exception('查询任务结果失败: ' . ($detailResponse['Error']['Message'] ?? ''));
+            }
+
+            $status = $detailResponse['Status'] ?? '';
+            if ($status === 'success') {
+                return $detailResponse['CertBindResourceDetail'] ?? [];
+            } elseif ($status === 'error') {
+                throw new \Exception('查询任务失败: ' . ($detailResponse['Error'] ?? '未知错误'));
+            }
+            // status 为 processing 时继续轮询
+        }
+
+        throw new \Exception("查询任务超过${$maxRetries}s，已超时，请稍后重试");
     }
 }
