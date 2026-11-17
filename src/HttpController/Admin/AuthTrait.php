@@ -92,8 +92,8 @@ trait AuthTrait
             return false;
         }
 
-        $logflag = $Admin->getAttr('extension')['logflag'] ?? 0;
-        if ($jwt['logflag'] != $logflag) {
+        $pwdflag = $Admin->getAttr('extension')['pwdflag'] ?? 0;
+        if ($jwt['pwdflag'] != $pwdflag) {
             $this->error(Code::CODE_UNAUTHORIZED, Dictionary::PASSWORD_CHANGED);
             return false;
         }
