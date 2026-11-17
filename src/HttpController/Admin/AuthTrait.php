@@ -94,7 +94,7 @@ trait AuthTrait
 
         $logflag = $Admin->getAttr('extension')['logflag'] ?? 0;
         if ($jwt['logflag'] != $logflag) {
-            $this->error(Code::CODE_UNAUTHORIZED, 'LOGFLAG');
+            $this->error(Code::CODE_UNAUTHORIZED, Dictionary::PASSWORD_CHANGED);
             return false;
         }
 
