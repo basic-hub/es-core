@@ -79,6 +79,9 @@ class Dictionary extends AbstractDictionary
     const PERMISSION_DENIED = 'PERMISSION_DENIED';
     const PARAMS_ERROR = 'PARAMS_ERROR';
 
+    // 登录密码已被修改，请重新登录
+    const PASSWORD_CHANGED = 'PASSWORD_CHANGED';
+
     // jwt token无效
     const JWT_INVALID = 'JWT_INVALID';
     // jwt token过期

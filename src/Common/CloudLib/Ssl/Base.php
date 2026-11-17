@@ -127,4 +127,44 @@ abstract class Base extends SplBean implements SslInterface
         }
         return '';
     }
+
+    /**
+     * 解析 PEM 格式证书/私钥内容
+     * - 自动判断输入是文件路径还是 PEM 内容
+     * - 如果是文件路径，读取文件内容
+     * - 校验 PEM 格式（检查 -----BEGIN 标记）
+     * @param string $input PEM内容或文件路径
+     * @param string $type 类型标识，用于异常提示（如 '证书'、'私钥'）
+     * @return string PEM内容
+     * @throws \Exception
+     */
+    protected function parsePem($input, $type = 'PEM')
+    {
+        if (empty($input)) {
+            throw new \Exception("{$type}不能为空");
+        }
+
+        $content = $input;
+
+        // 判断是否为文件路径（不包含 -----BEGIN 且是有效文件路径）
+        if (strpos($input, '-----BEGIN') === false) {
+            if (!file_exists($input)) {
+                throw new \Exception("{$type}文件不存在：{$input}");
+            }
+            if (!is_readable($input)) {
+                throw new \Exception("{$type}文件不可读：{$input}");
+            }
+            $content = file_get_contents($input);
+            if ($content === false) {
+                throw new \Exception("{$type}文件读取失败：{$input}");
+            }
+        }
+
+        // 校验 PEM 格式
+        if (strpos($content, '-----BEGIN') === false) {
+            throw new \Exception("{$type}格式错误，必须包含 -----BEGIN 标记");
+        }
+
+        return trim($content);
+    }
 }

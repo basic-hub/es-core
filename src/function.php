@@ -536,7 +536,7 @@ if (!function_exists('get_admin_jwt_token')) {
     {
         return get_jwt_token([
             'id' => $Admin->getAttr('id'),
-            'logflag' => $Admin->getAttr('extension')['logflag'] ?? 0,
+            'pwdflag' => $Admin->getAttr('extension')['pwdflag'] ?? 0,
         ], $cfg);
     }
 }

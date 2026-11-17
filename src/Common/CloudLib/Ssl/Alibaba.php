@@ -195,6 +195,231 @@ class Alibaba extends Base
     }
 
     /**
+     * 上传证书到阿里云证书管理服务
+     * @document https://help.aliyun.com/zh/ssl-certificate/developer-reference/api-cas-2020-04-07-uploadusercertificate
+     * @param string $cert PEM格式证书内容或证书文件路径
+     * @param string $key PEM格式私钥内容或私钥文件路径
+     * @param array $params 其他参数，如：
+     *   - Name: 证书名称（必填）
+     *   - EncryptCert: 国密双证书的加密证书内容（PEM格式）
+     *   - EncryptPrivateKey: 国密双证书的加密证书私钥（PEM格式）
+     *   - SignCert: 国密双证书的签名证书内容（PEM格式）
+     *   - SignPrivateKey: 国密双证书的签名证书私钥（PEM格式）
+     *   - ResourceGroupId: 资源组ID
+     *   - Tags: 标签（JSON格式）
+     * @return array 响应数据，含 CertId、ResourceId、RequestId
+     * @throws \Exception
+     */
+    public function upload($cert, $key, $params)
+    {
+        // 验证必填参数
+        if (empty($params['Name'])) {
+            throw new \Exception('证书名称（Name）不能为空');
+        }
+
+        // 解析证书和私钥（支持 PEM 内容或文件路径）
+        $certContent = $this->parsePem($cert, '证书');
+        $keyContent = $this->parsePem($key, '私钥');
+
+        // 构造请求参数
+        $requestParams = [
+            'Name' => $params['Name'],
+            'Cert' => $certContent,
+            'Key' => $keyContent,
+        ];
+
+        // 处理国密双证书参数
+        if (!empty($params['EncryptCert'])) {
+            $requestParams['EncryptCert'] = $this->parsePem($params['EncryptCert'], '国密加密证书');
+        }
+        if (!empty($params['EncryptPrivateKey'])) {
+            $requestParams['EncryptPrivateKey'] = $this->parsePem($params['EncryptPrivateKey'], '国密加密私钥');
+        }
+        if (!empty($params['SignCert'])) {
+            $requestParams['SignCert'] = $this->parsePem($params['SignCert'], '国密签名证书');
+        }
+        if (!empty($params['SignPrivateKey'])) {
+            $requestParams['SignPrivateKey'] = $this->parsePem($params['SignPrivateKey'], '国密签名私钥');
+        }
+
+        // 可选参数
+        if (isset($params['ResourceGroupId'])) {
+            $requestParams['ResourceGroupId'] = $params['ResourceGroupId'];
+        }
+        if (isset($params['Tags'])) {
+            $requestParams['Tags'] = $params['Tags'];
+        }
+
+        $result = $this->request('UploadUserCertificate', $requestParams);
+
+        if (isset($result['Code'])) {
+            throw new \Exception('Response Error: ' . ($result['Message'] ?? ''));
+        }
+
+        return $result;
+    }
+
+    /**
+     * 部署/更新资源绑定的SSL证书（统一部署接口，封装完整流程）
+     * @document https://help.aliyun.com/zh/ssl-certificate/developer-reference/api-cas-2020-04-07-createdeploymentjob
+     * @param string $certificateId 证书ID
+     * @param array $params 部署参数，如：
+     *   - Name: 部署任务名称（必填）
+     *   - CloudProduct: 云产品类型（如 CDN、SLB、ALB、WAF、DCDN、OSS、LIVE、VOD 等）
+     *   - RegionIds: 地域ID列表（字符串或数组，多个用逗号分隔）
+     *   - ContactIds: 联系人ID列表（必填，字符串或数组，多个用逗号分隔）
+     *   - ResourceIds: 资源ID列表（可选，不传则自动从 ListCloudResources 获取）
+     *   - ScheduleTime: 定时执行时间（Unix时间戳，可选）
+     * @return array 响应数据，含 JobId、RequestId
+     * @throws \Exception
+     */
+    public function deployToResources($certificateId, $params)
+    {
+        // 验证必填参数
+        if (empty($params['Name'])) {
+            throw new \Exception('部署任务名称（Name）不能为空');
+        }
+        if (empty($params['ContactIds'])) {
+            throw new \Exception('联系人ID（ContactIds）不能为空');
+        }
+
+        // 处理 ContactIds 参数（支持数组或逗号分隔的字符串）
+        $contactIds = is_array($params['ContactIds']) ? implode(',', $params['ContactIds']) : $params['ContactIds'];
+
+        // 步骤1：获取资源ID列表（如果未提供）
+        $resourceIds = $params['ResourceIds'] ?? '';
+        if (empty($resourceIds)) {
+            // 构造 ListCloudResources 查询参数
+            $listParams = [
+                'CertIds' => $certificateId,
+            ];
+            if (!empty($params['CloudProduct'])) {
+                $listParams['CloudProduct'] = $params['CloudProduct'];
+            }
+            if (!empty($params['RegionIds'])) {
+                $listParams['RegionIds'] = is_array($params['RegionIds']) ? implode(',', $params['RegionIds']) : $params['RegionIds'];
+            }
+
+            $resourceResult = $this->request('ListCloudResources', $listParams);
+            if (isset($resourceResult['Code'])) {
+                throw new \Exception('查询云资源失败: ' . ($resourceResult['Message'] ?? ''));
+            }
+
+            // 提取资源ID
+            $resources = $resourceResult['Data'] ?? [];
+            if (empty($resources)) {
+                throw new \Exception('未找到可部署的云资源，请检查证书ID、云产品类型或地域参数');
+            }
+            $resourceIdList = array_column($resources, 'Id');
+            $resourceIds = implode(',', $resourceIdList);
+        } else {
+            // 处理传入的 ResourceIds（支持数组或逗号分隔的字符串）
+            $resourceIds = is_array($resourceIds) ? implode(',', $resourceIds) : $resourceIds;
+        }
+
+        // 步骤2：创建部署任务
+        $createParams = [
+            'Name' => $params['Name'],
+            'JobType' => 'user', // user = 云产品部署
+            'CertIds' => $certificateId,
+            'ResourceIds' => $resourceIds,
+            'ContactIds' => $contactIds,
+        ];
+        if (isset($params['ScheduleTime'])) {
+            $createParams['ScheduleTime'] = $params['ScheduleTime'];
+        }
+
+        $createResult = $this->request('CreateDeploymentJob', $createParams);
+        if (isset($createResult['Code'])) {
+            throw new \Exception('创建部署任务失败: ' . ($createResult['Message'] ?? ''));
+        }
+
+        $jobId = $createResult['JobId'] ?? '';
+        if (empty($jobId)) {
+            throw new \Exception('创建部署任务成功，但未返回 JobId');
+        }
+
+        // 步骤3：启动部署任务（将状态修改为待执行）
+        $updateParams = [
+            'JobId' => $jobId,
+            'Status' => 'pending', // pending = 待执行状态
+        ];
+        $updateResult = $this->request('UpdateDeploymentJobStatus', $updateParams);
+        if (isset($updateResult['Code'])) {
+            throw new \Exception('启动部署任务失败: ' . ($updateResult['Message'] ?? ''));
+        }
+
+        return [
+            'JobId' => $jobId,
+            'RequestId' => $createResult['RequestId'] ?? '',
+            'Message' => '部署任务已创建并启动',
+        ];
+    }
+
+    /**
+     * 查询证书详情
+     * @document https://help.aliyun.com/zh/ssl-certificate/developer-reference/api-cas-2020-04-07-getusercertificatedetail
+     * @param string $certificateId 证书ID
+     * @return array 证书详情，含 Id、Name、Cert、Key、Common、Sans、Issuer、StartDate、EndDate、Expired、Algorithm、CertChain 等
+     * @throws \Exception
+     */
+    public function detail($certificateId)
+    {
+        if (empty($certificateId)) {
+            throw new \Exception('证书ID不能为空');
+        }
+
+        $result = $this->request('GetUserCertificateDetail', [
+            'CertId' => $certificateId,
+        ]);
+
+        if (isset($result['Code'])) {
+            throw new \Exception('Response Error: ' . ($result['Message'] ?? ''));
+        }
+
+        return $result;
+    }
+
+    /**
+     * 查询证书绑定的资源列表（查询该证书在哪些云资源上部署/使用）
+     * @document https://help.aliyun.com/zh/ssl-certificate/developer-reference/api-cas-2020-04-07-listdeploymentjobresource
+     * @param string $certificateId 证书ID
+     * @param array $params 其他参数，如：
+     *   - CloudProduct: 云产品类型（可选，用于筛选特定产品）
+     *   - RegionId: 地域ID（可选，用于筛选特定地域）
+     * @return array 资源列表
+     * @throws \Exception
+     */
+    public function listBindings($certificateId, $params = [])
+    {
+        if (empty($certificateId)) {
+            throw new \Exception('证书ID不能为空');
+        }
+
+        // 构造查询参数
+        $listParams = [
+            'CertIds' => $certificateId,
+        ];
+
+        // 可选的筛选参数
+        if (!empty($params['CloudProduct'])) {
+            $listParams['CloudProduct'] = $params['CloudProduct'];
+        }
+        if (!empty($params['RegionId'])) {
+            $listParams['RegionId'] = $params['RegionId'];
+        }
+
+        // 调用 ListCloudResources 查询使用该证书的资源
+        $result = $this->request('ListCloudResources', $listParams);
+
+        if (isset($result['Code'])) {
+            throw new \Exception('Response Error: ' . ($result['Message'] ?? ''));
+        }
+
+        return $result['Data'] ?? [];
+    }
+
+    /**
      * @param string $action 接口动作名，如 ListCertificates
      * @param array  $params 接口业务参数
      * @return bool|array

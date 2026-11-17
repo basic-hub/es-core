@@ -9,6 +9,7 @@ use EasySwoole\HttpClient\HttpClient;
  *  非核心功能尽量不安装依赖，此处使用原生接口实现（HMAC-SHA256 签名）
  * @document 证书实例列表 CertificateGetInstanceList：https://www.volcengine.com/docs/6638/1413343
  * @document 签名机制：https://www.volcengine.com/docs/6369/67269
+ * todo 火山API化还缺少很多接口支持
  */
 class Volcengine extends Base
 {
@@ -140,16 +141,21 @@ class Volcengine extends Base
     }
 
     /**
-     * @param string $action 接口动作名，如 CertificateGetInstanceList
-     * @param array  $body   接口业务参数（JSON Body）
+     * @param string $action  接口动作名，如 CertificateGetInstanceList
+     * @param array  $body    接口业务参数（JSON Body）
+     * @param array  $product 跨产品调用配置，可选 host/service/version/region，缺省走证书中心
      * @return bool|array
      * @throws \Exception
      */
-    protected function request($action, array $body)
+    protected function request($action, array $body, array $product = [])
     {
-        $host = 'certificate-service.volcengineapi.com';
+        // 默认请求证书中心，$product 非空时请求其他云产品（如 CDN、CLB、WAF）
+        $host = !empty($product['host']) ? $product['host'] : parse_url($this->endpoint, PHP_URL_HOST);
+        $service = !empty($product['service']) ? $product['service'] : $this->service;
+        $version = !empty($product['version']) ? $product['version'] : $this->version;
+        $region = !empty($product['region']) ? $product['region'] : $this->region;
 
-        $query = 'Action=' . $action . '&Version=' . $this->version;
+        $query = 'Action=' . $action . '&Version=' . $version;
         $payload = json_encode($body);
 
         // X-Date：ISO 8601 UTC，格式 YYYYMMDDTHHMMSSZ
@@ -163,14 +169,14 @@ class Volcengine extends Base
         $canonicalRequest = "POST\n/\n$query\n$canonicalHeaders\n$signedHeaders\n$hashedPayload";
 
 // ************* 步骤 2：拼接待签名字符串 *************
-        $credentialScope = "$shortDate/$this->region/$this->service/request";
+        $credentialScope = "$shortDate/$region/$service/request";
         $hashedCanonicalRequest = hash('sha256', $canonicalRequest);
         $stringToSign = "HMAC-SHA256\n$xDate\n$credentialScope\n$hashedCanonicalRequest";
 
 // ************* 步骤 3：派生签名密钥（使用原始二进制作为下一轮 HMAC 的密钥，与 AWS V4 一致）*************
         $kDate = hash_hmac('sha256', $shortDate, $this->sk, true);
-        $kRegion = hash_hmac('sha256', $this->region, $kDate, true);
-        $kService = hash_hmac('sha256', $this->service, $kRegion, true);
+        $kRegion = hash_hmac('sha256', $region, $kDate, true);
+        $kService = hash_hmac('sha256', $service, $kRegion, true);
         $kSigning = hash_hmac('sha256', 'request', $kService, true);
 
 // ************* 步骤 4：计算签名 *************
@@ -188,7 +194,7 @@ class Volcengine extends Base
             'X-Content-Sha256' => $hashedPayload,
         ];
 
-        $url = $this->endpoint . '/?' . $query;
+        $url = 'https://' . $host . '/?' . $query;
 
         try {
             $HttpClient = new HttpClient($url);
@@ -219,5 +225,222 @@ class Volcengine extends Base
             'Unknown'      => '未知',
         ];
         return isset($map[$status]) ? $map[$status] : $status;
+    }
+
+    /**
+     * 上传证书到火山引擎证书中心
+     * @document https://www.volcengine.com/docs/6638/1413338
+     * @param string $cert PEM格式证书内容或证书文件路径（含证书链）
+     * @param string $key PEM格式私钥内容或私钥文件路径
+     * @param array $params 其他参数，如：
+     *   - AlgorithmType: 算法类型，1=非国密（RSA/ECC，默认），2=国密 SM2
+     *   - Name: 证书名称（可选）
+     *   - Description: 证书描述/备注（可选）
+     *   - ExpectedCertType: 预期证书类型，1=DV，2=OV，3=EV（可选）
+     *   - ProjectName: 项目名称（可选）
+     *   - Tags: 标签（可选）
+     * @return array Result body，含 InstanceId、Source（3=上传证书）
+     * @throws \Exception
+     */
+    public function upload($cert, $key, $params = [])
+    {
+        // 解析证书和私钥（支持 PEM 内容或文件路径）
+        $certContent = $this->parsePem($cert, '证书');
+        $keyContent = $this->parsePem($key, '私钥');
+
+        $requestParams = [
+            'AlgorithmType' => isset($params['AlgorithmType']) ? intval($params['AlgorithmType']) : 1,
+            'PublicKey' => $certContent,
+            'PrivateKey' => $keyContent,
+        ];
+
+        // 可选参数
+        foreach (['Name', 'Description', 'ProjectName', 'Tags'] as $field) {
+            if (isset($params[$field])) {
+                $requestParams[$field] = $params[$field];
+            }
+        }
+        if (isset($params['ExpectedCertType'])) {
+            $requestParams['ExpectedCertType'] = intval($params['ExpectedCertType']);
+        }
+
+        $result = $this->request('ImportCertificate', $requestParams);
+
+        $responseMetadata = $result['ResponseMetadata'] ?? [];
+        if (isset($responseMetadata['Error'])) {
+            throw new \Exception('Response Error: ' . ($responseMetadata['Error']['Message'] ?? ''));
+        }
+
+        return $result['Result'] ?? [];
+    }
+
+    /**
+     * 查询证书详情
+     * @document https://www.volcengine.com/docs/6638/1413341
+     * @param string $certificateId 证书实例ID
+     * @return array Result body，含 InstanceId/Name/CommonName/NotBefore/NotAfter 等
+     * @throws \Exception
+     */
+    public function detail($certificateId)
+    {
+        $result = $this->request('CertificateGetInstance', [
+            'InstanceId' => $certificateId,
+        ]);
+
+        $responseMetadata = $result['ResponseMetadata'] ?? [];
+        if (isset($responseMetadata['Error'])) {
+            throw new \Exception('Response Error: ' . ($responseMetadata['Error']['Message'] ?? ''));
+        }
+
+        return $result['Result'] ?? [];
+    }
+
+    /**
+     * 部署/更新资源绑定的SSL证书
+     * 火山引擎证书中心仅支持直接消费证书 ID 的产品，其他产品需调用方自行通过产品 API 处理
+     * @document CDN BatchDeployCert：https://www.volcengine.com/docs/6454/1263334
+     * @param string $certificateId 证书实例ID
+     * @param array $params 部署参数，如：
+     *   - ResourceType: 资源类型（必填），支持 cdn（CDN加速域名）、tos（对象存储自定义域名）
+     *   - Domain: 域名（cdn 类型必填，单个域名字符串或域名数组）
+     *   - Bucket: 存储桶名称（tos 类型必填）
+     *   - Region: 地域（tos 类型必填，如 cn-beijing）
+     * @return array 部署结果
+     * @throws \Exception
+     */
+    public function deployToResources($certificateId, $params)
+    {
+        // 验证必填参数
+        if (empty($params['ResourceType'])) {
+            throw new \Exception('资源类型（ResourceType）不能为空');
+        }
+
+        $resourceType = strtolower($params['ResourceType']);
+
+        switch ($resourceType) {
+            case 'cdn':
+                return $this->deployCdn($certificateId, $params);
+
+            case 'tos':
+                return $this->deployTos($certificateId, $params);
+
+            default:
+                throw new \Exception("不支持的资源类型：{$resourceType}。仅支持 cdn、tos。其他产品（如 CLB、WAF）请通过各产品 API 自行部署证书。");
+        }
+    }
+
+    /**
+     * 部署证书到 CDN 加速域名
+     * @param string $certificateId 证书实例ID
+     * @param array $params 参数，含 Domain（必填，域名字符串或数组）
+     * @return array
+     * @throws \Exception
+     */
+    protected function deployCdn($certificateId, $params)
+    {
+        if (empty($params['Domain'])) {
+            throw new \Exception('CDN 部署缺少必填参数：Domain（域名）');
+        }
+
+        $domains = is_array($params['Domain']) ? $params['Domain'] : [$params['Domain']];
+
+        $product = [
+            'host' => 'cdn.volcengineapi.com',
+            'service' => 'cdn',
+            'version' => '2021-03-01',
+            'region' => 'cn-north-1',
+        ];
+
+        $result = $this->request('BatchDeployCert', [
+            'CertId' => $certificateId,
+            'Domain' => implode(',', $domains),
+        ], $product);
+
+        $responseMetadata = $result['ResponseMetadata'] ?? [];
+        if (isset($responseMetadata['Error'])) {
+            throw new \Exception('CDN 证书部署失败: ' . ($responseMetadata['Error']['Message'] ?? ''));
+        }
+
+        return $result['Result'] ?? [];
+    }
+
+    /**
+     * 部署证书到 TOS 存储桶自定义域名
+     * @param string $certificateId 证书实例ID
+     * @param array $params 参数，含 Bucket（必填）、Region（必填）、Domain（必填）
+     * @return array
+     * @throws \Exception
+     */
+    protected function deployTos($certificateId, $params)
+    {
+        if (empty($params['Bucket'])) {
+            throw new \Exception('TOS 部署缺少必填参数：Bucket（存储桶名称）');
+        }
+        if (empty($params['Region'])) {
+            throw new \Exception('TOS 部署缺少必填参数：Region（地域）');
+        }
+        if (empty($params['Domain'])) {
+            throw new \Exception('TOS 部署缺少必填参数：Domain（自定义域名）');
+        }
+
+        $product = [
+            'host' => 'tos-' . $params['Region'] . '.volces.com',
+            'service' => 'tos',
+            'version' => '2021-12-01',
+            'region' => $params['Region'],
+        ];
+
+        $result = $this->request('PutBucketCustomDomain', [
+            'Bucket' => $params['Bucket'],
+            'Domain' => $params['Domain'],
+            'CertId' => $certificateId,
+        ], $product);
+
+        $responseMetadata = $result['ResponseMetadata'] ?? [];
+        if (isset($responseMetadata['Error'])) {
+            throw new \Exception('TOS 证书部署失败: ' . ($responseMetadata['Error']['Message'] ?? ''));
+        }
+
+        return $result['Result'] ?? [];
+    }
+
+    /**
+     * 查询证书绑定的资源列表
+     * 火山引擎证书中心仅支持查询 CDN 产品的证书绑定关系
+     * @document https://www.volcengine.com/docs/6454/1263336
+     * @param string $certificateId 证书实例ID
+     * @param array $params 其他参数（可选，如 PageNum/PageSize）
+     * @return array 绑定的资源列表
+     * @throws \Exception
+     */
+    public function listBindings($certificateId, $params = [])
+    {
+        $product = [
+            'host' => 'cdn.volcengineapi.com',
+            'service' => 'cdn',
+            'version' => '2021-03-01',
+            'region' => 'cn-north-1',
+        ];
+
+        $requestParams = [
+            'CertId' => $certificateId,
+        ];
+
+        // 可选分页参数
+        if (isset($params['PageNum'])) {
+            $requestParams['PageNum'] = intval($params['PageNum']);
+        }
+        if (isset($params['PageSize'])) {
+            $requestParams['PageSize'] = intval($params['PageSize']);
+        }
+
+        $result = $this->request('ListCdnCertInfo', $requestParams, $product);
+
+        $responseMetadata = $result['ResponseMetadata'] ?? [];
+        if (isset($responseMetadata['Error'])) {
+            throw new \Exception('查询证书绑定关系失败: ' . ($responseMetadata['Error']['Message'] ?? ''));
+        }
+
+        return $result['Result'] ?? [];
     }
 }

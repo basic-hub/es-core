@@ -86,7 +86,7 @@ trait AdminTrait
         if (empty($this->post['password'])) {
             unset($this->post['password']);
         } else {
-            $this->post['extension']['logflag'] = ($this->post['extension']['logflag'] ?? 0) + 1;
+            $this->post['extension']['pwdflag'] = ($this->post['extension']['pwdflag'] ?? 0) + 1;
         }
         return $this->_edit();
     }
@@ -122,7 +122,7 @@ trait AdminTrait
                     // 旧密码校验不通过
                     throw new HttpParamException(lang(Dictionary::ADMIN_ADMINTRAIT_7));
                 }
-                $this->post['extension']['logflag'] = ($this->post['extension']['logflag'] ?? 0) + 1;
+                $this->post['extension']['pwdflag'] = ($this->post['extension']['pwdflag'] ?? 0) + 1;
             } else {
                 unset($this->post['password']);
             }
