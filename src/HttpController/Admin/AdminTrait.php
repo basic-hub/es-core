@@ -83,12 +83,21 @@ trait AdminTrait
 
     public function edit()
     {
-        if (empty($this->post['password'])) {
-            unset($this->post['password']);
+        if ($this->isHttpGet()) {
+            $result = $this->_edit(true);
+            // 密码不返回给客户端
+            unset($result['password']);
+            $this->success($result);
         } else {
-            $this->post['extension']['pwdflag'] = ($this->post['extension']['pwdflag'] ?? 0) + 1;
+            // 编辑，不含密码
+            if (empty($this->post['password'])) {
+                unset($this->post['password']);
+            } else {
+                // 编辑，含密码
+                $this->post['extension']['pwdflag'] = ($this->post['extension']['pwdflag'] ?? 0) + 1;
+            }
+            $this->_edit();
         }
-        return $this->_edit();
     }
 
     public function _modify($return = false)
