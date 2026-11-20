@@ -87,6 +87,17 @@ class Config extends SplBean
     protected $toJson = false;
 
     /**
+     * 最大并发消费协程数，仅长任务模式（BaseLongTrait）生效
+     *  长任务模式下消费跑在独立协程中，定时器回调不再被消费耗时拖住，失去了天然的串行节流。
+     *  队列积压时每轮tick都会继续出队，协程会无上限堆积，各自占用一条池连接，打满连接池后
+     *  getObj 等待超时返回 null，而数据已出队无法退回。故以「在跑协程数」反向约束每轮出队量，
+     *  满载时本轮不出队，数据留在redis中（比堆在进程内存中安全，进程重启不丢）。
+     *  取值建议不超过连接池 maxObjectNum 的一半，为业务层其他取连接操作留出余量。
+     * @var int
+     */
+    protected $maxConcurrency = 10;
+
+    /**
      * 允许自嵌套一层，表示需要在一个进程内开启多个任务监听不同队列，只需要非进程级参数
      * @var array
      */
@@ -140,6 +151,11 @@ class Config extends SplBean
     public function getToJson()
     {
         return $this->toJson;
+    }
+
+    public function getMaxConcurrency()
+    {
+        return $this->maxConcurrency;
     }
 
     public function getSwProConfig()
