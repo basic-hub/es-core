@@ -6,9 +6,9 @@ use EasySwoole\Component\Process\AbstractProcess;
 use EasySwoole\EasySwoole\Trigger;
 use EasySwoole\Redis\Redis;
 use EasySwoole\RedisPool\RedisPool;
-use BasicHub\EsCore\EventMainServerCreate;
 
 /**
+ * 适用于并发场景的消费队列
  * @mixin AbstractProcess;
  */
 trait BaseTrait
