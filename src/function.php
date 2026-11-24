@@ -19,13 +19,6 @@ use BasicHub\EsCore\Common\OrmCache\Strings;
 use BasicHub\EsCore\Consumer\Config as ConsumerConfig;
 use BasicHub\EsCore\HttpTracker\Config as HTConfig;
 use BasicHub\EsCore\HttpTracker\HTManager;
-use BasicHub\EsCore\Notify\DingTalk\Message\Markdown;
-use BasicHub\EsCore\Notify\DingTalk\Message\Text;
-use BasicHub\EsCore\Notify\EsNotify;
-use BasicHub\EsCore\Notify\Feishu\Message\Card;
-use BasicHub\EsCore\Notify\Feishu\Message\Text as FeishuText;
-use BasicHub\EsCore\Notify\Feishu\Message\Textarea;
-use BasicHub\EsCore\Notify\WeChat\Message\Notice;
 use BasicHub\EsCore\Common\Http\HttpResponse;
 use EasySwoole\EasySwoole\Config;
 use EasySwoole\EasySwoole\Logger;
@@ -767,111 +760,6 @@ if ( ! function_exists('langsf')) {
     }
 }
 
-if ( ! function_exists('notice')) {
-    function notice($content = '', $title = null, $name = 'default')
-    {
-        $pointId = ctx_get(CtxManager::HTTP_TRACKER_PARENTID);
-        $call = function () use ($content, $title, $name, $pointId) {
-            $pointId && ctx_set(CtxManager::HTTP_TRACKER_PARENTID, $pointId);
-            // 富文本
-            if ($title) {
-                config('ES_NOTIFY.driver') == 'feishu' ? feishu_textarea($title, $content, true, $name) : dingtalk_markdown($title, $content, true, $name);
-            } else {
-                config('ES_NOTIFY.driver') == 'feishu' ? feishu_text($content, true, $name) : dingtalk_text($content, true, $name);
-            }
-        };
-
-        // 现改为协程环境运行。原因：发现海外程序发送一次(飞书|钉钉|微信)需要好几秒，会阻塞业务请求
-        \Swoole\Coroutine::getCid() > 0 ? go($call) : $call();
-    }
-}
-
-if ( ! function_exists('wechat_notice')) {
-    function wechat_notice($content = '', $name = 'default')
-    {
-        EsNotify::getInstance()->doesOne('weChat', new Notice([
-            'templateId' => config("ES_NOTIFY.weChat.$name.tplId.notice"),
-            'content' => $content,
-        ]), $name);
-    }
-}
-
-
-if ( ! function_exists('wechat_warning')) {
-    function wechat_warning($content = '', $name = 'default')
-    {
-        EsNotify::getInstance()->doesOne('weChat', new Notice([
-            'templateId' => config("ES_NOTIFY.weChat.$name.tplId.warning"),
-            'content' => $content,
-        ]), $name);
-    }
-}
-
-
-if ( ! function_exists('dingtalk_text')) {
-    function dingtalk_text($content = '', $at = true, $name = 'default')
-    {
-        EsNotify::getInstance()->doesOne('dingTalk', new Text([
-            'content' => $content,
-            'isAtAll' => $at
-        ]), $name);
-    }
-}
-
-
-if ( ! function_exists('dingtalk_markdown')) {
-    function dingtalk_markdown($title = '', $text = '', $at = true, $name = 'default')
-    {
-        if (is_array($text)) {
-            $arr = ['### **' . $title . '**'];
-            foreach ($text as $key => $value) {
-                $exp = strpos(strtolower($key), 'exp') === 0;
-                $arr[] = $exp ? $value : "- $key: $value";
-            }
-            $text = implode(" \n\n ", $arr);
-        }
-        EsNotify::getInstance()->doesOne('dingTalk', new Markdown([
-            'title' => $title,
-            'text' => $text,
-            'isAtAll' => $at
-        ]), $name);
-    }
-}
-
-
-if ( ! function_exists('feishu_text')) {
-    function feishu_text($content = '', $at = true, $name = 'default')
-    {
-        EsNotify::getInstance()->doesOne('feishu', new FeishuText([
-            'content' => $content,
-            'isAtAll' => $at
-        ]), $name);
-    }
-}
-
-
-if ( ! function_exists('feishu_textarea')) {
-    function feishu_textarea($title = '', $content = '', $at = true, $name = 'default')
-    {
-        EsNotify::getInstance()->doesOne('feishu', new Textarea(array_merge([
-            'content' => $content,
-            'isAtAll' => $at
-        ], $title && is_string($title) ? ['title' => $title] : [])), $name);
-    }
-}
-
-
-if ( ! function_exists('feishu_card')) {
-    function feishu_card($title = '', $content = '', $at = true, $name = 'default')
-    {
-        EsNotify::getInstance()->doesOne('feishu', new Card(array_merge([
-            'content' => $content,
-            'isAtAll' => $at
-        ], $title && is_string($title) ? ['title' => $title] : [])), $name);
-    }
-}
-
-
 if ( ! function_exists('array_to_std')) {
     function array_to_std(array $array = [], array $filterKeys = [])
     {
@@ -1307,7 +1195,7 @@ if (!function_exists('notice_alarm_times')) {
                 // SET NX EX 原子抢锁：只有第一个协程/进程能创建key并把计数器置为1，
                 // 避免 exists+setEx 两步之间并发覆盖导致计数丢失、重复报警
                 if ($redis->set($redisKey, 1, ['NX', 'EX' => $expire])) {
-                    notice($content, null, $warname);
+                    notify_text($content, null, $warname);
                     return;
                 }
 
@@ -1319,7 +1207,7 @@ if (!function_exists('notice_alarm_times')) {
                 $redis->expire($redisKey, $expire);
 
                 if ($count <= $times) {
-                    notice($content, null, $warname);
+                    notify_text($content, null, $warname);
                 }
             };
 
@@ -1516,7 +1404,7 @@ if ( ! function_exists('request_lan_api')) {
         }
 
         if (empty($url)) {
-            notice("{$lan_key} API请求失败，config或sysinfo未配置{$lan_key}_lan");
+            notify_text("{$lan_key} API请求失败，config或sysinfo未配置{$lan_key}_lan");
             return false;
         }
 
@@ -1543,7 +1431,7 @@ if ( ! function_exists('request_lan_api')) {
                 break;
 
             default:
-                notice("{$lan_key} API请求失败，未知的加密协议$encry");
+                notify_text("{$lan_key} API请求失败，未知的加密协议$encry");
                 return false;
         }
 
@@ -1559,7 +1447,7 @@ if ( ! function_exists('request_lan_api')) {
             $result = hcurl($url, $params, $method, $headers, $cfg)->json();
             return $result['result'];
         } catch (\Exception $e) {
-            notice($e->getMessage(), null, $notice);
+            notify_text($e->getMessage(), null, $notice);
             if ($cfg['throw'] ?? true) {
                 throw $e;
             } else {
@@ -1689,6 +1577,197 @@ if ( ! function_exists('sms')) {
     function sms($config = []): SmsInterface
     {
         return get_drivers(__FUNCTION__, strtoupper(__FUNCTION__), $config);
+    }
+}
+
+if ( ! function_exists('notify_instance')) {
+    /**
+     * 获取通知驱动实例
+     * @param string $instance 实例名称，如 default、alarm
+     * @param string|null $driver 驱动名称，如 Feishu、Dingtalk、Wechat。为null时使用配置的所有驱动
+     * @return \BasicHub\EsCore\Common\CloudLib\Notify\NotifyInterface|\BasicHub\EsCore\Common\CloudLib\Notify\NotifyInterface[]
+     * @throws Exception
+     */
+    function notify_instance($instance = 'default', $driver = null)
+    {
+        $config = config('ES_NOTIFY');
+        if (empty($config)) {
+            throw new \Exception('未配置 ES_NOTIFY');
+        }
+
+        // 获取驱动列表
+        $drivers = $config['driver'] ?? [];
+        if (empty($drivers)) {
+            throw new \Exception('ES_NOTIFY.driver 未配置');
+        }
+
+        // 统一处理为数组
+        if (!is_array($drivers)) {
+            $drivers = [$drivers];
+        }
+
+        // 如果指定了驱动，只使用指定的驱动
+        if ($driver !== null) {
+            if (!in_array($driver, $drivers)) {
+                throw new \Exception("驱动 {$driver} 未在 ES_NOTIFY.driver 中配置");
+            }
+            $drivers = [$driver];
+        }
+
+        $instances = [];
+        foreach ($drivers as $driverName) {
+            // 获取驱动配置
+            $driverConfig = $config[$driverName][$instance] ?? [];
+            if (empty($driverConfig)) {
+                throw new \Exception("ES_NOTIFY.{$driverName}.{$instance} 配置不存在");
+            }
+
+            // 创建驱动实例
+            $className = "\\BasicHub\\EsCore\\Common\\CloudLib\\Notify\\{$driverName}";
+            if (!class_exists($className)) {
+                throw new \Exception("通知驱动类 {$className} 不存在");
+            }
+
+            $instances[$driverName] = new $className($driverConfig);
+        }
+
+        // 返回关联数组（以驱动名称为 key）
+        return $instances;
+    }
+}
+
+if ( ! function_exists('notify_text')) {
+    /**
+     * 批量发送通知（所有配置的驱动都会收到）
+     * 只支持基本的 title+content 格式，会自动适配各驱动
+     * - Feishu: 使用 Textarea 类型
+     * - Dingtalk: 使用 Markdown 类型
+     * - Wechat: 使用 Notice 类型
+     *
+     * @param string $content 消息内容
+     * @param string|null $title 消息标题（可选）
+     * @param string $instance 实例名称，默认 default
+     * @param bool $atAll 是否 @所有人
+     * @param bool $async 是否异步发送（协程化，避免阻塞）
+     * @return bool|null 同步模式返回是否成功，异步模式返回 null
+     * @throws Exception
+     */
+    function notify_text($content, $title = null, $instance = 'default', $atAll = true, $async = true)
+    {
+        // 协程化处理
+        if ($async) {
+            $pointId = ctx_get(CtxManager::HTTP_TRACKER_PARENTID);
+            $call = function () use ($content, $title, $instance, $atAll, $pointId) {
+                $pointId && ctx_set(CtxManager::HTTP_TRACKER_PARENTID, $pointId);
+                notify_text($content, $title, $instance, $atAll, false);
+            };
+
+            // 在协程环境中使用 go()，否则直接调用
+            \Swoole\Coroutine::getCid() > 0 ? go($call) : $call();
+            return null;
+        }
+
+        // 同步发送逻辑
+        $drivers = notify_instance($instance);
+
+        // 统一处理为数组
+        if (!is_array($drivers)) {
+            $drivers = [$drivers];
+        }
+
+        $allSuccess = true;
+        foreach ($drivers as $driverName => $driver) {
+            try {
+                switch ($driverName) {
+                    case 'Feishu':
+                        $Message = new \BasicHub\EsCore\Common\CloudLib\Notify\Message\Feishu\Textarea([
+                            'content' => $content,
+                            'isAtAll' => $atAll,
+                            'title' => $title ?: '',
+                        ]);
+                        break;
+
+                    case 'Dingtalk':
+                        $Message = new \BasicHub\EsCore\Common\CloudLib\Notify\Message\Dingtalk\Markdown([
+                            'text' => $content,
+                            'isAtAll' => $atAll,
+                            'title' => $title ?: '',
+                        ]);
+                        break;
+
+                    case 'Wechat':
+                        $Message = new \BasicHub\EsCore\Common\CloudLib\Notify\Message\Wechat\Notice([
+                            // Wechat 不支持 title 和 @所有人，只发送 content
+                            'content' => ($title ? "{$title}\n" : '') . $content,
+                        ]);
+                        break;
+
+                    default:
+                        throw new \Exception("不支持的驱动类型: {$driverName}");
+                }
+
+                $result = $driver->send($Message);
+
+                if (!$result) {
+                    $allSuccess = false;
+                }
+            } catch (\Exception $e) {
+                trace("通知发送失败: driver={$driverName}, error=" . $e->getMessage(), 'error');
+                $allSuccess = false;
+            }
+        }
+
+        return $allSuccess;
+    }
+}
+
+if ( ! function_exists('notify_message')) {
+    /**
+     * 精确发送通知（使用驱动专属 Message）
+     * 必须指定 $driver 参数，只能发送到单个驱动
+     *
+     * @param \BasicHub\EsCore\Common\CloudLib\Notify\MessageInterface $message 驱动专属的 Message 对象
+     * @param string $driver 驱动名称，如 Feishu、Dingtalk、Wechat（必须指定）
+     * @param string $instance 实例名称，默认 default
+     * @param bool $async 是否异步发送（协程化，避免阻塞）
+     * @return bool|null 同步模式返回是否成功，异步模式返回 null
+     * @throws Exception
+     */
+    function notify_message(\BasicHub\EsCore\Common\CloudLib\Notify\MessageInterface $message, $driver, $instance = 'default', $async = true)
+    {
+        // 协程化处理
+        if ($async) {
+            $pointId = ctx_get(CtxManager::HTTP_TRACKER_PARENTID);
+            $call = function () use ($message, $driver, $instance, $pointId) {
+                $pointId && ctx_set(CtxManager::HTTP_TRACKER_PARENTID, $pointId);
+                notify_message($message, $driver, $instance, false);
+            };
+
+            // 在协程环境中使用 go()，否则直接调用
+            \Swoole\Coroutine::getCid() > 0 ? go($call) : $call();
+            return null;
+        }
+
+        // 同步发送逻辑
+        if (empty($driver)) {
+            throw new \Exception('notify_message() 必须指定 $driver 参数');
+        }
+
+        $drivers = notify_instance($instance, $driver);
+
+        // notify_instance 总是返回关联数组，取出单个驱动实例
+        if (count($drivers) !== 1) {
+            throw new \Exception('notify_message() 只能用于单个驱动');
+        }
+
+        $driverInstance = reset($drivers);
+
+        try {
+            return $driverInstance->send($message);
+        } catch (\Exception $e) {
+            trace("通知发送失败: driver={$driver}, error=" . $e->getMessage(), 'error');
+            return false;
+        }
     }
 }
 
@@ -1930,37 +2009,6 @@ if ( ! function_exists('call_phone')) {
         $Resp = hcurl($url, $params, 'json', ['token' => $config['token']], ['throw' => false]);
         $level = $Resp->code === 200 ? 'info' : 'error';
         trace("[call_phone]params=" . var_export($params, true) . ",resp={$Resp->raw}", $level);
-    }
-}
-
-
-if ( ! function_exists('call_sms')) {
-    /**
-     * 短信通知
-     * @document https://www.ccloudalarm.com/alert
-     * @param string $title 短信标题(文档有但是收到短信没看到)
-     * @param string $content 短信通知内容
-     * @param array $config 配置数组
-     * @return void
-     * @throws \EasySwoole\HttpClient\Exception\InvalidUrl
-     */
-    function call_sms($title = '', $content = '', $config = [])
-    {
-        if (empty($config)) {
-            return;
-        }
-        $url = "https://www.ccloudalarm.com/api/v1/system/send_sms_alarm/?token=$config[token]";
-
-        $params = [
-            'receiver' => $config['receiver'], // 号码或者用户组
-            'type' => 'sms',
-            'title' => $title,
-            'content' => $content,
-        ];
-
-        $Resp = hcurl($url, $params, 'json', ['token' => $config['token']], ['resultType' => '', 'retryTimes' => 0, 'throw' => false]);
-        $level = $Resp->code === 200 ? 'info' : 'error';
-        trace("[call_sms]params=" . var_export($params, true) . ",resp={$Resp->raw}", $level);
     }
 }
 

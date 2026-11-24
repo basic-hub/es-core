@@ -146,33 +146,42 @@ return [
 
     // 通知组件配置（程序异常会自动通知，或主动调用通知的其他场景）
     'ES_NOTIFY' => is_env('dev') ? [] : [
+        'driver' => ['Feishu', 'Wechat'],
         // 钉钉webhook机器人
-        'dingTalk' => [
+        'Dingtalk' => [
             'default' => [
                 'url' => '',
                 'signKey' => '',
             ],
         ],
         // 微信测试号
-        'weChat' => [
+        'Wechat' => [
+            // notice
             'default' => [
                 'appId' => '',
                 'appSecret' => '',
                 'token' => 'token',
                 'url' => '',
-                'tplId' => [
-                    // 模板内容：{{keyword1.DATA}} 系统：{{keyword2.DATA}} 服务器：{{keyword3.DATA}} 时间：{{keyword4.DATA}}
-                    'warning' => '',
-                    // 模板内容：{{keyword1.DATA}} 系统：{{keyword2.DATA}} 服务器：{{keyword3.DATA}} 时间：{{keyword4.DATA}}
-                    'notice' => '',
+                // 模板内容：{{keyword1.DATA}} 系统：{{keyword2.DATA}} 服务器：{{keyword3.DATA}} 时间：{{keyword4.DATA}}
+                'templateId' => '',
+                'toOpenid' => [
+                    '', // Joyboo
                 ],
+            ],
+            'alarm' => [
+                'appId' => '',
+                'appSecret' => '',
+                'token' => 'token',
+                'url' => '',
+                // // 模板内容：{{keyword1.DATA}} 系统：{{keyword2.DATA}} 服务器：{{keyword3.DATA}} 时间：{{keyword4.DATA}}
+                'templateId' => '',
                 'toOpenid' => [
                     '', // Joyboo
                 ],
             ],
         ],
         // 飞书webhook机器人
-        'feishu' => [
+        'Feishu' => [
             'default' => [
                 'url' => '',
                 'signKey' => '',

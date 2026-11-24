@@ -65,7 +65,7 @@ class SyncData implements TaskInterface
         // 一起处理上报webhook
         if (!empty($this->warnText)) {
             $text = implode("\n\n", $this->warnText);
-            notice($text, $this->warnTitle);
+            notify_text($text, $this->warnTitle);
         }
     }
 

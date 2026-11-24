@@ -85,7 +85,7 @@ class Tencent extends Base
             $endFn($array);
 
             if (isset($array['Error'])) {
-                notice("腾讯云发送失败1: $str");
+                notify_text("腾讯云发送失败1: $str");
                 return false;
             }
             return true;
@@ -99,7 +99,7 @@ class Tencent extends Base
                 'InvalidParameterValue.IncorrectPhoneNumber',
                 'MissingParameter.EmptyPhoneNumberSet',
             ])) {
-                notice($msg);
+                notify_text($msg);
             }
 
             return false;
