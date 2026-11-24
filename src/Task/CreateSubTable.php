@@ -90,8 +90,7 @@ class CreateSubTable implements TaskInterface
             DbManager::getInstance()->query($builder, true, $connectionName);
         } catch (\EasySwoole\Mysqli\Exception\Exception|\Throwable $e) {
             $title = '创建分表失败';
-            notice("$title [$connectionName . $fullName] : " . $e->getMessage());
-            wechat_notice("$title {$e->getMessage()}");
+            notify_text("$title [$connectionName . $fullName] : " . $e->getMessage());
             trace("$title [$connectionName . $fullName] : " . $e->getMessage(), 'error');
         }
     }

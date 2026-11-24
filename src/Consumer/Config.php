@@ -93,6 +93,7 @@ class Config extends SplBean
      *  getObj 等待超时返回 null，而数据已出队无法退回。故以「在跑协程数」反向约束每轮出队量，
      *  满载时本轮不出队，数据留在redis中（比堆在进程内存中安全，进程重启不丢）。
      *  取值建议不超过连接池 maxObjectNum 的一半，为业务层其他取连接操作留出余量。
+     * 串行任务（前一条执行完之后才能执行下一条）传1即可
      * @var int
      */
     protected $maxConcurrency = 10;

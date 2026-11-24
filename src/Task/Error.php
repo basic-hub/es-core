@@ -3,13 +3,9 @@
 namespace BasicHub\EsCore\Task;
 
 use BasicHub\EsCore\Common\Classes\CtxManager;
-use BasicHub\EsCore\Notify\Feishu\Message\CardErrorTimeZone;
 use EasySwoole\Task\AbstractInterface\TaskInterface;
 use EasySwoole\Utility\File;
 use BasicHub\EsCore\Common\Classes\DateUtils;
-use BasicHub\EsCore\Notify\DingTalk\Message\Markdown;
-use BasicHub\EsCore\Notify\EsNotify;
-use BasicHub\EsCore\Notify\Feishu\Message\CardError;
 
 /**
  * 程序异常
@@ -41,73 +37,79 @@ class Error implements TaskInterface
             ctx_set(CtxManager::HTTP_TRACKER_PARENTID, $this->data['htid']);
         }
 
-        $driver = config('ES_NOTIFY.driver') ?: EsNotify::NOTIFY_TYPE_DINGTALK;
+        $driver = config('ES_NOTIFY.driver');
+        is_string($driver) && $driver = [$driver];
 
-        switch ($driver) {
-            case EsNotify::NOTIFY_TYPE_FEISHU: // 飞书 card
-
-                $message = $this->data['message'] ?? '';
-                foreach ($this->merge as $key => $value) {
-                    $message .= "\n" . (is_int($key) ? $value : "$key: $value");
-                }
-
-                // 东8区用默认模板，非东8区使用带时区的模板
-                if (DateUtils::isInTimeZone(8)) {
-                    $Message = new CardError([
-                        'servername' => $servname,
-                        'project' => $servername,
-                        'datetime' => date(DateUtils::FULL),
-                        'trigger' => $this->data['trigger'] ?? '',
-                        'filename' => "{$this->data['file']} 第 {$this->data['line']} 行",
-                        'content' => $message,
-                        'isAtAll' => true
-                    ]);
-                } else {
-                    $Message = new CardErrorTimeZone([
-                        // 东8区时间
-                        'datetime8' => DateUtils::timestampToDatetime(time()),
-                        // 服务器本地时间
-                        'datetimeLocal' => date(DateUtils::FULL),
-                        // 服务器时区：UTC-5:00、UTC+8:00
-                        'timeZone' => DateUtils::getTimeZoneUTC(),
-                        'servername' => $servname,
-                        'project' => $servername,
-                        'trigger' => $this->data['trigger'] ?? '',
-                        'filename' => "{$this->data['file']} 第 {$this->data['line']} 行",
-                        'content' => $message,
-                        'isAtAll' => true
-                    ]);
-                }
-
-
-                break;
-            default: // 钉钉 markdown
-                $data = [
-                    '### **' . $title . '**',
-                    '- 服务器: ' . $servname,
-                    '- 项 目：' . $servername,
-                    "- 文 件：{$this->data['file']} 第 {$this->data['line']} 行",
-                    "- 详 情：" . ($this->data['message'] ?? ''),
-                    '- 触发方式： ' . ($this->data['trigger'] ?? ''),
-                ];
-
-                foreach ($this->merge as $key => $value) {
-                    $data[] = "- " . (is_int($key) ? $value : "$key: $value");
-                }
-
-                $message = implode($this->warp, $data);
-                $Message = new Markdown([
-                    'title' => $title,
-                    'text' => $message,
-                    'isAtAll' => true
-                ]);
-                break;
+        // 获取错误消息内容
+        $message = $this->data['message'] ?? '';
+        foreach ($this->merge as $key => $value) {
+            $message .= "\n" . (is_int($key) ? $value : "$key: $value");
         }
 
-        EsNotify::getInstance()->doesOne($driver, $Message);
+        // 飞书
+        if (is_array($driver) && in_array('Feishu', $driver)) {
+            // 东8区用默认模板，非东8区使用带时区的模板
+            if (DateUtils::isInTimeZone(8)) {
+                $Message = new \BasicHub\EsCore\Common\CloudLib\Notify\Message\Feishu\CardError([
+                    'servername' => $servname,
+                    'project' => $servername,
+                    'datetime' => date(DateUtils::FULL),
+                    'trigger' => $this->data['trigger'] ?? '',
+                    'filename' => "{$this->data['file']} 第 {$this->data['line']} 行",
+                    'content' => $message,
+                    'isAtAll' => true
+                ]);
+            } else {
+                $Message = new \BasicHub\EsCore\Common\CloudLib\Notify\Message\Feishu\CardErrorTimeZone([
+                    // 东8区时间
+                    'datetime8' => DateUtils::timestampToDatetime(time()),
+                    // 服务器本地时间
+                    'datetimeLocal' => date(DateUtils::FULL),
+                    // 服务器时区：UTC-5:00、UTC+8:00
+                    'timeZone' => DateUtils::getTimeZoneUTC(),
+                    'servername' => $servname,
+                    'project' => $servername,
+                    'trigger' => $this->data['trigger'] ?? '',
+                    'filename' => "{$this->data['file']} 第 {$this->data['line']} 行",
+                    'content' => $message,
+                    'isAtAll' => true
+                ]);
+            }
+            notify_message($Message, 'Feishu');
+        }
 
-        $message = "$title: {$this->data['message']}, 文件 {$this->data['file']} 第 {$this->data['line']} 行";
-        wechat_warning($message);
+        // 钉钉
+        if (is_array($driver) && in_array('Dingtalk', $driver)) {
+            // 钉钉 markdown
+            $data = [
+                '### **' . $title . '**',
+                '- 服务器: ' . $servname,
+                '- 项 目：' . $servername,
+                "- 文 件：{$this->data['file']} 第 {$this->data['line']} 行",
+                "- 详 情：" . ($this->data['message'] ?? ''),
+                '- 触发方式： ' . ($this->data['trigger'] ?? ''),
+            ];
+
+            foreach ($this->merge as $key => $value) {
+                $data[] = "- " . (is_int($key) ? $value : "$key: $value");
+            }
+
+            $text = implode($this->warp, $data);
+            $Message = new \BasicHub\EsCore\Common\CloudLib\Notify\Message\Dingtalk\Markdown([
+                'title' => $title,
+                'text' => $text,
+                'isAtAll' => true
+            ]);
+            notify_message($Message, 'Dingtalk');
+        }
+
+        // 微信
+        if (is_array($driver) && in_array('Wechat', $driver)) {
+            $Message = new \BasicHub\EsCore\Common\CloudLib\Notify\Message\Wechat\Notice([
+                'content' => "$title: {$this->data['message']}, 文件 {$this->data['file']} 第 {$this->data['line']} 行",
+            ]);
+            notify_message($Message, 'Wechat');
+        }
     }
 
     public function onException(\Throwable $throwable, int $taskId, int $workerIndex)

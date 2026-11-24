@@ -78,7 +78,7 @@ class Alibaba extends Base
             $isSuccess = $resp->body->code === 'OK';
 
             if ( ! $isSuccess) {
-                notice('阿里云短信发送失败: ' . $resp->body->message);
+                notify_text('阿里云短信发送失败: ' . $resp->body->message);
             }
             return $isSuccess;
         } catch (\Exception $error) {
@@ -93,7 +93,7 @@ class Alibaba extends Base
             if (!in_array($error->getCode(), [
                 'isv.MOBILE_NUMBER_ILLEGAL',
             ])) {
-                notice($msg);
+                notify_text($msg);
             }
 
             return false;

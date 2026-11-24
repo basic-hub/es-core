@@ -8,15 +8,11 @@ use EasySwoole\Command\Color;
 use EasySwoole\EasySwoole\Command\Utility;
 use EasySwoole\EasySwoole\ServerManager;
 use EasySwoole\EasySwoole\Swoole\EventRegister;
-use EasySwoole\ORM\DbManager;
-use EasySwoole\Redis\Redis;
-use EasySwoole\RedisPool\RedisPool;
 use EasySwoole\Socket\AbstractInterface\ParserInterface;
 use EasySwoole\Spl\SplBean;
 use EasySwoole\Template\Render;
 use EasySwoole\Utility\Str;
 use EasySwoole\WordsMatch\WMServer;
-use BasicHub\EsCore\Notify\EsNotify;
 
 class EventMainServerCreate extends SplBean
 {
@@ -70,7 +66,6 @@ class EventMainServerCreate extends SplBean
         $this->registerCrontab();
         $this->registerConsumer();
         $this->watchHotReload();
-        $this->registerNotify();
         $this->wordsMatch();
         $this->tplEngine();
     }
@@ -252,30 +247,6 @@ class EventMainServerCreate extends SplBean
         $watcher->setOnChange($onChange);
         $watcher->setOnException($onException);
         $watcher->attachServer(ServerManager::getInstance()->getSwooleServer());
-    }
-
-    static public function registerNotify()
-    {
-        if ( ! is_array(config('ES_NOTIFY'))) {
-            return;
-        }
-        foreach (config('ES_NOTIFY') as $key => $val) {
-            if ( ! is_array($val)) {
-                continue;
-            }
-            $className = '\\BasicHub\\EsCore\\Notify\\' . ucfirst($key) . '\\Config';
-
-            foreach ($val as $k => $v) {
-                if ( ! is_array($v)) {
-                    continue;
-                }
-                // 类不存在，则在进程启动时就提示。要么不传，传了就要传对
-                if (!class_exists($className)) {
-                    throw new \Exception("Class Not found: $className");
-                }
-                EsNotify::getInstance()->register(new $className($v, true), $key, $k);
-            }
-        }
     }
 
     /**

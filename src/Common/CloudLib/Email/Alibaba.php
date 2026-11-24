@@ -75,7 +75,7 @@ class Alibaba extends Base
             $isSuccess = $resp->body->code === 'OK';
 
             if ( ! $isSuccess) {
-                notice('阿里云邮件发送失败1: ' . $resp->body->message);
+                notify_text('阿里云邮件发送失败1: ' . $resp->body->message);
             }
             return $isSuccess;
         } catch (\Exception $error) {
@@ -92,7 +92,7 @@ class Alibaba extends Base
                 'InvalidToAddress',
                 'InvalidToAddress.Spam'
             ])) {
-                notice($msg);
+                notify_text($msg);
             }
             return false;
         }

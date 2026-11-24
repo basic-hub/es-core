@@ -4,9 +4,6 @@ namespace BasicHub\EsCore\Common\Classes;
 
 use EasySwoole\Mysqli\QueryBuilder;
 use EasySwoole\Spl\SplBean;
-use BasicHub\EsCore\Notify\DingTalk\Message\Markdown;
-use BasicHub\EsCore\Notify\EsNotify;
-use BasicHub\EsCore\Notify\Feishu\Message\TablePartWarn;
 
 /**
  * MySQL表分区类
@@ -414,39 +411,47 @@ class TablePart extends SplBean
         if ($warTables && $send) {
 
             $servname = config('SERVNAME');
-            $driver = config('ES_NOTIFY.driver') ?: 'dingTalk';
+            $driver = config('ES_NOTIFY.driver');
+            is_string($driver) && $driver = [$driver];
 
             $title = "MySQL数据表分区不足{$days}天";
-            switch ($driver) {
-                case 'feishu': // 飞书 card
-                    $Message = new TablePartWarn([
-                        'title' => $title,
-                        'subTitle' => "服务器：{$servname}，数据库：{$this->dbName}",
-                        'dbTableList' => $warTables,
-                    ]);
 
-                    break;
-                default: // 钉钉 markdown
-                    $data = [
-                        '### **' . $title . '**',
-                        '- 服务器: ' . $servname,
-                        '- 数据库: ' . $this->dbName,
-                    ];
-                    foreach ($warTables as $idx => $tableName) {
-                        $idx++;
-                        $data[] = "{$idx}. 数据表：$tableName";
-                    }
-                    $Message = new Markdown([
-                        'title' => $title,
-                        'text' => implode(" \n\n ", $data),
-                        'isAtAll' => true
-                    ]);
-                    break;
+            // 飞书
+            if (is_array($driver) && in_array('Feishu', $driver)) {
+                $Message = new \BasicHub\EsCore\Common\CloudLib\Notify\Message\Feishu\TablePartWarn([
+                    'title' => $title,
+                    'subTitle' => "服务器：{$servname}，数据库：{$this->dbName}",
+                    'dbTableList' => $warTables,
+                ]);
+                notify_message($Message, 'Feishu');
             }
 
-            EsNotify::getInstance()->doesOne($driver, $Message);
-            trace($msg = "$title, 服务器：$servname, 数据库: {$this->dbName}, 数据表：" . json_encode($warTables), 'error');
-            wechat_warning($msg);
+            // 钉钉
+            if (is_array($driver) && in_array('Dingtalk', $driver)) {
+                $data = [
+                    '### **' . $title . '**',
+                    '- 服务器: ' . $servname,
+                    '- 数据库: ' . $this->dbName,
+                ];
+                foreach ($warTables as $idx => $tableName) {
+                    $idx++;
+                    $data[] = "{$idx}. 数据表：$tableName";
+                }
+                $Message = new \BasicHub\EsCore\Common\CloudLib\Notify\Message\Dingtalk\Markdown([
+                    'title' => $title,
+                    'text' => implode(" \n\n ", $data),
+                    'isAtAll' => true
+                ]);
+                notify_message($Message, 'Dingtalk');
+            }
+
+            // 微信
+            if (is_array($driver) && in_array('Wechat', $driver)) {
+                $Message = new \BasicHub\EsCore\Common\CloudLib\Notify\Message\Wechat\Notice([
+                    'content' => "$title, 服务器：$servname, 数据库: {$this->dbName}, 数据表：" . json_encode($warTables),
+                ]);
+                notify_message($Message, 'Wechat');
+            }
         }
         return $warTables;
     }

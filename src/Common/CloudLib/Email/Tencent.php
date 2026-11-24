@@ -131,7 +131,7 @@ class Tencent extends Base
                 'FailedOperation.FrequencyLimit', // 触发频率控制，短时间内对同一地址发送过多邮件。
                 'FailedOperation.IncorrectEmail', // 邮箱地址错误。
             ])) {
-                notice($msg);
+                notify_text($msg);
             }
 
             return false;

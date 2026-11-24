@@ -86,7 +86,7 @@ class Volcengine extends Base
                 'RE:0006', // 手机号格式错误
             ])) {
                 $errMsg = $ResponseMetadata->getError()->getMessage();
-                notice("火山云短信发送失败, errCode=$errCode, errMsg=$errMsg");
+                notify_text("火山云短信发送失败, errCode=$errCode, errMsg=$errMsg");
             }
 
             return ! $ResponseMetadata->hasError();

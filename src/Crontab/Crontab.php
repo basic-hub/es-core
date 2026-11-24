@@ -44,7 +44,7 @@ class Crontab extends AbstractCronTask
             "- name: {$row['name']}",
             "- 详 情：$message",
         ]);
-        notice($text);
+        notify_text($text);
     }
 
     public function run(int $taskId, int $workerIndex)
