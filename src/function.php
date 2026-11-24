@@ -3,6 +3,7 @@
 use BasicHub\EsCore\Common\Classes\CtxManager;
 use BasicHub\EsCore\Common\Classes\Jwt;
 use BasicHub\EsCore\Common\Classes\Mysqli;
+use BasicHub\EsCore\Common\CloudLib\Call\CallInterface;
 use BasicHub\EsCore\Common\CloudLib\Captcha\CaptchaInterface;
 use BasicHub\EsCore\Common\CloudLib\Cdn\CdnInterface;
 use BasicHub\EsCore\Common\CloudLib\Dns\DnsInterface;
@@ -1580,6 +1581,19 @@ if ( ! function_exists('sms')) {
     }
 }
 
+if ( ! function_exists('call')) {
+    /**
+     * 助手函数，返回call操作对象
+     * @param array $config
+     * @return CallInterface
+     * @throws Exception
+     */
+    function call($config = []): CallInterface
+    {
+        return get_drivers(__FUNCTION__, strtoupper(__FUNCTION__), $config);
+    }
+}
+
 if ( ! function_exists('notify_instance')) {
     /**
      * 获取通知驱动实例
@@ -1979,36 +1993,6 @@ if ( ! function_exists('curl')) {
             'headers' => $header,
         ] + $property);
         return $Curl->request($data);
-    }
-}
-
-
-if ( ! function_exists('call_phone')) {
-    /**
-     * 拨打指定用户组电话
-     * @document https://www.ccloudalarm.com/alert
-     * @param string $content 接听后播报的内容
-     * @param array $config 配置数组
-     * @return void
-     * @throws \EasySwoole\HttpClient\Exception\InvalidUrl
-     */
-    function call_phone($content = '', $config = [])
-    {
-        if (empty($config)) {
-            return;
-        }
-        $url = "https://www.ccloudalarm.com/api/v1/system/send_phone_alarm/";
-
-        $params = [
-            'receiver' => $config['receiver'], // 号码或者用户组
-            'type' => 'phone',
-            'title' => $config['title'] ?? '告警电话',
-            'token' => $config['token'],
-            'content' => $content,
-        ];
-        $Resp = hcurl($url, $params, 'json', ['token' => $config['token']], ['throw' => false]);
-        $level = $Resp->code === 200 ? 'info' : 'error';
-        trace("[call_phone]params=" . var_export($params, true) . ",resp={$Resp->raw}", $level);
     }
 }
 
