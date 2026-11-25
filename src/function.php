@@ -623,6 +623,7 @@ if ( ! function_exists('ip')) {
      * 注意：本函数用于「尽力还原用户真实IP」（日志、风控、地域识别），
      * 不可用于判断请求来源是否可信；鉴权白名单请直接读取 remote_addr。
      *
+     * @document EO-Connecting-IP https://cloud.tencent.com/document/product/1552/87654
      * @param Request $Request
      * @return false|string
      */

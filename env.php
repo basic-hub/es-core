@@ -145,7 +145,7 @@ return [
     ],
 
     // 通知组件配置（程序异常会自动通知，或主动调用通知的其他场景）
-    'ES_NOTIFY' => is_env('dev') ? [] : [
+    'ES_NOTIFY' => [
         'driver' => ['Feishu', 'Wechat'],
         // 钉钉webhook机器人
         'Dingtalk' => [
@@ -185,6 +185,10 @@ return [
             'default' => [
                 'url' => '',
                 'signKey' => '',
+                // 自建应用参数
+//                'appId' => '',
+//                'appSecret' => '',
+//                'receiveIdType' => 'chat_id',
             ],
         ],
     ],
