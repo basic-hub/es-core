@@ -3,10 +3,10 @@
 namespace BasicHub\EsCore\Task;
 
 use BasicHub\EsCore\Common\Classes\CtxManager;
-use BasicHub\EsCore\Common\Constants;
+use BasicHub\EsCore\Common\Classes\DateUtils;
+use BasicHub\EsCore\Constants;
 use EasySwoole\Task\AbstractInterface\TaskInterface;
 use EasySwoole\Utility\File;
-use BasicHub\EsCore\Common\Classes\DateUtils;
 
 /**
  * 程序异常

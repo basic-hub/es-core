@@ -2,7 +2,7 @@
 
 namespace BasicHub\EsCore\Common\Classes;
 
-use BasicHub\EsCore\Common\Constants;
+use BasicHub\EsCore\Constants;
 use EasySwoole\Mysqli\QueryBuilder;
 use EasySwoole\Spl\SplBean;
 
