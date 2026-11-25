@@ -12,6 +12,7 @@ use BasicHub\EsCore\Common\CloudLib\Geo\Geo;
 use BasicHub\EsCore\Common\CloudLib\Nas\NasInterface;
 use BasicHub\EsCore\Common\CloudLib\Sms\SmsInterface;
 use BasicHub\EsCore\Common\CloudLib\Storage\StorageInterface;
+use BasicHub\EsCore\Common\Constants;
 use BasicHub\EsCore\Common\Exception\HttpParamException;
 use BasicHub\EsCore\Common\Http\Code;
 use BasicHub\EsCore\Common\Languages\Dictionary;
@@ -1664,7 +1665,7 @@ if ( ! function_exists('notify_text')) {
      * @param string $instance 实例名称，默认 default
      * @param bool $atAll 是否 @所有人
      * @param bool $async 是否异步发送（协程化，避免阻塞）
-     * @return bool|null 同步模式返回是否成功，异步模式返回 null
+     * @return array|bool|null 同步模式返回是否成功，异步模式返回 null, 异常返回false，正常返回结果array [Feishu => Resp]
      * @throws Exception
      */
     function notify_text($content, $title = null, $instance = 'default', $atAll = true, $async = true)
@@ -1690,11 +1691,11 @@ if ( ! function_exists('notify_text')) {
             $drivers = [$drivers];
         }
 
-        $allSuccess = true;
+        $result = [];
         foreach ($drivers as $driverName => $driver) {
             try {
                 switch ($driverName) {
-                    case 'Feishu':
+                    case Constants::NOTIFY_FEISHU:
                         $Message = new \BasicHub\EsCore\Common\CloudLib\Notify\Message\Feishu\Textarea([
                             'content' => $content,
                             'isAtAll' => $atAll,
@@ -1702,7 +1703,7 @@ if ( ! function_exists('notify_text')) {
                         ]);
                         break;
 
-                    case 'Dingtalk':
+                    case Constants::NOTIFY_DINGTALK:
                         $Message = new \BasicHub\EsCore\Common\CloudLib\Notify\Message\Dingtalk\Markdown([
                             'text' => $content,
                             'isAtAll' => $atAll,
@@ -1710,7 +1711,7 @@ if ( ! function_exists('notify_text')) {
                         ]);
                         break;
 
-                    case 'Wechat':
+                    case Constants::NOTIFY_WECHAT:
                         $Message = new \BasicHub\EsCore\Common\CloudLib\Notify\Message\Wechat\Notice([
                             // Wechat 不支持 title 和 @所有人，只发送 content
                             'content' => ($title ? "{$title}\n" : '') . $content,
@@ -1721,18 +1722,15 @@ if ( ! function_exists('notify_text')) {
                         throw new \Exception("不支持的驱动类型: {$driverName}");
                 }
 
-                $result = $driver->send($Message);
+                $result[$driverName] = $driver->send($Message);
 
-                if (!$result) {
-                    $allSuccess = false;
-                }
             } catch (\Exception $e) {
                 trace("通知发送失败: driver={$driverName}, error=" . $e->getMessage(), 'error');
-                $allSuccess = false;
+                $result[$driverName] = false;
             }
         }
 
-        return $allSuccess;
+        return $result;
     }
 }
 
@@ -1745,7 +1743,7 @@ if ( ! function_exists('notify_message')) {
      * @param string $driver 驱动名称，如 Feishu、Dingtalk、Wechat（必须指定）
      * @param string $instance 实例名称，默认 default
      * @param bool $async 是否异步发送（协程化，避免阻塞）
-     * @return bool|null 同步模式返回是否成功，异步模式返回 null
+     * @return array|bool|null 同步模式返回是否成功，异步模式返回 null, 异常返回false，正常返回结果array
      * @throws Exception
      */
     function notify_message(\BasicHub\EsCore\Common\CloudLib\Notify\MessageInterface $message, $driver, $instance = 'default', $async = true)
@@ -1804,18 +1802,19 @@ if (!function_exists('notify_table')) {
         $driver = config('ES_NOTIFY.driver');
         is_string($driver) && $driver = [$driver];
 
+        $result = [];
         // 飞书
-        if (is_array($driver) && in_array('Feishu', $driver)) {
+        if (is_array($driver) && in_array(Constants::NOTIFY_FEISHU, $driver)) {
             $Message = new \BasicHub\EsCore\Common\CloudLib\Notify\Message\Feishu\Table(array_merge([
                 'title' => $title,
                 'headers' => $headers,
                 'rows' => $data
             ], $options));
-            notify_message($Message, 'Feishu', $instance);
+            $result[Constants::NOTIFY_FEISHU] = notify_message($Message, Constants::NOTIFY_FEISHU, $instance);
         }
 
         // 钉钉
-        if (is_array($driver) && in_array('Dingtalk', $driver)) {
+        if (is_array($driver) && in_array(Constants::NOTIFY_DINGTALK, $driver)) {
             // 将飞书风格的headers转换为钉钉风格
             $headers = array_map(function ($item) {
                 return is_array($item) ? $item['display_name'] : $item;
@@ -1826,8 +1825,9 @@ if (!function_exists('notify_table')) {
                 'rows' => $data,
                 'headers' => $headers
             ], $options));
-            notify_message($Message, 'Dingtalk', $instance);
+            $result[Constants::NOTIFY_DINGTALK] = notify_message($Message, Constants::NOTIFY_FEISHU, $instance);
         }
+        return $result;
     }
 }
 

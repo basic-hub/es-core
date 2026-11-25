@@ -77,10 +77,10 @@ class Feishu extends Base
     /**
      * 实际发送消息
      * @param MessageInterface $message
-     * @return bool
+     * @return array
      * @throws \Exception
      */
-    public function send(MessageInterface $message): bool
+    public function send(MessageInterface $message)
     {
         if ($this->isdebug) {
             trace(__METHOD__ . ', message=' . var_export($message->fullData(), true));
@@ -95,7 +95,7 @@ class Feishu extends Base
         }
 
         // 判断是否发送成功
-        return isset($result['code']) && $result['code'] == 0;
+        return $result;
     }
 
     /**

@@ -72,9 +72,9 @@ class Wechat extends Base
      * 实际发送模板消息
      * @document http://www.easyswoole.com/Components/WeChat2.x/officialAccount/templateMessage.html
      * @param MessageInterface $message
-     * @return bool
+     * @return array
      */
-    public function send(MessageInterface $message): bool
+    public function send(MessageInterface $message)
     {
         if ($this->isdebug) {
             trace(__METHOD__ . ', message=' . var_export($message->fullData(), true));
@@ -86,10 +86,10 @@ class Wechat extends Base
 
         $data = $message->fullData();
 
-        $success = true;
+        $result = [];
         foreach ($toOpenid as $openid) {
             try {
-                $this->getOfficialAccount()->templateMessage->send([
+                $resp = $this->getOfficialAccount()->templateMessage->send([
                     'touser' => $openid,
                     'template_id' => $this->templateId,
                     'url' => $url,
@@ -100,11 +100,11 @@ class Wechat extends Base
                 if ($this->isdebug) {
                     trace("微信模板消息发送失败: openid={$openid}, error=" . $e->getMessage(), 'error');
                 }
-                $success = false;
-                continue;
+                $resp = false;
             }
+            $result[$openid] = $resp;
         }
 
-        return $success;
+        return $result;
     }
 }

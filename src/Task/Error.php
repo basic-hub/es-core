@@ -3,6 +3,7 @@
 namespace BasicHub\EsCore\Task;
 
 use BasicHub\EsCore\Common\Classes\CtxManager;
+use BasicHub\EsCore\Common\Constants;
 use EasySwoole\Task\AbstractInterface\TaskInterface;
 use EasySwoole\Utility\File;
 use BasicHub\EsCore\Common\Classes\DateUtils;
@@ -47,7 +48,7 @@ class Error implements TaskInterface
         }
 
         // 飞书
-        if (is_array($driver) && in_array('Feishu', $driver)) {
+        if (is_array($driver) && in_array(Constants::NOTIFY_FEISHU, $driver)) {
             // 东8区用默认模板，非东8区使用带时区的模板
             if (DateUtils::isInTimeZone(8)) {
                 $Message = new \BasicHub\EsCore\Common\CloudLib\Notify\Message\Feishu\CardError([
@@ -75,11 +76,11 @@ class Error implements TaskInterface
                     'isAtAll' => true
                 ]);
             }
-            notify_message($Message, 'Feishu');
+            notify_message($Message, Constants::NOTIFY_FEISHU);
         }
 
         // 钉钉
-        if (is_array($driver) && in_array('Dingtalk', $driver)) {
+        if (is_array($driver) && in_array(Constants::NOTIFY_DINGTALK, $driver)) {
             // 钉钉 markdown
             $data = [
                 '### **' . $title . '**',
@@ -100,15 +101,15 @@ class Error implements TaskInterface
                 'text' => $text,
                 'isAtAll' => true
             ]);
-            notify_message($Message, 'Dingtalk');
+            notify_message($Message, Constants::NOTIFY_DINGTALK);
         }
 
         // 微信
-        if (is_array($driver) && in_array('Wechat', $driver)) {
+        if (is_array($driver) && in_array(Constants::NOTIFY_WECHAT, $driver)) {
             $Message = new \BasicHub\EsCore\Common\CloudLib\Notify\Message\Wechat\Notice([
                 'content' => "$title: {$this->data['message']}, 文件 {$this->data['file']} 第 {$this->data['line']} 行",
             ]);
-            notify_message($Message, 'Wechat');
+            notify_message($Message, Constants::NOTIFY_WECHAT);
         }
     }
 
