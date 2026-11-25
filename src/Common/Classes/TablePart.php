@@ -418,7 +418,7 @@ class TablePart extends SplBean
 
             // 飞书
             if (is_array($driver) && in_array('Feishu', $driver)) {
-                $Message = new \BasicHub\EsCore\Common\CloudLib\Notify\Message\Feishu\TablePartWarn([
+                $Message = new \BasicHub\EsCore\Common\CloudLib\Notify\Message\Feishu\DbPartWarn([
                     'title' => $title,
                     'subTitle' => "服务器：{$servname}，数据库：{$this->dbName}",
                     'dbTableList' => $warTables,
@@ -439,7 +439,7 @@ class TablePart extends SplBean
                 }
                 $Message = new \BasicHub\EsCore\Common\CloudLib\Notify\Message\Dingtalk\Markdown([
                     'title' => $title,
-                    'text' => implode(" \n\n ", $data),
+                    'text' => implode(" \n\n ", $data) . "\n\n",
                     'isAtAll' => true
                 ]);
                 notify_message($Message, 'Dingtalk');

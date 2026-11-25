@@ -1616,7 +1616,7 @@ if ( ! function_exists('notify_instance')) {
         }
 
         // 统一处理为数组
-        if (!is_array($drivers)) {
+        if (is_string($drivers)) {
             $drivers = [$drivers];
         }
 
@@ -1633,7 +1633,8 @@ if ( ! function_exists('notify_instance')) {
             // 获取驱动配置
             $driverConfig = $config[$driverName][$instance] ?? [];
             if (empty($driverConfig)) {
-                throw new \Exception("ES_NOTIFY.{$driverName}.{$instance} 配置不存在");
+                continue;
+//                throw new \Exception("ES_NOTIFY.{$driverName}.{$instance} 配置不存在");
             }
 
             // 创建驱动实例
@@ -1768,9 +1769,13 @@ if ( ! function_exists('notify_message')) {
         }
 
         $drivers = notify_instance($instance, $driver);
+        if (empty($drivers)) {
+            // 没有配置
+            return false;
+        }
 
         // notify_instance 总是返回关联数组，取出单个驱动实例
-        if (count($drivers) !== 1) {
+        if (count($drivers) > 1) {
             throw new \Exception('notify_message() 只能用于单个驱动');
         }
 
@@ -1781,6 +1786,47 @@ if ( ! function_exists('notify_message')) {
         } catch (\Exception $e) {
             trace("通知发送失败: driver={$driver}, error=" . $e->getMessage(), 'error');
             return false;
+        }
+    }
+}
+
+if (!function_exists('notify_table')) {
+    /**
+     * 通过webhook机器人发送表格数据
+     * @param string $title
+     * @param array $headers
+     * @param array $data
+     * @param string $instance
+     * @param array $options
+     * @return void
+     */
+    function notify_table($title, $headers, $data, $instance = 'default', $options = []) {
+        $driver = config('ES_NOTIFY.driver');
+        is_string($driver) && $driver = [$driver];
+
+        // 飞书
+        if (is_array($driver) && in_array('Feishu', $driver)) {
+            $Message = new \BasicHub\EsCore\Common\CloudLib\Notify\Message\Feishu\Table(array_merge([
+                'title' => $title,
+                'headers' => $headers,
+                'rows' => $data
+            ], $options));
+            notify_message($Message, 'Feishu', $instance);
+        }
+
+        // 钉钉
+        if (is_array($driver) && in_array('Dingtalk', $driver)) {
+            // 将飞书风格的headers转换为钉钉风格
+            $headers = array_map(function ($item) {
+                return is_array($item) ? $item['display_name'] : $item;
+            }, $headers);
+
+            $Message = new \BasicHub\EsCore\Common\CloudLib\Notify\Message\Dingtalk\Table(array_merge([
+                'title' => $title,
+                'rows' => $data,
+                'headers' => $headers
+            ], $options));
+            notify_message($Message, 'Dingtalk', $instance);
         }
     }
 }
