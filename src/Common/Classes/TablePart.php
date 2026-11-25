@@ -446,6 +446,24 @@ class TablePart extends SplBean
                 notify_message($Message, Constants::NOTIFY_DINGTALK);
             }
 
+            // 企业微信
+            if (is_array($driver) && in_array(Constants::NOTIFY_WECOM, $driver)) {
+                $data = [
+                    '### **' . $title . '**',
+                    '- 服务器: ' . $servname,
+                    '- 数据库: ' . $this->dbName,
+                ];
+                foreach ($warTables as $idx => $tableName) {
+                    $idx++;
+                    $data[] = "{$idx}. 数据表：$tableName";
+                }
+                $Message = new \BasicHub\EsCore\Common\CloudLib\Notify\Message\WeCom\Markdown([
+                    'content' => implode(" \n\n ", $data) . "\n\n",
+                    'isAtAll' => true
+                ]);
+                notify_message($Message, Constants::NOTIFY_WECOM);
+            }
+
             // 微信
             if (is_array($driver) && in_array(Constants::NOTIFY_WECHAT, $driver)) {
                 $Message = new \BasicHub\EsCore\Common\CloudLib\Notify\Message\Wechat\Notice([
