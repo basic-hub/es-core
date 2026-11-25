@@ -293,4 +293,42 @@ class Dingtalk extends Base
         return hcurl($url, $params, 'get')->json();
     }
 
+    /**
+     * 上传媒体文件到钉钉（支持图片、语音、视频、普通文件）
+     * @document https://open.dingtalk.com/document/orgapp/upload-media-files
+     * @param string $filePath 本地文件路径
+     * @param string $type 媒体文件类型：image|voice|video|file
+     * @return array|false 成功返回 ['media_id' => 'xxx', 'created_at' => 123456]，失败返回 false
+     * @throws \Exception
+     */
+    public function uploadMedia($filePath, $type = 'image')
+    {
+        $accessToken = $this->getAccessToken();
+        if (empty($accessToken)) {
+            throw new \Exception('获取钉钉 access_token 失败');
+        }
+
+        if (!file_exists($filePath)) {
+            throw new \Exception("文件不存在: {$filePath}");
+        }
+
+        $url = "https://oapi.dingtalk.com/media/upload?access_token={$accessToken}&type={$type}";
+        
+        $params = [
+            'media' => curl_file_create($filePath),
+        ];
+
+        $result = hcurl($url, $params, 'post')->json();
+        
+        if (isset($result['errcode']) && $result['errcode'] === 0) {
+            return [
+                'media_id' => $result['media_id'],
+                'created_at' => $result['created_at'],
+            ];
+        }
+
+        trace("钉钉媒体文件上传失败: filePath={$filePath}, type={$type}, response=" . json_encode($result, JSON_UNESCAPED_UNICODE), 'error');
+        return false;
+    }
+
 }

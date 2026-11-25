@@ -188,25 +188,40 @@ class Feishu extends Base
     }
 
     /**
-     * 上传图片至飞书
+     * 上传媒体文件到飞书（目前仅支持图片）
      * @document https://open.feishu.cn/document/server-docs/im-v1/image/create
+     * @param string $filePath 本地文件路径
+     * @param string $type 图片类型：message（消息图片）|avatar（头像）
+     * @return string|false 成功返回 image_key，失败返回 false
+     * @throws \Exception
      */
-    public function uploadImg($img)
+    public function uploadMedia($filePath, $type = 'message')
     {
         $tenant_access_token = $this->getTenantAccessToken();
+        if (empty($tenant_access_token)) {
+            throw new \Exception('获取飞书 tenant_access_token 失败');
+        }
+
+        if (!file_exists($filePath)) {
+            throw new \Exception("文件不存在: {$filePath}");
+        }
+
         $headers = [
             'Content-Type' => HttpClient::CONTENT_TYPE_FORM_DATA,
             'Authorization' => "Bearer {$tenant_access_token}",
         ];
         $sendParams = [
-            'image_type' => 'message',
-            'image' => curl_file_create($img),
+            'image_type' => $type,
+            'image' => curl_file_create($filePath),
         ];
         $result = hcurl('https://open.feishu.cn/open-apis/im/v1/images', $sendParams, 'post', $headers)->json();
+        
         if (isset($result['code']) && $result['code'] == 0) {
             return $result['data']['image_key'];
         }
-        return '';
+
+        trace("飞书媒体文件上传失败: filePath={$filePath}, type={$type}, response=" . json_encode($result, JSON_UNESCAPED_UNICODE), 'error');
+        return false;
     }
 
     /**

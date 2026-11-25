@@ -104,6 +104,30 @@ class Error implements TaskInterface
             notify_message($Message, Constants::NOTIFY_DINGTALK);
         }
 
+        // 企业微信
+        if (is_array($driver) && in_array(Constants::NOTIFY_WECOM, $driver)) {
+            // 企业微信使用 Markdown 格式
+            $data = [
+                '### **' . $title . '**',
+                '- 服务器: ' . $servname,
+                '- 项 目：' . $servername,
+                "- 文 件：{$this->data['file']} 第 {$this->data['line']} 行",
+                "- 详 情：" . ($this->data['message'] ?? ''),
+                '- 触发方式： ' . ($this->data['trigger'] ?? ''),
+            ];
+
+            foreach ($this->merge as $key => $value) {
+                $data[] = "- " . (is_int($key) ? $value : "$key: $value");
+            }
+
+            $text = implode($this->warp, $data);
+            $Message = new \BasicHub\EsCore\Common\CloudLib\Notify\Message\WeCom\Markdown([
+                'content' => $text,
+                'isAtAll' => true
+            ]);
+            notify_message($Message, Constants::NOTIFY_WECOM);
+        }
+
         // 微信
         if (is_array($driver) && in_array(Constants::NOTIFY_WECHAT, $driver)) {
             $Message = new \BasicHub\EsCore\Common\CloudLib\Notify\Message\Wechat\Notice([

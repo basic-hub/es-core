@@ -1712,6 +1712,15 @@ if ( ! function_exists('notify_text')) {
                         ]);
                         break;
 
+                    case Constants::NOTIFY_WECOM:
+                        // 企业微信使用 Markdown 格式，格式化标题和内容
+                        $markdownContent = $title ? "### {$title}\n\n{$content}" : $content;
+                        $Message = new \BasicHub\EsCore\Common\CloudLib\Notify\Message\WeCom\Markdown([
+                            'content' => $markdownContent,
+                            'isAtAll' => $atAll,
+                        ]);
+                        break;
+
                     case Constants::NOTIFY_WECHAT:
                         $Message = new \BasicHub\EsCore\Common\CloudLib\Notify\Message\Wechat\Notice([
                             // Wechat 不支持 title 和 @所有人，只发送 content
@@ -1827,6 +1836,21 @@ if (!function_exists('notify_table')) {
                 'headers' => $headers
             ], $options));
             $result[Constants::NOTIFY_DINGTALK] = notify_message($Message, Constants::NOTIFY_DINGTALK, $instance);
+        }
+
+        // 企业微信
+        if (is_array($driver) && in_array(Constants::NOTIFY_WECOM, $driver)) {
+            // 将飞书风格的headers转换为企业微信风格
+            $headers = array_map(function ($item) {
+                return is_array($item) ? $item['display_name'] : $item;
+            }, $headers);
+
+            $Message = new \BasicHub\EsCore\Common\CloudLib\Notify\Message\WeCom\Table(array_merge([
+                'title' => $title,
+                'rows' => $data,
+                'headers' => $headers
+            ], $options));
+            $result[Constants::NOTIFY_WECOM] = notify_message($Message, Constants::NOTIFY_WECOM, $instance);
         }
         return $result;
     }
