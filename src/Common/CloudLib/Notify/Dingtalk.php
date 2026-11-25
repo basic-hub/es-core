@@ -33,9 +33,9 @@ class Dingtalk extends Base
      * 每个机器人每分钟最多发送20条消息到群里，如果超过20条，会限流10分钟
      * 支持文本 (text)、链接 (link)、markdown(markdown)、ActionCard、FeedCard消息类型
      * @param MessageInterface $message
-     * @return bool
+     * @return array
      */
-    public function send(MessageInterface $message): bool
+    public function send(MessageInterface $message)
     {
         if ($this->isdebug) {
             trace(__METHOD__ . ', message=' . var_export($message->fullData(), true));
@@ -56,8 +56,7 @@ class Dingtalk extends Base
         $json = hcurl($url, $data, 'json')->json();
         if ($json['errcode'] !== 0) {
             trace("钉钉消息发送失败: message=" . $message->__toString() . ', response=' . json_encode($json, JSON_UNESCAPED_UNICODE), 'error');
-            return false;
         }
-        return true;
+        return $json;
     }
 }

@@ -2,6 +2,7 @@
 
 namespace BasicHub\EsCore\Common\Classes;
 
+use BasicHub\EsCore\Constants;
 use EasySwoole\Mysqli\QueryBuilder;
 use EasySwoole\Spl\SplBean;
 
@@ -417,17 +418,17 @@ class TablePart extends SplBean
             $title = "MySQL数据表分区不足{$days}天";
 
             // 飞书
-            if (is_array($driver) && in_array('Feishu', $driver)) {
+            if (is_array($driver) && in_array(Constants::NOTIFY_FEISHU, $driver)) {
                 $Message = new \BasicHub\EsCore\Common\CloudLib\Notify\Message\Feishu\DbPartWarn([
                     'title' => $title,
                     'subTitle' => "服务器：{$servname}，数据库：{$this->dbName}",
                     'dbTableList' => $warTables,
                 ]);
-                notify_message($Message, 'Feishu');
+                notify_message($Message, Constants::NOTIFY_FEISHU);
             }
 
             // 钉钉
-            if (is_array($driver) && in_array('Dingtalk', $driver)) {
+            if (is_array($driver) && in_array(Constants::NOTIFY_DINGTALK, $driver)) {
                 $data = [
                     '### **' . $title . '**',
                     '- 服务器: ' . $servname,
@@ -442,15 +443,15 @@ class TablePart extends SplBean
                     'text' => implode(" \n\n ", $data) . "\n\n",
                     'isAtAll' => true
                 ]);
-                notify_message($Message, 'Dingtalk');
+                notify_message($Message, Constants::NOTIFY_DINGTALK);
             }
 
             // 微信
-            if (is_array($driver) && in_array('Wechat', $driver)) {
+            if (is_array($driver) && in_array(Constants::NOTIFY_WECHAT, $driver)) {
                 $Message = new \BasicHub\EsCore\Common\CloudLib\Notify\Message\Wechat\Notice([
                     'content' => "$title, 服务器：$servname, 数据库: {$this->dbName}, 数据表：" . json_encode($warTables),
                 ]);
-                notify_message($Message, 'Wechat');
+                notify_message($Message, Constants::NOTIFY_WECHAT);
             }
         }
         return $warTables;
