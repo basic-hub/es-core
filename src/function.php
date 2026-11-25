@@ -1825,7 +1825,7 @@ if (!function_exists('notify_table')) {
                 'rows' => $data,
                 'headers' => $headers
             ], $options));
-            $result[Constants::NOTIFY_DINGTALK] = notify_message($Message, Constants::NOTIFY_FEISHU, $instance);
+            $result[Constants::NOTIFY_DINGTALK] = notify_message($Message, Constants::NOTIFY_DINGTALK, $instance);
         }
         return $result;
     }
