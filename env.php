@@ -146,49 +146,85 @@ return [
 
     // 通知组件配置（程序异常会自动通知，或主动调用通知的其他场景）
     'ES_NOTIFY' => [
-        'driver' => ['Feishu', 'Wechat'],
-        // 钉钉webhook机器人
-        'Dingtalk' => [
-            'default' => [
-                'url' => '',
-                'signKey' => '',
+        // 默认启用的通知实例列表（用于 notify_text 等批量发送函数）值跟下方key对应即可 无其他特殊要求
+        'driver' => ['feishu_webhook', 'wechat_tpl_default'],
+
+        // ============== 扁平化配置：每个配置项都包含 type 和 platform 字段 ==============
+
+        // Webhook 配置示例
+        'dingtalk_webhook' => [
+            'type' => 'Webhook',
+            'platform' => 'Dingtalk',
+            'url' => '',
+            'signKey' => '',
+        ],
+        'feishu_webhook' => [
+            'type' => 'Webhook',
+            'platform' => 'Feishu',
+            'url' => '',
+            'signKey' => '',
+        ],
+        'wecom_webhook' => [
+            'type' => 'Webhook',
+            'platform' => 'WeCom',
+            'url' => '',
+            'openSign' => false,
+        ],
+
+        // 自建应用配置示例
+        'feishu_app' => [
+            'type' => 'App',
+            'platform' => 'Feishu',
+            'appId' => '',
+            'appSecret' => '',
+            'receiveIdType' => 'chat_id', // chat_id, open_id, user_id, email, union_id
+            'receiveId' => '',
+            'redisPoolName' => 'admin',
+        ],
+        'dingtalk_app' => [
+            'type' => 'App',
+            'platform' => 'Dingtalk',
+            'appKey' => '',
+            'appSecret' => '',
+            'agentId' => '',
+            'receiveIdType' => 'userid', // userid, chatid
+            'receiveId' => '',
+            'redisPoolName' => 'admin',
+        ],
+        'wecom_app' => [
+            'type' => 'App',
+            'platform' => 'WeCom',
+            'corpId' => '',
+            'corpSecret' => '',
+            'agentId' => '',
+            'receiveIdType' => 'userid', // userid, chatid
+            'receiveId' => '@all',
+            'redisPoolName' => 'admin',
+        ],
+
+        // 模板消息配置示例
+        'wechat_tpl_default' => [
+            'type' => 'Template',
+            'platform' => 'Wechat',
+            'appId' => '',
+            'appSecret' => '',
+            'token' => 'token',
+            'url' => '',
+            'templateId' => '',
+            'toOpenid' => [
+                '', // 接收者的 openid
             ],
         ],
-        // 微信测试号
-        'Wechat' => [
-            // notice
-            'default' => [
-                'appId' => '',
-                'appSecret' => '',
-                'token' => 'token',
-                'url' => '',
-                // 模板内容：{{keyword1.DATA}} 系统：{{keyword2.DATA}} 服务器：{{keyword3.DATA}} 时间：{{keyword4.DATA}}
-                'templateId' => '',
-                'toOpenid' => [
-                    '', // Joyboo
-                ],
-            ],
-            'alarm' => [
-                'appId' => '',
-                'appSecret' => '',
-                'token' => 'token',
-                'url' => '',
-                // // 模板内容：{{keyword1.DATA}} 系统：{{keyword2.DATA}} 服务器：{{keyword3.DATA}} 时间：{{keyword4.DATA}}
-                'templateId' => '',
-                'toOpenid' => [
-                    '', // Joyboo
-                ],
-            ],
-        ],
-        // 飞书webhook机器人
-        'Feishu' => [
-            'default' => [
-                'url' => '',
-                'signKey' => '',
-                // 自建应用参数
-//                'appId' => '',
-//                'appSecret' => '',
-//                'receiveIdType' => 'chat_id',
+        'wechat_tpl_alarm' => [
+            'type' => 'Template',
+            'platform' => 'Wechat',
+            'appId' => '',
+            'appSecret' => '',
+            'token' => 'token',
+            'url' => '',
+            'templateId' => '',
+            'toOpenid' => [
+                '', // 接收者的 openid
             ],
         ],
     ],
