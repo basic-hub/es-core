@@ -1737,11 +1737,19 @@ if ( ! function_exists('notify_text')) {
                         break;
 
                     case NotifyFactory::PLATFORM_DINGTALK:
-                        $Message = new \BasicHub\EsCore\Common\Notify\Message\Dingtalk\Markdown([
-                            'text' => $content,
-                            'isAtAll' => $atAll,
-                            'title' => $title ?: '',
-                        ]);
+                        // 钉钉markdown格式title是必传的，否则会直接报错
+                        if ($title) {
+                            $Message = new \BasicHub\EsCore\Common\Notify\Message\Dingtalk\Markdown([
+                                'text' => $content,
+                                'isAtAll' => $atAll,
+                                'title' => $title,
+                            ]);
+                        } else {
+                            $Message = new \BasicHub\EsCore\Common\Notify\Message\Dingtalk\Text([
+                                'content' => $content,
+                                'isAtAll' => $atAll,
+                            ]);
+                        }
                         break;
 
                     case NotifyFactory::PLATFORM_WECOM:
