@@ -12,13 +12,14 @@ use BasicHub\EsCore\Common\CloudLib\Geo\Geo;
 use BasicHub\EsCore\Common\CloudLib\Nas\NasInterface;
 use BasicHub\EsCore\Common\CloudLib\Sms\SmsInterface;
 use BasicHub\EsCore\Common\CloudLib\Storage\StorageInterface;
+use BasicHub\EsCore\Common\Notify\Message\MessageInterface;
+use BasicHub\EsCore\Common\Notify\NotifyFactory;
 use BasicHub\EsCore\Common\Exception\HttpParamException;
 use BasicHub\EsCore\Common\Http\Code;
 use BasicHub\EsCore\Common\Http\HttpResponse;
 use BasicHub\EsCore\Common\Languages\Dictionary;
 use BasicHub\EsCore\Common\Openssl\RsaManager;
 use BasicHub\EsCore\Common\OrmCache\Strings;
-use BasicHub\EsCore\Constants;
 use BasicHub\EsCore\Consumer\Config as ConsumerConfig;
 use BasicHub\EsCore\HttpTracker\Config as HTConfig;
 use BasicHub\EsCore\HttpTracker\HTManager;
@@ -1598,57 +1599,84 @@ if ( ! function_exists('call')) {
 
 if ( ! function_exists('notify_instance')) {
     /**
-     * 获取通知驱动实例
-     * @param string $instance 实例名称，如 default、alarm
-     * @param string|null $driver 驱动名称，如 Feishu、Dingtalk、Wechat。为null时使用配置的所有驱动
-     * @return \BasicHub\EsCore\Common\CloudLib\Notify\NotifyInterface|\BasicHub\EsCore\Common\CloudLib\Notify\NotifyInterface[]
+     * 获取通知实例（支持扁平化配置）
+     *
+     * 配置格式：ES_NOTIFY[instance_name] = ['type' => 'Webhook|App|Template', 'platform' => 'Feishu|Dingtalk|...', ...]
+     *
+     * @param string|array $instance 实例名称或实例名称数组（默认从 ES_NOTIFY.driver 读取）
+     * @param string|null $type 过滤指定类型：Webhook, App, Template（null 表示不过滤）
+     * @return \BasicHub\EsCore\Common\Notify\NotifyInterface[] 返回驱动实例数组 [实例名 => 实例对象]
      * @throws Exception
      */
-    function notify_instance($instance = 'default', $driver = null)
+    function notify_instance($instance = null, $type = null)
     {
         $config = config('ES_NOTIFY');
         if (empty($config)) {
             throw new \Exception('未配置 ES_NOTIFY');
         }
 
-        // 获取驱动列表
-        $drivers = $config['driver'] ?? [];
-        if (empty($drivers)) {
-            throw new \Exception('ES_NOTIFY.driver 未配置');
+        // $instance 可以是字符串（单个实例）或数组（多个实例）
+        // 为 null 时从 ES_NOTIFY.driver 读取
+        if ($instance === null) {
+            $instanceNames = $config['driver'] ?? [];
+        } else {
+            $instanceNames = is_array($instance) ? $instance : [$instance];
         }
 
-        // 统一处理为数组
-        if (is_string($drivers)) {
-            $drivers = [$drivers];
-        }
-
-        // 如果指定了驱动，只使用指定的驱动
-        if ($driver !== null) {
-            if (!in_array($driver, $drivers)) {
-                throw new \Exception("驱动 {$driver} 未在 ES_NOTIFY.driver 中配置");
-            }
-            $drivers = [$driver];
+        if (empty($instanceNames)) {
+            throw new \Exception('ES_NOTIFY.driver 未配置或未指定实例名');
         }
 
         $instances = [];
-        foreach ($drivers as $driverName) {
-            // 获取驱动配置
-            $driverConfig = $config[$driverName][$instance] ?? [];
-            if (empty($driverConfig)) {
+        foreach ($instanceNames as $instanceName) {
+            // 跳过保留字段
+            if ($instanceName === 'driver') {
                 continue;
-//                throw new \Exception("ES_NOTIFY.{$driverName}.{$instance} 配置不存在");
             }
 
-            // 创建驱动实例
-            $className = "\\BasicHub\\EsCore\\Common\\CloudLib\\Notify\\{$driverName}";
-            if (!class_exists($className)) {
-                throw new \Exception("通知驱动类 {$className} 不存在");
+            $instanceConfig = $config[$instanceName] ?? null;
+            if (empty($instanceConfig) || !is_array($instanceConfig)) {
+                trace("通知实例配置不存在: {$instanceName}", 'error');
+                continue;
             }
 
-            $instances[$driverName] = new $className($driverConfig);
+            // 获取 type 和 platform
+            $instanceType = $instanceConfig['type'] ?? null;
+            $instancePlatform = $instanceConfig['platform'] ?? null;
+
+            if (empty($instanceType) || empty($instancePlatform)) {
+                trace("通知实例配置缺少 type 或 platform: {$instanceName}", 'error');
+                continue;
+            }
+
+            // 过滤指定类型
+            if ($type !== null && $instanceType !== $type) {
+                continue;
+            }
+
+            try {
+                // 使用 NotifyFactory 创建实例
+                switch ($instanceType) {
+                    case NotifyFactory::TYPE_WEBHOOK:
+                        $instances[$instanceName] = NotifyFactory::createWebhook($instancePlatform, $instanceConfig);
+                        break;
+                    case NotifyFactory::TYPE_APP:
+                        $instances[$instanceName] = NotifyFactory::createApp($instancePlatform, $instanceConfig);
+                        break;
+                    case NotifyFactory::TYPE_TEMPLATE:
+                        $instances[$instanceName] = NotifyFactory::createTemplate($instancePlatform, $instanceConfig);
+                        break;
+                    default:
+                        trace("不支持的推送类型: {$instanceType} (实例: {$instanceName})", 'warning');
+                        continue 2;
+                }
+            } catch (\Exception $e) {
+                trace("通知实例创建失败: instance={$instanceName}, type={$instanceType}, platform={$instancePlatform}, error=" . $e->getMessage(), 'error');
+                continue;
+            }
         }
 
-        // 返回关联数组（以驱动名称为 key）
+        // 返回关联数组（以实例名称为 key）
         return $instances;
     }
 }
@@ -1659,17 +1687,18 @@ if ( ! function_exists('notify_text')) {
      * 只支持基本的 title+content 格式，会自动适配各驱动
      * - Feishu: 使用 Textarea 类型
      * - Dingtalk: 使用 Markdown 类型
+     * - WeCom: 使用 Markdown 类型
      * - Wechat: 使用 Notice 类型
      *
      * @param string $content 消息内容
      * @param string|null $title 消息标题（可选）
-     * @param string $instance 实例名称，默认 default
+     * @param string|array|null $instance 实例名称或实例名称数组（null 表示使用 ES_NOTIFY.driver）
      * @param bool $atAll 是否 @所有人
      * @param bool $async 是否异步发送（协程化，避免阻塞）
-     * @return array|bool|null 同步模式返回是否成功，异步模式返回 null, 异常返回false，正常返回结果array [Feishu => Resp]
+     * @return array|bool|null 同步模式返回结果数组，异步模式返回 null
      * @throws Exception
      */
-    function notify_text($content, $title = null, $instance = 'default', $atAll = true, $async = true)
+    function notify_text($content, $title = null, $instance = null, $atAll = true, $async = true)
     {
         // 协程化处理
         if ($async) {
@@ -1687,56 +1716,59 @@ if ( ! function_exists('notify_text')) {
         // 同步发送逻辑
         $drivers = notify_instance($instance);
 
-        // 统一处理为数组
-        if (!is_array($drivers)) {
-            $drivers = [$drivers];
-        }
-
         $result = [];
-        foreach ($drivers as $driverName => $driver) {
+        foreach ($drivers as $instanceName => $driver) {
             try {
-                switch ($driverName) {
-                    case Constants::NOTIFY_FEISHU:
-                        $Message = new \BasicHub\EsCore\Common\CloudLib\Notify\Message\Feishu\Textarea([
+                // 获取实例配置以确定平台类型
+                $config = config("ES_NOTIFY.{$instanceName}");
+                $platform = $config['platform'] ?? null;
+
+                if (!$platform) {
+                    throw new \Exception("实例配置缺少 platform: {$instanceName}");
+                }
+
+                switch ($platform) {
+                    case NotifyFactory::PLATFORM_FEISHU:
+                        $Message = new \BasicHub\EsCore\Common\Notify\Message\Feishu\Textarea([
                             'content' => $content,
                             'isAtAll' => $atAll,
                             'title' => $title ?: '',
                         ]);
                         break;
 
-                    case Constants::NOTIFY_DINGTALK:
-                        $Message = new \BasicHub\EsCore\Common\CloudLib\Notify\Message\Dingtalk\Markdown([
+                    case NotifyFactory::PLATFORM_DINGTALK:
+                        $Message = new \BasicHub\EsCore\Common\Notify\Message\Dingtalk\Markdown([
                             'text' => $content,
                             'isAtAll' => $atAll,
                             'title' => $title ?: '',
                         ]);
                         break;
 
-                    case Constants::NOTIFY_WECOM:
+                    case NotifyFactory::PLATFORM_WECOM:
                         // 企业微信使用 Markdown 格式，格式化标题和内容
                         $markdownContent = $title ? "### {$title}\n\n{$content}" : $content;
-                        $Message = new \BasicHub\EsCore\Common\CloudLib\Notify\Message\WeCom\Markdown([
+                        $Message = new \BasicHub\EsCore\Common\Notify\Message\WeCom\Markdown([
                             'content' => $markdownContent,
                             'isAtAll' => $atAll,
                         ]);
                         break;
 
-                    case Constants::NOTIFY_WECHAT:
-                        $Message = new \BasicHub\EsCore\Common\CloudLib\Notify\Message\Wechat\Notice([
+                    case NotifyFactory::PLATFORM_WECHAT:
+                        $Message = new \BasicHub\EsCore\Common\Notify\Message\Wechat\Notice([
                             // Wechat 不支持 title 和 @所有人，只发送 content
                             'content' => ($title ? "{$title}\n" : '') . $content,
                         ]);
                         break;
 
                     default:
-                        throw new \Exception("不支持的驱动类型: {$driverName}");
+                        throw new \Exception("不支持的平台类型: {$platform}");
                 }
 
-                $result[$driverName] = $driver->send($Message);
+                $result[$instanceName] = $driver->send($Message);
 
             } catch (\Exception $e) {
-                trace("通知发送失败: driver={$driverName}, error=" . $e->getMessage(), 'error');
-                $result[$driverName] = false;
+                trace("通知发送失败: instance={$instanceName}, error=" . $e->getMessage(), 'error');
+                $result[$instanceName] = false;
             }
         }
 
@@ -1746,24 +1778,23 @@ if ( ! function_exists('notify_text')) {
 
 if ( ! function_exists('notify_message')) {
     /**
-     * 精确发送通知（使用驱动专属 Message）
-     * 必须指定 $driver 参数，只能发送到单个驱动
+     * 精确发送通知到指定实例（使用驱动专属 Message）
+     * 因为不同平台的 Message 类不通用，instance 参数必传
      *
-     * @param \BasicHub\EsCore\Common\CloudLib\Notify\MessageInterface $message 驱动专属的 Message 对象
-     * @param string $driver 驱动名称，如 Feishu、Dingtalk、Wechat（必须指定）
-     * @param string $instance 实例名称，默认 default
+     * @param MessageInterface $message 驱动专属的 Message 对象
+     * @param string $instance 实例名称（必传），如 'feishu_webhook'、'dingtalk_app'
      * @param bool $async 是否异步发送（协程化，避免阻塞）
-     * @return array|bool|null 同步模式返回是否成功，异步模式返回 null, 异常返回false，正常返回结果array
+     * @return mixed|null 同步模式返回发送结果，异步模式返回 null
      * @throws Exception
      */
-    function notify_message(\BasicHub\EsCore\Common\CloudLib\Notify\MessageInterface $message, $driver, $instance = 'default', $async = true)
+    function notify_message(MessageInterface $message, string $instance, $async = true)
     {
         // 协程化处理
         if ($async) {
             $pointId = ctx_get(CtxManager::HTTP_TRACKER_PARENTID);
-            $call = function () use ($message, $driver, $instance, $pointId) {
+            $call = function () use ($message, $instance, $pointId) {
                 $pointId && ctx_set(CtxManager::HTTP_TRACKER_PARENTID, $pointId);
-                notify_message($message, $driver, $instance, false);
+                notify_message($message, $instance, false);
             };
 
             // 在协程环境中使用 go()，否则直接调用
@@ -1771,88 +1802,148 @@ if ( ! function_exists('notify_message')) {
             return null;
         }
 
-        // 同步发送逻辑
-        if (empty($driver)) {
-            throw new \Exception('notify_message() 必须指定 $driver 参数');
-        }
-
-        $drivers = notify_instance($instance, $driver);
-        if (empty($drivers)) {
-            // 没有配置
+        // 直接读取指定实例的配置
+        $config = config("ES_NOTIFY.{$instance}");
+        if (empty($config)) {
+            trace("通知发送失败: 实例 {$instance} 配置不存在", 'error');
             return false;
         }
 
-        // notify_instance 总是返回关联数组，取出单个驱动实例
-        if (count($drivers) > 1) {
-            throw new \Exception('notify_message() 只能用于单个驱动');
-        }
-
-        $driverInstance = reset($drivers);
-
         try {
-            return $driverInstance->send($message);
+            $notifyInstance = notify_instance($instance);
+            if (empty($notifyInstance[$instance])) {
+                trace("通知发送失败: 无法创建实例 {$instance}", 'error');
+                return false;
+            }
+            return $notifyInstance[$instance]->send($message);
         } catch (\Exception $e) {
-            trace("通知发送失败: driver={$driver}, error=" . $e->getMessage(), 'error');
+            trace("通知发送失败: instance={$instance}, error=" . $e->getMessage(), 'error');
             return false;
         }
     }
 }
 
+if (!function_exists('notify_message_list')) {
+    /**
+     * 批量发送多平台通知
+     * 业务层传递不同平台的 Message 对象，函数自动根据配置匹配平台并发送到所有对应实例
+     *
+     * @param array $messages 平台 => Message 对象的关联数组
+     *                        key 为 NotifyFactory::PLATFORM_* 常量
+     *                        value 为对应平台的 MessageInterface 对象
+     * @param string|array|null $instance 实例名称，null 表示使用 ES_NOTIFY.driver 配置的所有实例
+     * @param bool $async 是否异步发送
+     * @return array 返回数组，key 为实例名，value 为发送结果
+     *
+     * 示例：
+     * notify_message_list([
+     *     NotifyFactory::PLATFORM_FEISHU => new Feishu\CardError([...]),
+     *     NotifyFactory::PLATFORM_DINGTALK => new Dingtalk\Markdown([...]),
+     *     NotifyFactory::PLATFORM_WECOM => new WeCom\Markdown([...]),
+     *     NotifyFactory::PLATFORM_WECHAT => new Wechat\Notice([...]),
+     * ]);
+     */
+    function notify_message_list(array $messages, $instance = null, $async = true)
+    {
+        // 协程化处理
+        if ($async) {
+            $pointId = ctx_get(CtxManager::HTTP_TRACKER_PARENTID);
+            $call = function () use ($messages, $instance, $pointId) {
+                $pointId && ctx_set(CtxManager::HTTP_TRACKER_PARENTID, $pointId);
+                notify_message_list($messages, $instance, false);
+            };
+
+            // 在协程环境中使用 go()，否则直接调用
+            \Swoole\Coroutine::getCid() > 0 ? go($call) : $call();
+            return [];
+        }
+
+        // 获取所有启用的实例
+        $instances = notify_instance($instance);
+        if (empty($instances)) {
+            trace("批量通知发送失败: 没有可用的通知实例: " . var_export($instance, true), 'error');
+            return [];
+        }
+
+        // 按平台分组实例
+        $platformInstances = [];
+        foreach ($instances as $instanceName => $inst) {
+            $config = config("ES_NOTIFY.{$instanceName}");
+            if (empty($config['platform'])) {
+                continue;
+            }
+            $platformInstances[$config['platform']][] = $instanceName;
+        }
+
+        // 遍历传入的 Message，匹配平台并发送
+        $result = [];
+        foreach ($messages as $platform => $message) {
+            if (empty($platformInstances[$platform])) {
+                // 该平台未配置或未启用，跳过
+                continue;
+            }
+
+            // 发送到该平台的所有实例
+            foreach ($platformInstances[$platform] as $instanceName) {
+                try {
+                    $result[$instanceName] = notify_message($message, $instanceName, false);
+                } catch (\Exception $e) {
+                    trace("批量通知发送失败: instance={$instanceName}, platform={$platform}, error=" . $e->getMessage(), 'error');
+                    $result[$instanceName] = false;
+                }
+            }
+        }
+
+        return $result;
+    }
+}
+
 if (!function_exists('notify_table')) {
     /**
-     * 通过webhook机器人发送表格数据
-     * @param string $title
-     * @param array $headers
-     * @param array $data
-     * @param string $instance
-     * @param array $options
-     * @return void
+     * 批量发送表格通知
+     * 自动根据各实例的平台类型创建对应的 Message 对象并发送
+     *
+     * @param string $title 表格标题
+     * @param array $headers 表头（飞书风格，支持 display_name）
+     * @param array $data 表格数据
+     * @param string|array|null $instance 实例名称，null 表示使用 ES_NOTIFY.driver 配置的所有实例
+     * @param array $options 额外选项
+     * @param bool $async 是否异步发送
+     * @return array 返回数组，key 为实例名，value 为发送结果
      */
-    function notify_table($title, $headers, $data, $instance = 'default', $options = []) {
-        $driver = config('ES_NOTIFY.driver');
-        is_string($driver) && $driver = [$driver];
+    function notify_table($title, $headers, $data, $instance = null, $options = [], $async = true) {
+        // 准备各平台的 Table Message 对象
+        $messages = [];
 
-        $result = [];
-        // 飞书
-        if (is_array($driver) && in_array(Constants::NOTIFY_FEISHU, $driver)) {
-            $Message = new \BasicHub\EsCore\Common\CloudLib\Notify\Message\Feishu\Table(array_merge([
-                'title' => $title,
-                'headers' => $headers,
-                'rows' => $data
-            ], $options));
-            $result[Constants::NOTIFY_FEISHU] = notify_message($Message, Constants::NOTIFY_FEISHU, $instance);
-        }
+        // 飞书 Table
+        $messages[NotifyFactory::PLATFORM_FEISHU] = new \BasicHub\EsCore\Common\Notify\Message\Feishu\Table(array_merge([
+            'title' => $title,
+            'headers' => $headers,
+            'rows' => $data
+        ], $options));
 
-        // 钉钉
-        if (is_array($driver) && in_array(Constants::NOTIFY_DINGTALK, $driver)) {
-            // 将飞书风格的headers转换为钉钉风格
-            $headers = array_map(function ($item) {
-                return is_array($item) ? $item['display_name'] : $item;
-            }, $headers);
+        // 钉钉 Table - 将飞书风格的headers转换为钉钉风格
+        $dingtalkHeaders = array_map(function ($item) {
+            return is_array($item) ? $item['display_name'] : $item;
+        }, $headers);
+        $messages[NotifyFactory::PLATFORM_DINGTALK] = new \BasicHub\EsCore\Common\Notify\Message\Dingtalk\Table(array_merge([
+            'title' => $title,
+            'rows' => $data,
+            'headers' => $dingtalkHeaders
+        ], $options));
 
-            $Message = new \BasicHub\EsCore\Common\CloudLib\Notify\Message\Dingtalk\Table(array_merge([
-                'title' => $title,
-                'rows' => $data,
-                'headers' => $headers
-            ], $options));
-            $result[Constants::NOTIFY_DINGTALK] = notify_message($Message, Constants::NOTIFY_DINGTALK, $instance);
-        }
+        // 企业微信 Table - 将飞书风格的headers转换为企业微信风格
+        $wecomHeaders = array_map(function ($item) {
+            return is_array($item) ? $item['display_name'] : $item;
+        }, $headers);
+        $messages[NotifyFactory::PLATFORM_WECOM] = new \BasicHub\EsCore\Common\Notify\Message\WeCom\Table(array_merge([
+            'title' => $title,
+            'rows' => $data,
+            'headers' => $wecomHeaders
+        ], $options));
 
-        // 企业微信
-        if (is_array($driver) && in_array(Constants::NOTIFY_WECOM, $driver)) {
-            // 将飞书风格的headers转换为企业微信风格
-            $headers = array_map(function ($item) {
-                return is_array($item) ? $item['display_name'] : $item;
-            }, $headers);
-
-            $Message = new \BasicHub\EsCore\Common\CloudLib\Notify\Message\WeCom\Table(array_merge([
-                'title' => $title,
-                'rows' => $data,
-                'headers' => $headers
-            ], $options));
-            $result[Constants::NOTIFY_WECOM] = notify_message($Message, Constants::NOTIFY_WECOM, $instance);
-        }
-        return $result;
+        // 调用 notify_message_list 批量发送
+        return notify_message_list($messages, $instance, $async);
     }
 }
 

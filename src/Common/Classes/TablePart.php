@@ -2,9 +2,9 @@
 
 namespace BasicHub\EsCore\Common\Classes;
 
-use BasicHub\EsCore\Constants;
 use EasySwoole\Mysqli\QueryBuilder;
 use EasySwoole\Spl\SplBean;
+use BasicHub\EsCore\Common\Notify\NotifyFactory;
 
 /**
  * MySQL表分区类
@@ -412,65 +412,56 @@ class TablePart extends SplBean
         if ($warTables && $send) {
 
             $servname = config('SERVNAME');
-            $driver = config('ES_NOTIFY.driver');
-            is_string($driver) && $driver = [$driver];
-
             $title = "MySQL数据表分区不足{$days}天";
 
+            // 准备各平台的通知消息
+            $messages = [];
+
             // 飞书
-            if (is_array($driver) && in_array(Constants::NOTIFY_FEISHU, $driver)) {
-                $Message = new \BasicHub\EsCore\Common\CloudLib\Notify\Message\Feishu\DbPartWarn([
-                    'title' => $title,
-                    'subTitle' => "服务器：{$servname}，数据库：{$this->dbName}",
-                    'dbTableList' => $warTables,
-                ]);
-                notify_message($Message, Constants::NOTIFY_FEISHU);
-            }
+            $messages[NotifyFactory::PLATFORM_FEISHU] = new \BasicHub\EsCore\Common\Notify\Message\Feishu\DbPartWarn([
+                'title' => $title,
+                'subTitle' => "服务器：{$servname}，数据库：{$this->dbName}",
+                'dbTableList' => $warTables,
+            ]);
 
-            // 钉钉
-            if (is_array($driver) && in_array(Constants::NOTIFY_DINGTALK, $driver)) {
-                $data = [
-                    '### **' . $title . '**',
-                    '- 服务器: ' . $servname,
-                    '- 数据库: ' . $this->dbName,
-                ];
-                foreach ($warTables as $idx => $tableName) {
-                    $idx++;
-                    $data[] = "{$idx}. 数据表：$tableName";
-                }
-                $Message = new \BasicHub\EsCore\Common\CloudLib\Notify\Message\Dingtalk\Markdown([
-                    'title' => $title,
-                    'text' => implode(" \n\n ", $data) . "\n\n",
-                    'isAtAll' => true
-                ]);
-                notify_message($Message, Constants::NOTIFY_DINGTALK);
+            // 钉钉 Markdown
+            $dingtalkData = [
+                '### **' . $title . '**',
+                '- 服务器: ' . $servname,
+                '- 数据库: ' . $this->dbName,
+            ];
+            foreach ($warTables as $idx => $tableName) {
+                $idx++;
+                $dingtalkData[] = "{$idx}. 数据表：$tableName";
             }
+            $messages[NotifyFactory::PLATFORM_DINGTALK] = new \BasicHub\EsCore\Common\Notify\Message\Dingtalk\Markdown([
+                'title' => $title,
+                'text' => implode(" \n\n ", $dingtalkData) . "\n\n",
+                'isAtAll' => true
+            ]);
 
-            // 企业微信
-            if (is_array($driver) && in_array(Constants::NOTIFY_WECOM, $driver)) {
-                $data = [
-                    '### **' . $title . '**',
-                    '- 服务器: ' . $servname,
-                    '- 数据库: ' . $this->dbName,
-                ];
-                foreach ($warTables as $idx => $tableName) {
-                    $idx++;
-                    $data[] = "{$idx}. 数据表：$tableName";
-                }
-                $Message = new \BasicHub\EsCore\Common\CloudLib\Notify\Message\WeCom\Markdown([
-                    'content' => implode(" \n\n ", $data) . "\n\n",
-                    'isAtAll' => true
-                ]);
-                notify_message($Message, Constants::NOTIFY_WECOM);
+            // 企业微信 Markdown
+            $wecomData = [
+                '### **' . $title . '**',
+                '- 服务器: ' . $servname,
+                '- 数据库: ' . $this->dbName,
+            ];
+            foreach ($warTables as $idx => $tableName) {
+                $idx++;
+                $wecomData[] = "{$idx}. 数据表：$tableName";
             }
+            $messages[NotifyFactory::PLATFORM_WECOM] = new \BasicHub\EsCore\Common\Notify\Message\WeCom\Markdown([
+                'content' => implode(" \n\n ", $wecomData) . "\n\n",
+                'isAtAll' => true
+            ]);
 
             // 微信
-            if (is_array($driver) && in_array(Constants::NOTIFY_WECHAT, $driver)) {
-                $Message = new \BasicHub\EsCore\Common\CloudLib\Notify\Message\Wechat\Notice([
-                    'content' => "$title, 服务器：$servname, 数据库: {$this->dbName}, 数据表：" . json_encode($warTables),
-                ]);
-                notify_message($Message, Constants::NOTIFY_WECHAT);
-            }
+            $messages[NotifyFactory::PLATFORM_WECHAT] = new \BasicHub\EsCore\Common\Notify\Message\Wechat\Notice([
+                'content' => "$title, 服务器：$servname, 数据库: {$this->dbName}, 数据表：" . json_encode($warTables),
+            ]);
+
+            // 批量发送到所有配置的平台
+            notify_message_list($messages);
         }
         return $warTables;
     }

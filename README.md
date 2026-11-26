@@ -35,6 +35,11 @@
      │      │     └── Languages I18n助手类，主要用来注册、设置
      │      │
      │      ├── Logs 自定义日志处理器
+     │      ├── Notify 通知类实现
+     │      │     ├── App 自建应用、内部应用推送消息
+     │      │     ├── Template 微信公众号、测试号使用消息模板推送消息
+     │      │     ├── Webhook webhook机器人推送消息
+     │      │     └── Message 公用的消息推送模板类实现
      │      ├── Geo IP解析相关
      │      ├── Openssl 加密解密处理，支持RSA、AES，可扩展
      │      └── OrmCache 模型缓存组件，已实现 String、Hash、Set、SplArray
@@ -54,7 +59,6 @@
      ├── Model
      │     ├── BaseModelTrait 所有Model的基类
      │     └── ... 其他业务模型
-     ├── Notify 通知类实现，内置飞书、钉钉、微信通知
      │      
      ├── Task 异步任务
      │     ├── Crontab 通用的异步任务模板
@@ -159,7 +163,7 @@ trait有哪些坑
 
 - 重构自定义消费进程，支持同进程处理多个任务，避免开太多闲置进程
 - 支持子链路和异步task里的链路追踪，通过协程上下文传递 `parent_id` 即可
-- Notify组件重写为CloudLib统一风格
+- Notify组件完全重写，支持多平台、多任务
 
 ## TODO
 
