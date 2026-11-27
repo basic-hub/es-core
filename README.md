@@ -1,218 +1,365 @@
-## 简介
+<div align="center">
 
-    基于Easyswoole封装的一些Trait和Class，放到Composer仓库以实现多项目共用一套代码
+# 🚀 ES-Core
 
-## 开始
+**基于 EasySwoole 的企业级开发框架核心组件**
 
-> composer require basic-hub/es-core
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![PHP Version](https://img.shields.io/badge/php-%3E%3D7.4-8892BF.svg)](https://www.php.net/)
+[![EasySwoole](https://img.shields.io/badge/EasySwoole-%3E%3D3.4-green.svg)](http://www.easyswoole.com)
+[![Swoole](https://img.shields.io/badge/Swoole-%3E%3D4.8-red.svg)](https://wiki.swoole.com)
 
-## 需要掌握的基础知识：
+[English](README_EN.md) | 简体中文
 
-- [EasySwoole](http://www.easyswoole.com)
-- [Swoole](https://wiki.swoole.com)
-- [Composer](https://getcomposer.org)
+</div>
 
-## 目录结构及常用介绍
+---
 
-    src 理解为EasySwoole的App目录
-     ├── Common  主要放一些非EasySwoole的东西
-     |      ├── Classes 自定义类
-     │      │     ├── CtxManager 二次封装的EasySwoole\Component\Context\ContextManager类，增加一些快捷方法
-     │      │     ├── DateUtils 时间日期时区等处理
-     │      │     ├── ExceptionTrigger 自定义异常处理器，将异常上报至redis或http
-     │      │     ├── FdManager  WebSocket连接符管理，共享内存(Swoole\Table)实现
-     │      │     ├── Jwt 
-     │      │     ├── Mysqli 对MysqlClient的二次封装
-     │      │     ├── TablePart 定时建分区、续分区
-     │      │     ├── Tree 数行结构处理
-     │      │     └── XlsWriter 数据导入和导出
-     │      ├── CloudLib 云商各产品相关实现类，目前均已支持腾讯云、阿里云，可扩展
-     │      ├── Exception 各种自定义异常
-     │      ├── Http Http相关的配置
-     │      │     └── Code Http响应状态码，项目的Code请`继承`它
-     │      ├── Language I18N国际化目录
-     │      │     ├── Dictionary 国际化字典，项目请`继承`它
-     │      │     └── Languages I18n助手类，主要用来注册、设置
-     │      │
-     │      ├── Logs 自定义日志处理器
-     │      ├── Notify 通知类实现
-     │      │     ├── App 自建应用、内部应用推送消息
-     │      │     ├── Template 微信公众号、测试号使用消息模板推送消息
-     │      │     ├── Webhook webhook机器人推送消息
-     │      │     └── Message 公用的消息推送模板类实现
-     │      ├── Geo IP解析相关
-     │      ├── Openssl 加密解密处理，支持RSA、AES，可扩展
-     │      └── OrmCache 模型缓存组件，已实现 String、Hash、Set、SplArray
-     ├── Consumer  一些自定义进程实现，Base抽象类实现了基本Redis队列监听数据消费，但自定义进程能做的事情远不止如此，可自行发挥
-     ├── Crontab  内置定时任务实现，可后台控制开关、运行环境、传递参数 等
-     │
-     ├── HttpController
-     │        ├── Admin
-     │        │     ├── BaseTrait 继承BaseController
-     │        │     ├── AuthTrait 继承BaseTrait引用类，是其他控制器的父类，主要实现一些CURD等基础操作，子类可写最少代码实现相关功能
-     │        │     └── ... 其他业务控制器
-     │        ├── Api
-     │        └── BaseController 所有控制器的基类
-     ├── HttpTracker 链路追踪
-     │        ├── Index 继承自PointContext，目的是为了默认开启autoSave及设置saveHandler，实例化时用它替代PointContext
-     │        └── SaveHandler 实现SaveHandlerInterface接口
-     ├── Model
-     │     ├── BaseModelTrait 所有Model的基类
-     │     └── ... 其他业务模型
-     │      
-     ├── Task 异步任务
-     │     ├── Crontab 通用的异步任务模板
-     │     └── ... 异步任务类
-     ├── Template 简单的模板引擎实现，可选
-     ├── WebSocket 同 HttpController
-     ├── ... 其他业务
-     ├── EventInitialize 对EasySwooleEvent::initialize事件的一些封装
-     ├── EventMainServerCreate  对EasySwooleEvent::mainServerCreate事件的一些封装
-     └── function.php 常用函数，项目可预定义对应函数以实现不同逻辑
+## 📖 简介
 
-Controller
+ES-Core 是一个基于 EasySwoole 封装的企业级开发框架核心组件库，提供了丰富的 Trait 和 Class 实现，旨在通过 Composer 实现多项目代码复用，提升开发效率。
+
+### ✨ 核心特性
+
+- 🎯 **模块化设计** - 灵活的 Trait 机制，不破坏 EasySwoole 推荐的继承关系
+- 🔐 **安全加固** - 内置 RSA/AES 加密、JWT 认证、参数验证等安全机制
+- 🌐 **多云支持** - 统一接口支持腾讯云、阿里云等多云服务商
+- 📊 **链路追踪** - 完整的请求链路追踪和日志记录
+- 🔄 **异步任务** - 支持自定义进程、定时任务、消息队列消费
+- 🌍 **国际化** - 完善的 I18N 多语言支持
+- 💾 **模型缓存** - 多种缓存策略（String/Hash/Set/SplArray）
+- 📡 **WebSocket** - 完整的 WebSocket 连接管理和事件处理
+
+---
+
+## 📦 安装
+
+```bash
+composer require basic-hub/es-core
+```
+
+### 环境要求
+
+| 依赖 | 版本要求 |
+|------|---------|
+| PHP | >= 7.4 |
+| Swoole | >= 4.8 |
+| EasySwoole | >= 3.4 |
+
+### 相关资源
+
+- [EasySwoole 官方文档](http://www.easyswoole.com)
+- [Swoole 官方文档](https://wiki.swoole.com)
+- [Composer 官网](https://getcomposer.org)
+
+---
+
+## 📂 目录结构
+
+```
+src/
+├── Common/                           # 核心通用组件
+│   ├── Classes/                      # 自定义工具类
+│   │   ├── CtxManager               # 协程上下文管理器（增强版）
+│   │   ├── DateUtils                # 时间日期时区处理工具
+│   │   ├── ExceptionTrigger         # 异常上报处理器（Redis/HTTP）
+│   │   ├── FdManager                # WebSocket 连接管理（Swoole\Table）
+│   │   ├── Jwt                      # JWT 令牌处理
+│   │   ├── Mysqli                   # MySQL 客户端封装
+│   │   ├── TablePart                # 数据库分区自动管理
+│   │   ├── Tree                     # 树形结构处理
+│   │   └── XlsWriter                # Excel 导入导出
+│   ├── CloudLib/                     # 多云服务商统一接口
+│   │   └── 支持腾讯云、阿里云（可扩展）
+│   ├── Exception/                    # 自定义异常类
+│   ├── Http/                         # HTTP 相关配置
+│   │   └── Code                     # HTTP 响应状态码（可继承扩展）
+│   ├── Language/                     # 国际化 (I18N)
+│   │   ├── Dictionary               # 国际化字典（可继承扩展）
+│   │   └── Languages                # I18N 助手类
+│   ├── Logs/                         # 自定义日志处理器
+│   ├── Notify/                       # 多平台消息推送
+│   │   ├── App                      # 应用内推送
+│   │   ├── Template                 # 微信模板消息
+│   │   ├── Webhook                  # Webhook 机器人
+│   │   └── Message                  # 消息模板基类
+│   ├── Geo/                          # IP 地理位置解析
+│   ├── Openssl/                      # 加密解密（RSA/AES，可扩展）
+│   └── OrmCache/                     # 模型缓存（String/Hash/Set/SplArray）
+├── Consumer/                         # 自定义消费进程
+│   └── 支持多任务同进程处理，Redis 队列消费
+├── Crontab/                          # 定时任务系统
+│   └── 支持动态开关、环境控制、参数传递
+├── HttpController/                   # HTTP 控制器
+│   ├── Admin/
+│   │   ├── BaseTrait                # 基础控制器 Trait
+│   │   └── AuthTrait                # CRUD 操作封装
+│   ├── Api/
+│   └── BaseController               # 所有控制器的基类
+├── HttpTracker/                      # 链路追踪系统
+│   ├── Index                        # 链路上下文管理
+│   └── SaveHandler                  # 链路存储处理器
+├── Model/                            # 数据模型层
+│   └── BaseModelTrait               # 模型基类 Trait
+├── Task/                             # 异步任务
+│   └── Crontab                      # 通用异步任务模板
+├── Template/                         # 简易模板引擎
+├── WebSocket/                        # WebSocket 控制器
+├── EventInitialize                  # EasySwoole 初始化事件封装
+├── EventMainServerCreate            # EasySwoole 主服务创建事件封装
+└── function.php                     # 通用函数库（可预定义覆盖）
+```
+
+---
+
+## 🚦 快速开始
+
+### Controller 示例
+
+通过 Trait 快速构建管理后台控制器，内置 CRUD 操作：
 
 ```php
 <?php
-use BasicHub\EsCore\HttpController\Admin\AdminTrait;
+namespace App\HttpController\Admin;
 
-class MyAdminController
+use BasicHub\EsCore\HttpController\Admin\AuthTrait;
+
+class UserController
 {
-	use AdminTrait;
+    use AuthTrait;
     
-	// here are some methods from AdminTrait ....
+    // AuthTrait 已提供以下方法：
+    // - index()       列表查询（支持分页、搜索、排序）
+    // - export()      导出（导出全部、异步导出）
+    // - add()         新增数据
+    // - edit()        编辑数据
+    // - delete()      删除数据
 }
-
 ```
 
-Model
+### Model 示例
+
+快速构建数据模型，内置常用查询方法和缓存支持：
 
 ```php
 <?php
-use BasicHub\EsCore\Model\AdminModelTrait;
+namespace App\Model;
 
-class MyAdminModel
+use BasicHub\EsCore\Model\BaseModelTrait;
+use EasySwoole\ORM\AbstractModel;
+
+class UserModel extends AbstractModel
 {
-	use AdminModelTrait;
+    use BaseModelTrait;
     
-	// here are some methods from AdminModelTrait ....
+    protected $tableName = 'users';
+    
+    // BaseModelTrait 已提供：
+    // - 软删除支持
+    // - 自动时间戳
+    // - 模型缓存
+    // - 批量操作
+    // - 关联查询等
 }
-
 ```
 
-## 答疑解惑
+### JWT 认证示例
 
-function.php 为何不写在此项目的composer.json
+```php
+<?php
+use BasicHub\EsCore\Common\Classes\Jwt;
 
-    function.php应该由项目的composer.json去定义引入的顺序
-    位置一定得是在项目的函数引入之后，否则无法预定义函数，而放在此项目的composer.json会被优先加载
+// 生成 Token
+$jwt = new Jwt($secretKey);
+$token = $jwt->encode([
+    'user_id' => 1001,
+    'username' => 'john',
+    'exp' => time() + 7200
+]);
 
-为何多数文件选择trait而不使用继承
+// 验证 Token
+$payload = $jwt->decode($token);
+if ($payload) {
+    echo "User ID: " . $payload['user_id'];
+}
+```
 
-    trait和继承各有优劣，选择trait目的是为了EasySwoole推荐的继承关系不被破坏
+---
 
-trait有哪些坑
+## 🔧 常用命令
 
-    1. 不允许重写属性，所以基本都定义了一个setTraitProtected方法去修改trait属性
-    2. 不允许重载方法，当某些项目可能比方法多一个小逻辑时，需要及时调整代码的封装，否则需要整个复制多一份，日积月累，反而可能更难维护
-    3. 由于 2 的限制，现将普通控制器方法的public方法名默认添加一个固定前缀，通过基础控制器 /src/HttpController/BaseControllerTrait.php 的 actionNotFound 方法来实现更加灵活的调用方式
+### 进程管理
 
+```bash
+# 查看进程信息
+php easyswoole process show -d
 
-## 与老版本变化
+# 杀死指定进程
+php easyswoole process kill --pid=PID
 
-- 扩展参数不再直接修改EasySwoole的Request对象，而是存储在控制器的属性中。
-    
-    
-    改动原因：直接修改原Request会导致一些需要所有参数参与签名的地方无法处理
+# 杀死指定进程组
+php easyswoole process kill --group=GROUP_NAME
 
-- rsa密文解密参数独立rsa属性，强制某些数据必须是经过rsa解密得到。
+# 杀死所有进程
+php easyswoole process killAll
 
-    
-    改动原因：例如： envkeydata=xxxxxxxxx&name=Joyboo 。传递的envkeydata密文中是不包含 `name` 字段的，通过解密再合并到input中，此时 在业务层是无法区分name是不是由rsa解密的来的，只能区分有没有经过rsa解密和name字段有没有值，如果被外部恶意攻击关键字段，这里就是隐患。
+# 强制杀死进程（带 -f 参数）
+php easyswoole process kill --pid=PID -f
+```
 
-- 重写链路日志相关实现
-- 重写jwt token相关函数和类
-- 重写协程上下文管理器
-- 重写Openssl相关方法，支持多种加密方式，且可扩展
-- 重写GeoIP解析相关函数，支持多渠道，且可扩展
-- 模型相关的调整
-- 移除所有eval动态解析
-- 增加客户端使用临时密钥直传对象存储方法，以支持超大文件上传，理论上无上限
-- 优化Redis集群模式下分key规则及数据散列
-- CloudLib增加火山云支持
+### Task 任务管理
 
+```bash
+# 查看 Task 进程状态
+php easyswoole task status
+```
 
-    火山云SDK暂搁置，原因为：
-    1. 截止目前（2025-12-22）不支持邮件推送服务
-    2. 截止目前（2025-12-22）不支持云验证码服务
-    3. CDN系列接口没有SDK实现，需自主实现原生HTTP请求
-    4. DNS系列接口没有SDK实现，需自主实现原生HTTP请求
-    5. STS系列接口SDK方式基础库过大，原生支持困难，待有空再整理
+---
 
-    基于上述原因，且现在不是强依赖，如果耗时对接完成之后，火山云方面更新SDK版本之后，还得再更新一次。当然，欢迎有能力和有需求的小伙伴提PR ！
+## ❓ 常见问题
 
-- <span style="color: red">重要更新</span>：可选依赖现改为在业务项目内引入，不再在此组件内统一引入，大幅减小构建vendor体积。
+<details>
+<summary><b>为什么 function.php 不写在此项目的 composer.json？</b></summary>
 
-    
-    影响以下目录：
-    1. Common/CloudLib
+`function.php` 应该由业务项目的 `composer.json` 定义引入顺序，位置必须在项目自定义函数之后，否则无法预定义函数进行覆盖。如果放在此项目的 `composer.json` 中会被优先加载，失去灵活性。
 
-    
-    例如：项目A是用的腾讯云相关接口，那么阿里云、火山云等依赖是不需要引入的，因为真的有些依赖库是压缩后都有大几十MB的，而vendor与node_modules区别在于没有编译，5个G的node_modules编译后产物实际只有几MB，而vendor目录是会直接发布到生产环境服务器，这意味着每次CI/CD都带着一大堆用不上的代码，无法接受。
-    请主动到各个类声明中复制 composer require xxxx 来安装引入需要使用的依赖。
+</details>
 
-- 重构自定义消费进程，支持同进程处理多个任务，避免开太多闲置进程
-- 支持子链路和异步task里的链路追踪，通过协程上下文传递 `parent_id` 即可
-- Notify组件完全重写，支持多平台、多任务
+<details>
+<summary><b>为什么多数文件选择 Trait 而不使用继承？</b></summary>
 
-## TODO
+Trait 和继承各有优劣，选择 Trait 的主要目的是**不破坏 EasySwoole 推荐的继承关系**，保持框架的灵活性和扩展性。
 
-- [x] 创建定时任务Crontab和消费任务Consumer，src/Common/Classes/Crontab移动至src/Crontab目录
-- [x] 重写ShardTable类，已重写为TablePart类
-- [x] WebSocket相关类，事件、解析、Caller、连接符管理等
-- [x] Crontab支持database、file、http等方式获取
-- [x] es-orm-cache 组件封装，替换原有的cacheinfo系列方法
-- [x] 重写verify_token为面向对象风格，验证与生成token解耦
-- [x] CloudLib相关Composer依赖由业务层项目安装，移除本仓库所有相关依赖
+</details>
 
-## 常用命令
+<details>
+<summary><b>使用 Trait 有哪些注意事项？</b></summary>
 
-查看进程信息
->php easyswoole process show -d
+1. **不允许重写属性** - 定义了 `setTraitProtected` 方法来修改 Trait 属性
+2. **不允许重载方法** - 需要及时调整代码封装，避免整体复制导致维护困难
+3. **方法名前缀机制** - 控制器 public 方法默认添加固定前缀，通过 `BaseControllerTrait.php` 的 `actionNotFound` 方法实现灵活调用
 
-杀死指定进程
->php easyswoole process kill --pid=PID
+</details>
 
-杀死指定进程组
->php easyswoole process kill --group=GROUP_NAME
+<details>
+<summary><b>CloudLib 依赖如何安装？</b></summary>
 
-杀死所有进程
->php easyswoole process killAll
+从最新版本开始，可选依赖改为在业务项目内按需引入，不再统一引入，大幅减小 vendor 体积。
 
-强制杀死进程：带上 -f 参数
+请根据实际使用的云服务商到对应类声明中复制 `composer require` 命令安装所需依赖：
+- 使用腾讯云：安装腾讯云 SDK
+- 使用阿里云：安装阿里云 SDK
+- 按需安装，避免冗余
 
-查看Task进程状态
->php easyswoole task status
+</details>
 
-## 其他
+---
 
-- [trait冲突解决](https://www.php.net/manual/zh/language.oop5.traits.php)
-- [XlsWriter](https://xlswriter-docs.viest.me/zh-cn)
+## 🆕 版本更新说明
 
-## 感谢
+### 重要变更
 
-[<img src="https://resources.jetbrains.com/storage/products/company/brand/logos/jetbrains.png" alt="JetBrains Logo (Main) logo." height="50" />](https://www.jetbrains.com/)
+#### 🔐 安全性增强
+- **扩展参数独立存储** - 不再直接修改 EasySwoole 的 Request 对象，存储在控制器属性中，避免签名验证问题
+- **RSA 密文解密独立** - 强制关键数据必须经过 RSA 解密，防止恶意攻击
 
-## 贡献
+#### 🏗️ 架构重构
+- ✅ 重写链路追踪系统，支持子链路和异步任务追踪
+- ✅ 重写 JWT Token 相关函数和类
+- ✅ 重写协程上下文管理器，增强性能
+- ✅ 重写 Openssl 加密解密，支持多种加密方式（可扩展）
+- ✅ 重写 GeoIP 解析，支持多渠道（可扩展）
+- ✅ 重构自定义消费进程，支持同进程处理多个任务
+
+#### ⚡ 性能优化
+- 移除所有 `eval` 动态解析，提升安全性和性能
+- 优化 Redis 集群模式下分 key 规则及数据散列
+- 增加客户端临时密钥直传对象存储，支持超大文件上传（理论无上限）
+
+#### 🔌 扩展支持
+- 模型相关调整，更符合 ORM 最佳实践
+- CloudLib 增加多云商支持（腾讯云、阿里云）
+- Notify 组件完全重写，支持多平台、多任务
+
+#### 📦 依赖优化
+- **可选依赖按需安装** - CloudLib 相关 Composer 依赖改为业务项目按需安装
+- 大幅减小 vendor 体积，CI/CD 更快更轻量
+
+### TODO 列表
+
+- [x] 创建定时任务 Crontab 和消费任务 Consumer
+- [x] 重写 ShardTable 类为 TablePart 类
+- [x] WebSocket 相关类（事件、解析、Caller、连接管理）
+- [x] Crontab 支持 database、file、http 等多种获取方式
+- [x] es-orm-cache 组件封装
+- [x] 重写 verify_token 为面向对象风格
+- [x] CloudLib 依赖由业务层项目按需安装
+
+---
+## 📚 相关文档
+
+- [Trait 冲突解决方案](https://www.php.net/manual/zh/language.oop5.traits.php)
+- [XlsWriter 文档](https://xlswriter-docs.viest.me/zh-cn)
+
+---
+
+## 🤝 贡献
+
+我们欢迎所有形式的贡献，无论是新功能、Bug 修复还是文档改进。
+
+### 贡献指南
+
+1. Fork 本仓库
+2. 创建你的特性分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交你的修改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 开启一个 Pull Request
+
+### 贡献者排行榜
 
 <a href="https://openomy.com/basic-hub/es-core" target="_blank" style="display: block; width: 100%;margin-bottom: 1rem;" align="center">
   <img src="https://openomy.com/svg?repo=basic-hub/es-core&chart=bubble&latestMonth=12" target="_blank" alt="Contribution Leaderboard" style="display: block; width: 100%;" />
 </a>
 
+### 所有贡献者
+
 <a href="https://github.com/basic-hub/es-core/graphs/contributors">
   <img alt="Contributors" src="https://contrib.rocks/image?repo=basic-hub/es-core" />
 </a>
 
-## Star History
+---
+
+## ⭐ Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=basic-hub/es-core&type=Date)](https://star-history.com/#basic-hub/es-core&Date)
+
+---
+
+## 💖 鸣谢
+
+感谢 [JetBrains](https://www.jetbrains.com/) 为开源项目提供免费的 IDE 授权
+
+[<img src="https://resources.jetbrains.com/storage/products/company/brand/logos/jetbrains.png" alt="JetBrains Logo" height="100" />](https://www.jetbrains.com/)
+
+---
+
+## 📄 许可证
+
+本项目采用 MIT 许可证。详情请参阅 [LICENSE](LICENSE) 文件。
+
+---
+
+## 📞 联系我们
+
+- **Issues**: [GitHub Issues](https://github.com/basic-hub/es-core/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/basic-hub/es-core/discussions)
+
+---
+
+<div align="center">
+
+**如果这个项目对你有帮助，请给我们一个 ⭐ Star！**
+
+Made with ❤️ by Basic Hub Team
+
+</div>
